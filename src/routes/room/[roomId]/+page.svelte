@@ -3,13 +3,14 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { base, resolve } from '$app/paths';
+	import { PUBLIC_BASE_URL } from '$env/static/public';
+	import type { Message } from '$lib/types/message';
+	import MessageItem from '$lib/components/chat/message-item.svelte';
+	let roomId = $derived($page.params.roomId);
 
-	// Reactive declaration: Extracts 'general' out of /room/general dynamically
-	$: roomId = $page.params.roomId;
-
-	let currentUser = '';
-	let messages: string[] = [];
-	let inputMessage = '';
+	let currentUser = $state('');
+	let messages = $state<Message[]>([]);
+	let inputMessage = $state('');
 	let socket: WebSocket;
 
 	onMount(async () => {
@@ -22,12 +23,9 @@
 		}
 
 		currentUser = storedUser;
-
-		// Connect to your dynamic Quarkus WebSocket endpoint
-		socket = new WebSocket(`ws://localhost:8080/chat/${roomId}/${currentUser}`);
+		socket = new WebSocket(`ws://${PUBLIC_BASE_URL}/chat/${roomId}/${currentUser}`);
 
 		socket.onmessage = (event) => {
-			// In Svelte, we trigger array reactivity via explicit reassignment
 			messages = [...messages, event.data];
 		};
 
@@ -37,7 +35,8 @@
 		};
 	});
 
-	function sendMessage() {
+	function sendMessage(event: SubmitEvent) {
+		event.preventDefault();
 		if (!inputMessage.trim() || !socket) return;
 
 		socket.send(inputMessage);
@@ -68,15 +67,6 @@
 				>
 					# general
 				</a>
-				<a
-					href="{base}/room/engineering"
-					class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors {roomId ===
-					'engineering'
-						? 'bg-blue-600 text-white'
-						: 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-200'}"
-				>
-					# engineering
-				</a>
 			</nav>
 		</div>
 
@@ -88,7 +78,7 @@
 				</p>
 			</div>
 			<button
-				on:click={handleLogout}
+				onclick={handleLogout}
 				class="px-2 py-1 bg-red-600/80 hover:bg-red-600 text-xs font-medium rounded transition-colors text-white"
 			>
 				Logout
@@ -105,12 +95,8 @@
 		</header>
 
 		<div class="flex-1 overflow-y-auto p-6 space-y-3">
-			{#each messages as msg}
-				<div
-					class="p-3 bg-slate-800 border border-slate-700/50 rounded-xl shadow-sm max-w-max break-words"
-				>
-					<p class="text-sm leading-relaxed">{msg}</p>
-				</div>
+			{#each messages as message (message.id + message.sentAt)}
+				<MessageItem {message} />
 			{:else}
 				<div class="h-full flex items-center justify-center text-slate-500 text-sm italic">
 					No messages in #{roomId} yet. Start the conversation!
@@ -119,7 +105,7 @@
 		</div>
 
 		<footer class="p-4 border-t border-slate-700 bg-slate-800/30">
-			<form on:submit|preventDefault={sendMessage} class="flex gap-3">
+			<form onsubmit={sendMessage} class="flex gap-3">
 				<input
 					bind:value={inputMessage}
 					type="text"

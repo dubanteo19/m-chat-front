@@ -5,13 +5,13 @@
 
 	let username = $state('');
 	let password = $state('');
-	let fullName = $state('');
+	let displayName = $state('');
 	let errorMessage = $state('');
 
 	async function handleRegister(event: SubmitEvent) {
 		event.preventDefault();
 		errorMessage = '';
-		if (!username.trim() || !password.trim() || !fullName.trim()) {
+		if (!username.trim() || !password.trim() || !displayName.trim()) {
 			errorMessage = 'Please fill out all fields.';
 			return;
 		}
@@ -19,7 +19,7 @@
 			await authService.register({
 				username,
 				password,
-				name: fullName
+				displayName: displayName
 			});
 
 			localStorage.setItem('m_user', username);
@@ -43,11 +43,11 @@
 
 		<form onsubmit={handleRegister} class="space-y-4">
 			<div class="flex flex-col">
-				<label for="fullName" class="text-xs text-slate-300 font-medium mb-1.5">Full Name</label>
+				<label for="displayName" class="text-xs text-slate-300 font-medium mb-1.5">Full Name</label>
 				<input
 					type="text"
-					id="fullName"
-					bind:value={fullName}
+					id="displayName"
+					bind:value={displayName}
 					placeholder="John Doe"
 					class="p-3 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:border-blue-500 transition-colors"
 				/>
