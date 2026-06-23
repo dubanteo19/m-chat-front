@@ -2,5 +2,5 @@
 </script>
 
 <header>
-	<h2 class="text-center">This is the header</h2>
+	<!-- <h2 class="text-center">This is the header</h2> -->
 </header>

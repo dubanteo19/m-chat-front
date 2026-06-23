@@ -11,3 +11,8 @@ export interface AuthResponse {
     username: string;
     token?: string;
 }
+
+export interface PresignedUrlResponse {
+    uploadUrl: string;
+    downloadUrl: string;
+}
