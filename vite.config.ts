@@ -1,17 +1,16 @@
-import tailwindcss from '@tailwindcss/vite';
-import basicSsl from '@vitejs/plugin-basic-ssl'; // 1. Import the plugin
 import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
+import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
 	server: {
-		host: '0.0.0.0', // 3. Forces it to listen on your network interfaces
-		port: 5173
+		host: '0.0.0.0',
+		port: 5173,
+				allowedHosts: ['chat.dbt19.site']
 	},
 	plugins: [
 		tailwindcss(),
-		basicSsl(),
 		sveltekit({
 			compilerOptions: {
 				runes: ({ filename }) =>

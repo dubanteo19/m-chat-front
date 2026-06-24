@@ -2,10 +2,16 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { authService } from '$lib/api/auth';
-
+	import { page } from '$app/stores';
 	let username = $state('');
 	let password = $state('');
 	let errorMessage = $state('');
+	$effect(() => {
+		const savedUser = localStorage.getItem('m_user');
+		if (savedUser) {
+			goto(resolve('/room/general'));
+		}
+	});
 
 	const handleLogin = async (event: SubmitEvent) => {
 		event.preventDefault();
@@ -18,8 +24,13 @@
 
 		try {
 			await authService.login({ username, password });
-
 			localStorage.setItem('m_user', username);
+			const redirectTo = $page.url.searchParams.get('redirectTo');
+			if (redirectTo) {
+				// eslint-disable-next-line svelte/no-navigation-without-resolve
+				return goto(redirectTo);
+			}
+
 			return goto(resolve('/room/general'));
 		} catch (err: any) {
 			errorMessage = err.message;

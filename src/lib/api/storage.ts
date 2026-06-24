@@ -2,6 +2,7 @@
 import { apiClient } from './client';
 import type { PresignedUrlResponse } from './types';
 
+const VIDEO_STORAGE_URL = 'http://192.168.1.81:5000';
 export const storageService = {
     getPresignedUrl: (filename: string): Promise<PresignedUrlResponse> => {
         return apiClient.get(`/storage/presigned-url?filename=${encodeURIComponent(filename)}`);
@@ -20,13 +21,13 @@ export const storageService = {
         const formData = new FormData();
         formData.append('videos', file);
 
-        return fetch(`http://192.168.1.81:5000/upload/${encodeURIComponent(username)}`, {
+        return fetch(`${VIDEO_STORAGE_URL}/upload/${encodeURIComponent(username)}`, {
             method: 'POST',
             body: formData
         });
     },
 
     getVideoStreamUrl: (username: string, filename: string): string => {
-        return `http://192.168.1.81:5000/stream/${encodeURIComponent(username)}/${encodeURIComponent(filename)}`;
+        return `${VIDEO_STORAGE_URL}/stream/${encodeURIComponent(username)}/${encodeURIComponent(filename)}`;
     }
 };

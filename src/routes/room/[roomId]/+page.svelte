@@ -8,6 +8,7 @@
 	import MessageItem from '$lib/components/chat/message-item.svelte';
 	import type { Message } from '$lib/types/message';
 	import { tick } from 'svelte';
+	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { v4 as uuidv4 } from 'uuid';
 	let roomId = $derived($page.params.roomId);
 
@@ -16,6 +17,7 @@
 	let fileInputRef = $state<HTMLInputElement>();
 	let textareaRef = $state<HTMLTextAreaElement>();
 	let isDragging = $state(false);
+	let sidebarOpen = $state(false); // Mobile sidebar toggle state
 	let inputMessage = $state('');
 	let notificationStatus = $state('default');
 	let chatContainer = $state<HTMLDivElement>();
@@ -28,7 +30,7 @@
 	function processIncomingMessage(rawMsg: any): Message {
 		return {
 			...rawMsg,
-			isMine: rawMsg.sender === currentUser
+			isMine: rawMsg.sender.username === currentUser
 		};
 	}
 	function handleSystemSignals(parsedPayload: any) {
@@ -61,7 +63,7 @@
 
 	function triggerPushNotification(msg: Message) {
 		console.log(msg);
-		if ((msg.isMine || document.visibilityState === 'visible' || msg.type === 'SYSTEM')) return;
+		if (msg.isMine || document.visibilityState === 'visible' || msg.type === 'SYSTEM') return;
 		if (notificationStatus === 'granted') {
 			let bodyText = msg.content;
 
@@ -83,13 +85,18 @@
 	$effect(() => {
 		const storedUser = localStorage.getItem('m_user');
 		if (!storedUser) {
-			goto(resolve('/login'));
+			const currentPath = $page.url.pathname + $page.url.search;
+			const params = new SvelteURLSearchParams();
+			params.set('redirectTo', currentPath);
+			const destination = `${resolve('/login')}?${params.toString()}`;
+			// eslint-disable-next-line svelte/no-navigation-without-resolve
+			goto(destination);
 			return;
 		}
 		currentUser = storedUser;
 		messages = [];
 		if (roomId) loadChatHistory(roomId);
-		socket = new WebSocket(`ws://${PUBLIC_BASE_URL}/chat/${roomId}/${currentUser}`);
+		socket = new WebSocket(`wss://${PUBLIC_BASE_URL}/chat/${roomId}/${currentUser}`);
 		socket.onmessage = (event) => {
 			const parsed = JSON.parse(event.data);
 			if (parsed.type === 'TYPING_START' || parsed.type === 'TYPING_STOP') {
@@ -255,25 +262,49 @@
 	});
 </script>
 
-<div class="flex flex-1 max-h-screen bg-slate-900 text-slate-100 font-sans">
-	<aside class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col justify-between">
+<div class="flex h-screen max-h-screen bg-slate-900 text-slate-100 font-sans overflow-hidden">
+	<!-- Mobile Sidebar Overlay Backdrop -->
+	{#if sidebarOpen}
+		<button
+			onclick={() => (sidebarOpen = false)}
+			class="fixed inset-0 bg-black/60 z-40 md:hidden transition-opacity"
+			aria-label="Close sidebar"
+		></button>
+	{/if}
+
+	<!-- Sidebar (Responsive Drawer) -->
+	<aside
+		class="w-64 bg-slate-800 border-r border-slate-700 flex flex-col justify-between fixed md:static inset-y-0 left-0 z-50 transform {sidebarOpen
+			? 'translate-x-0'
+			: '-translate-x-full'} md:translate-x-0 transition-transform duration-200 ease-in-out"
+	>
 		<div>
 			{#if notificationStatus === 'default'}
-				<button
-					onclick={requestAlertPermissions}
-					class="text-xs px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white rounded transition"
-				>
-					🔔 Enable Desktop Alerts
-				</button>
+				<div class="p-4 pb-0">
+					<button
+						onclick={requestAlertPermissions}
+						class="w-full text-xs px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white rounded transition"
+					>
+						🔔 Enable Desktop Alerts
+					</button>
+				</div>
 			{/if}
-			<div class="p-4 border-b border-slate-700">
+			<div class="p-4 border-b border-slate-700 flex items-center justify-between">
 				<span class="text-xl font-bold tracking-wider text-blue-500">m-chat</span>
+				<!-- Close Button Mobile only -->
+				<button
+					onclick={() => (sidebarOpen = false)}
+					class="md:hidden text-slate-400 hover:text-white text-xl"
+				>
+					✕
+				</button>
 			</div>
 			<nav class="p-4 space-y-2">
 				<p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Channels</p>
 
 				<a
 					href="{base}/room/general"
+					onclick={() => (sidebarOpen = false)}
 					class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors {roomId ===
 					'general'
 						? 'bg-blue-600 text-white'
@@ -300,8 +331,9 @@
 		</div>
 	</aside>
 
+	<!-- Main Chat Window -->
 	<main
-		class="relative flex-1 flex flex-col min-w-0"
+		class="relative flex-1 flex flex-col min-w-0 h-full"
 		onpaste={handlePaste}
 		ondragover={(e) => {
 			e.preventDefault();
@@ -317,8 +349,19 @@
 				<p class="text-xl font-semibold text-blue-400 animate-pulse">Drop image here to send...</p>
 			</div>
 		{/if}
-		<header class="h-16 border-b border-slate-700 bg-slate-800/50 flex items-center px-6">
-			<h2 class="text-lg font-bold tracking-wide">
+
+		<header
+			class="h-16 border-b border-slate-700 bg-slate-800/50 flex items-center px-4 md:px-6 gap-3"
+		>
+			<!-- Hamburger menu button -->
+			<button
+				onclick={() => (sidebarOpen = true)}
+				class="md:hidden p-2 text-slate-400 hover:text-slate-200 focus:outline-none"
+				aria-label="Open sidebar"
+			>
+				☰
+			</button>
+			<h2 class="text-lg font-bold tracking-wide truncate">
 				<span class="text-slate-400">#</span>
 				{roomId}
 			</h2>
@@ -331,7 +374,7 @@
 			{#each messages as message (message.sentAt)}
 				<MessageItem {message} onImageLoad={scrollToBottom} />
 			{/each}
-			<div class="h-6 p-4 text-xs text-slate-400 italic">
+			<div class="h-6 p-2 text-xs text-slate-400 italic">
 				{#if typingUsers.length === 1}
 					<span class="font-medium text-blue-400">{typingUsers[0]}</span> is typing
 					<span class="animate-pulse">...</span>
@@ -348,8 +391,8 @@
 			</div>
 		</div>
 
-		<footer class="p-4 border-t border-slate-700 bg-slate-800/30">
-			<form onsubmit={sendMessage} class="flex gap-3">
+		<footer class="p-3 md:p-4 border-t border-slate-700 bg-slate-800/30">
+			<form onsubmit={sendMessage} class="flex gap-2 md:gap-3 items-end">
 				<input
 					bind:this={fileInputRef}
 					type="file"
@@ -363,7 +406,7 @@
 				<button
 					type="button"
 					onclick={() => fileInputRef?.click()}
-					class="p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
+					class="p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors h-[46px]"
 					title="Upload Image"
 				>
 					📎
@@ -375,11 +418,11 @@
 					onkeydown={handleKeyDown}
 					rows="1"
 					placeholder="Message #{roomId}..."
-					class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors resize-none max-h-36 overflow-y-auto align-bottom leading-normal"
+					class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors resize-none max-h-36 overflow-y-auto min-h-[46px] leading-normal"
 				></textarea>
 				<button
 					type="submit"
-					class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-blue-900/20"
+					class="px-4 md:px-6 h-[46px] bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-blue-900/20 whitespace-nowrap"
 				>
 					Send
 				</button>
