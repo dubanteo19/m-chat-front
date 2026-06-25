@@ -7,17 +7,20 @@
 	import { storageService } from '$lib/api/storage';
 	import MessageItem from '$lib/components/chat/message-item.svelte';
 	import type { Message } from '$lib/types/message';
+	import { truncateText } from '$lib/utils/text';
 	import { tick } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { v4 as uuidv4 } from 'uuid';
 	let roomId = $derived($page.params.roomId);
 
+	let pingInterval: ReturnType<typeof setInterval>;
 	let currentUser = $state('');
 	let messages = $state<Message[]>([]);
 	let fileInputRef = $state<HTMLInputElement>();
 	let textareaRef = $state<HTMLTextAreaElement>();
 	let isDragging = $state(false);
-	let sidebarOpen = $state(false); // Mobile sidebar toggle state
+	let sidebarOpen = $state(false);
+	let repliedToMessage = $state<Message | null>(null);
 	let inputMessage = $state('');
 	let notificationStatus = $state('default');
 	let chatContainer = $state<HTMLDivElement>();
@@ -33,6 +36,7 @@
 			isMine: rawMsg.sender.username === currentUser
 		};
 	}
+
 	function handleSystemSignals(parsedPayload: any) {
 		const { type, sender } = parsedPayload;
 		// Skip if the signal originated from our own client instance
@@ -62,7 +66,6 @@
 	}
 
 	function triggerPushNotification(msg: Message) {
-		console.log(msg);
 		if (msg.isMine || document.visibilityState === 'visible' || msg.type === 'SYSTEM') return;
 		if (notificationStatus === 'granted') {
 			let bodyText = msg.content;
@@ -71,7 +74,7 @@
 			if (msg.type === 'VIDEO') bodyText = '🎥 Sent a video streaming attachment';
 
 			if (typeof window !== 'undefined' && 'Notification' in window) {
-				const notification = new Notification(`#${roomId} - ${msg.sender}`, {
+				const notification = new Notification(`#${roomId} - ${msg.sender.displayName}`, {
 					body: bodyText,
 					icon: '/favicon.png'
 				});
@@ -109,6 +112,16 @@
 			scrollToBottom();
 		};
 
+		socket.onopen = () => {
+			pingInterval = setInterval(() => {
+				if (socket?.readyState === WebSocket.OPEN) {
+					socket.send(JSON.stringify({ type: 'PING' }));
+				}
+			}, 30000);
+		};
+		socket.onclose = () => {
+			clearInterval(pingInterval);
+		};
 		return () => {
 			if (socket) {
 				socket.close();
@@ -147,14 +160,34 @@
 		}
 	}
 
+	function handleDelete(message: Message) {}
+
+	function handleReact(messageId: number, emoji: string) {
+		if (!socket || socket.readyState !== WebSocket.OPEN) return;
+		const payload = {
+			type: 'REACTION',
+			messageId: messageId,
+			content: emoji,
+			sender: currentUser
+		};
+		socket.send(JSON.stringify(payload));
+	}
+
+	function handleReply(message: Message) {
+		repliedToMessage = message;
+		if (textareaRef) {
+			textareaRef.focus();
+		}
+	}
+
 	function handleTextAreaInput() {
 		handleInputChange();
-
 		if (textareaRef) {
 			textareaRef.style.height = 'auto';
 			textareaRef.style.height = `${textareaRef.scrollHeight}px`;
 		}
 	}
+
 	async function scrollToBottom() {
 		await tick();
 		if (chatContainer) {
@@ -219,9 +252,15 @@
 	function sendMessage(event: SubmitEvent) {
 		event.preventDefault();
 		if (!inputMessage.trim() || !socket) return;
+		const payload = {
+			type: 'TEXT',
+			content: inputMessage,
+			parentId: repliedToMessage ? repliedToMessage.id : null
+		};
 
-		socket.send(inputMessage);
-		inputMessage = ''; // Reset input field cleanly
+		socket.send(JSON.stringify(payload));
+		inputMessage = '';
+		if (repliedToMessage) repliedToMessage = null;
 		if (textareaRef) textareaRef.style.height = 'auto';
 		if (amITyping) {
 			clearTimeout(typingTimeout);
@@ -372,7 +411,13 @@
 			class="flex flex-1 flex-col gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
 		>
 			{#each messages as message (message.sentAt)}
-				<MessageItem {message} onImageLoad={scrollToBottom} />
+				<MessageItem
+					{message}
+					onImageLoad={scrollToBottom}
+					{handleReply}
+					{handleDelete}
+					{handleReact}
+				/>
 			{/each}
 			<div class="h-6 p-2 text-xs text-slate-400 italic">
 				{#if typingUsers.length === 1}
@@ -411,15 +456,42 @@
 				>
 					📎
 				</button>
-				<textarea
-					bind:this={textareaRef}
-					bind:value={inputMessage}
-					oninput={handleTextAreaInput}
-					onkeydown={handleKeyDown}
-					rows="1"
-					placeholder="Message #{roomId}..."
-					class="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-3 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors resize-none max-h-36 overflow-y-auto min-h-[46px] leading-normal"
-				></textarea>
+				<div
+					class="flex-1 flex flex-col bg-slate-700 border border-slate-600 rounded-lg focus-within:border-blue-500 transition-colors overflow-hidden"
+				>
+					{#if repliedToMessage}
+						<div
+							class="flex items-center justify-between bg-slate-800/40 w-50 m-2 px-3 py-2 text-xs text-slate-300 animate-in fade-in slide-in-from-bottom-1 duration-150"
+						>
+							<div class="min-w-0 flex-1 mr-4">
+								<span class="font-semibold text-indigo-400 text-[11px] block">
+									Replying to {repliedToMessage.sender.displayName}
+								</span>
+								<p class="text-slate-400 italic text-[11px] mt-0.5 truncate font-mono">
+									{truncateText(repliedToMessage.content)}
+								</p>
+							</div>
+							<button
+								type="button"
+								onclick={() => (repliedToMessage = null)}
+								class="text-slate-400 hover:text-white p-0.5 rounded hover:bg-slate-600 transition-colors shrink-0"
+								title="Cancel reply"
+							>
+								X
+							</button>
+						</div>
+					{/if}
+
+					<textarea
+						bind:this={textareaRef}
+						bind:value={inputMessage}
+						oninput={handleTextAreaInput}
+						onkeydown={handleKeyDown}
+						rows="1"
+						placeholder="Message #{roomId}..."
+						class="w-full bg-transparent px-3 py-3 text-white placeholder-slate-400 resize-none max-h-36 overflow-y-auto min-h-[46px] leading-normal [&::-webkit-scrollbar]:hidden
+		outline-none border-none ring-0 focus:outline-none focus:ring-0"></textarea>
+				</div>
 				<button
 					type="submit"
 					class="px-4 md:px-6 h-[46px] bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-blue-900/20 whitespace-nowrap"

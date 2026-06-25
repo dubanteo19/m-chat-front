@@ -4,21 +4,21 @@ export type SenderInfo = {
     avatarUrl: string | null;
     title: string | null;
 };
-
+export type MessageType = 'TEXT' | 'IMAGE' | 'VIDEO' | 'SYSTEM';
 export type RepliedMessageInfo = {
     id: number;
     senderName: string;
     content: string;
-    type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'SYSTEM';
+    type: MessageType
 };
 
 export type Message = {
     id: number;
-    type: 'TEXT' | 'IMAGE' | 'VIDEO' | 'SYSTEM';
-    sender: SenderInfo; // Changed from plain string to structural object
+    type: MessageType
+    sender: SenderInfo;
     content: string;
     sentAt: string;
     isMine?: boolean;
-    isUnsent: boolean; // New soft-delete tracker
-    repliedTo: RepliedMessageInfo | null; // New context layout tracker
+    isDeleted: boolean;
+    repliedTo: RepliedMessageInfo | null;
 };

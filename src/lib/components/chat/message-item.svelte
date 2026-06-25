@@ -1,10 +1,17 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/message';
 	import { formatDate } from '$lib/utils/date';
+	import { truncateText } from '$lib/utils/text';
 	import PhotoSwipe from 'photoswipe';
 	import 'photoswipe/dist/photoswipe.css';
 
-	let { message, onImageLoad } = $props<{ message: Message; onImageLoad?: () => void }>();
+	let { message, onImageLoad, handleReply, handleDelete, handleReact } = $props<{
+		message: Message;
+		onImageLoad?: () => void;
+		handleReply?: (message: Message) => void;
+		handleDelete?: (message: Message) => void;
+		handleReact?: (messageId: number, emoji: string) => void;
+	}>();
 	let imgElement = $state<HTMLImageElement>();
 
 	const isSystem = $derived(message.type === 'SYSTEM');
@@ -53,15 +60,13 @@
 
 <div
 	id="msg-{message.id}"
-	class="flex gap-2 max-w-xl group relative my-0.5
-	{isSystem
-		? 'w-full justify-center mx-auto'
-		: message.isMine
-			? 'ml-auto flex-row-reverse'
-			: 'mr-auto flex-row'}"
+	class:justify-end={message.isMine}
+	class:justify-start={!message.isMine}
+	class:justify-center={isSystem}
+	class="flex gap-2 w-full my-0.5 {isSystem && 'mx-auto'}"
 >
 	{#if !isSystem}
-		<div class="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 overflow-hidden self-end">
+		<div class="shrink-0 w-8 h-8 rounded-full bg-slate-200 overflow-hidden self-end">
 			{#if message.sender.avatarUrl}
 				<img
 					src={message.sender.avatarUrl}
@@ -78,19 +83,20 @@
 		</div>
 	{/if}
 
-	<div class="flex flex-col gap-0.5 max-w-[85%] {message.isMine ? 'items-end' : 'items-start'}">
+	<div
+		class="flex flex-col gap-0.5 max-w-[85%] group relative {message.isMine
+			? 'self-end'
+			: 'self-start'}"
+	>
 		{#if !isSystem}
-			<div class="text-[11px] text-slate-400 flex items-center gap-1.5 px-1">
-				{#if !message.isMine}
-					<span class="font-semibold text-slate-600">{message.sender.displayName}</span>
-					{#if message.sender.title}
-						<span
-							class="bg-slate-100 text-slate-500 font-mono text-[9px] px-1 rounded uppercase tracking-wider"
-							>{message.sender.title}</span
-						>
-					{/if}
+			<div class="text-[11px] text-slate-400 flex items-baseline gap-1.5 px-1">
+				<span class="font-bold text-slate-600">{message.sender.displayName}</span>
+				{#if message.sender.title}
+					<span class="bg-slate-200 text-purple-500 font-bold text-[9px] px-1 rounded uppercase"
+						>{message.sender.title}</span
+					>
 				{/if}
-				<span>{formatDate(message.sentAt)}</span>
+				<span class="text-[9px]">{formatDate(message.sentAt)}</span>
 			</div>
 		{/if}
 
@@ -108,7 +114,7 @@
 					{:else if message.repliedTo.type === 'VIDEO'}
 						🎥 Video file
 					{:else}
-						{message.repliedTo.content}
+						{truncateText(message.repliedTo.content)}
 					{/if}
 				</span>
 			</button>
@@ -124,13 +130,13 @@
 			</div>
 		{:else if message.type === 'TEXT'}
 			<div
-				class="flex rounded-2xl border px-4 py-2 text-sm w-fit shadow-sm
+				class="inline-block w-auto max-w-full rounded-2xl border px-4 py-2 text-sm shadow-sm
 				{message.repliedTo ? 'rounded-t-none' : ''}
 				{message.isMine
-					? 'border-indigo-100 bg-indigo-600 text-white rounded-br-none'
+					? 'border-indigo-100 bg-slate-400 text-white rounded-br-none'
 					: 'border-slate-200 bg-white text-slate-800 rounded-bl-none'}"
 			>
-				<p class="whitespace-pre-wrap break-words leading-relaxed">
+				<p class="whitespace-pre-wrap leading-relaxed" style="overflow-wrap:anywhere">
 					{message.content}
 				</p>
 			</div>
@@ -153,10 +159,45 @@
 			</div>
 		{:else if message.type === 'SYSTEM'}
 			<div
-				class="text-center text-[11px] tracking-wide font-medium text-slate-500 bg-slate-100/70 border border-slate-200/50 px-3 py-1 rounded-full my-1"
+				class="text-center text-[11px] tracking-wide font-medium bg-slate-100/30 border border-slate-200/50 px-3 py-1 rounded-full my-1"
 			>
 				{message.content}
 				<span class="text-slate-400 font-normal ml-1">({formatDate(message.sentAt)})</span>
+			</div>
+		{/if}
+		{#if !isSystem && !message.isUnsent}
+			<div
+				class="absolute -top-6 z-20 hidden group-hover:flex items-center gap-1 bg-white border border-slate-200
+				shadow-md rounded-full px-2 py-1 transition-all fade-in zoom-in-95
+				{message.isMine ? 'right-2' : 'left-2'}"
+			>
+				<div class="flex items-center gap-0.5 border-r border-slate-100 pr-1.5 mr-0.5">
+					{#each ['👍', '❤️', '😂', '😮', '😢', '🙏'] as emoji (emoji)}
+						<button
+							onclick={() => handleReact(message.id, emoji)}
+							class="hover:scale-125 active:scale-90 transition-transform text-base p-0.5 rounded-full duration-700"
+							title="React with {emoji}"
+						>
+							{emoji}
+						</button>
+					{/each}
+				</div>
+
+				<button
+					onclick={() => handleReply(message)}
+					class="text-xs font-medium text-slate-600 hover:bg-slate-50 px-2 py-1 rounded-full flex items-center gap-1 transition-colors"
+				>
+					↩
+				</button>
+
+				{#if message.isMine}
+					<button
+						onclick={() => handleDelete(message)}
+						class="text-xs font-medium text-slate-600 hover:bg-slate-50 px-2 py-1 rounded-full flex items-center gap-1 transition-colors"
+					>
+						🗑️
+					</button>
+				{/if}
 			</div>
 		{/if}
 	</div>

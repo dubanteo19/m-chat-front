@@ -83,6 +83,7 @@ input,
 button {
 	font-size: inherit;
 	font-family: inherit;
+	cursor: pointer;
 }
 
 button:focus:not(:focus-visible) {
