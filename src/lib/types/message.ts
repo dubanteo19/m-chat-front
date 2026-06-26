@@ -11,7 +11,11 @@ export type RepliedMessageInfo = {
     content: string;
     type: MessageType
 };
-
+export type ReactionInfo = {
+    type: string;
+    sender: SenderInfo;
+    reactedAt: string;
+};
 export type Message = {
     id: number;
     type: MessageType
@@ -21,4 +25,5 @@ export type Message = {
     isMine?: boolean;
     isDeleted: boolean;
     repliedTo: RepliedMessageInfo | null;
+    reactions: ReactionInfo[];
 };

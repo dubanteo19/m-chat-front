@@ -6,7 +6,7 @@
 	import { roomService } from '$lib/api/room';
 	import { storageService } from '$lib/api/storage';
 	import MessageItem from '$lib/components/chat/message-item.svelte';
-	import type { Message } from '$lib/types/message';
+	import type { Message, ReactionInfo, SenderInfo } from '$lib/types/message';
 	import { truncateText } from '$lib/utils/text';
 	import { tick } from 'svelte';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
@@ -25,6 +25,7 @@
 	let notificationStatus = $state('default');
 	let chatContainer = $state<HTMLDivElement>();
 	let typingUsers = $state<string[]>([]);
+	let showStickerPicker = $state(false);
 	let typingTimeout: NodeJS.Timeout;
 	let amITyping = false;
 	let socket: WebSocket;
@@ -35,6 +36,184 @@
 			...rawMsg,
 			isMine: rawMsg.sender.username === currentUser
 		};
+	}
+	// Define your sticker packs
+	const stickerPacks = [
+		{
+			id: 'pepe_dance',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f483/512.webp',
+			name: 'Dance'
+		},
+		{
+			id: 'doge_wow',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f436/512.webp',
+			name: 'Doge'
+		},
+		{
+			id: 'cat_heart',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f63b/512.webp',
+			name: 'Cat Love'
+		},
+		{
+			id: 'fire_hype',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f525/512.webp',
+			name: 'Fire Hype'
+		},
+		// --- EXTENDED EMOTIONAL STICKERS ---
+		{
+			id: 'blob_cry',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f62d/512.webp',
+			name: 'Sobbing'
+		},
+		{
+			id: 'laugh_tilt',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f923/512.webp',
+			name: 'ROFL'
+		},
+		{
+			id: 'mind_blown',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f92f/512.webp',
+			name: 'Mind Blown'
+		},
+		{
+			id: 'thinking_hm',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.webp',
+			name: 'Thinking'
+		},
+		// --- EXTENDED TECH & GEEK STICKERS ---
+		{
+			id: 'cyber_alien',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f47d/512.webp',
+			name: 'Alien'
+		},
+		{
+			id: 'party_wizard',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1e9d9_200d_2642_fe0f/512.webp',
+			name: 'Wizard'
+		},
+		{
+			id: 'cool_sunglasses',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp',
+			name: 'Deal With It'
+		},
+		{
+			id: 'clown_fiesta',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f921/512.webp',
+			name: 'Clown'
+		},
+		// --- EXTENDED CELEBRATION & REACTION STICKERS ---
+		{
+			id: 'party_popper',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f389/512.webp',
+			name: 'Celebrate'
+		},
+		{
+			id: 'rocket_moon',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f680/512.webp',
+			name: 'To the Moon'
+		},
+		{
+			id: 'eyes_look',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f440/512.webp',
+			name: 'Suspicious'
+		},
+		{
+			id: 'ghost_boo',
+			url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f47b/512.webp',
+			name: 'Ghost'
+		}
+	];
+
+	// Function to send a sticker message through WebSocket
+	function sendSticker(stickerUrl: string) {
+		if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+		const payload = {
+			type: 'STICKER',
+			content: stickerUrl,
+			parentId: repliedToMessage ? repliedToMessage.id : null
+		};
+
+		socket.send(JSON.stringify(payload));
+		showStickerPicker = false; // Close the menu after selection
+		if (repliedToMessage) repliedToMessage = null;
+	}
+
+	export function handleLiveReactionSignal(
+		currentMessages: Message[],
+		payload: {
+			messageId: string | number;
+			action: 'ADDED' | 'REMOVED';
+			reaction: {
+				type: string;
+				sender: SenderInfo;
+				reactedAt: string;
+			};
+		}
+	): Message[] {
+		const targetId = Number(payload.messageId);
+		const action = payload.action;
+		const incomingReaction = payload.reaction;
+
+		return currentMessages.map((msg) => {
+			if (msg.id !== targetId) return msg;
+
+			// Ensure we always have an iterable array
+			const currentReactions = msg.reactions || [];
+
+			if (action === 'ADDED') {
+				// Deduplicate check matching your ReactionInfo flat type layout
+				const exists = currentReactions.some(
+					(r) =>
+						r.type === incomingReaction.type &&
+						r.sender.username === incomingReaction.sender.username
+				);
+				if (exists) return msg;
+				// 2. NOTIFY THE AUTHOR (IF IT IS ME & SOMEONE ELSE REACTED)
+				// Ensure you have access to `currentUser` (e.g., current user's username)
+				const isMyMessage = msg.sender.username === currentUser;
+				const isNotMyOwnReaction = incomingReaction.sender.username !== currentUser;
+
+				if (isMyMessage && isNotMyOwnReaction) {
+					// Construct a fake/virtual message structure that triggerPushNotification expects
+					const mockReactionMessage: Message = {
+						...msg, // Copies roomId, types, etc.
+						isMine: false, // Override so the function passes its built-in return check
+						type: 'TEXT', // Ensuring it doesn't hit the 'SYSTEM' bypass rule
+						sender: incomingReaction.sender, // The person who reacted becomes the "sender" of this alert
+						content: `Reacted ${incomingReaction.type} to your message: "${msg.content || 'Attachment'}"`
+					};
+
+					triggerPushNotification(mockReactionMessage);
+				}
+				// Construct the new item to perfectly match ReactionInfo
+				const newReaction: ReactionInfo = {
+					type: incomingReaction.type,
+					sender: incomingReaction.sender,
+					reactedAt: incomingReaction.reactedAt || new Date().toISOString()
+				};
+
+				return {
+					...msg,
+					reactions: [...currentReactions, newReaction]
+				};
+			}
+
+			if (action === 'REMOVED') {
+				return {
+					...msg,
+					reactions: currentReactions.filter(
+						(r) =>
+							!(
+								r.type === incomingReaction.type &&
+								r.sender.username === incomingReaction.sender.username
+							)
+					)
+				};
+			}
+
+			return msg;
+		});
 	}
 
 	function handleSystemSignals(parsedPayload: any) {
@@ -105,6 +284,11 @@
 			if (parsed.type === 'TYPING_START' || parsed.type === 'TYPING_STOP') {
 				handleSystemSignals(parsed);
 				return;
+			}
+
+			if (parsed.type === 'REACTION') {
+				messages = handleLiveReactionSignal(messages, parsed);
+				return; // Stop early: avoids list insertion or triggering push popups
 			}
 			const formattedMessage = processIncomingMessage(parsed);
 			messages = [...messages, formattedMessage];
@@ -448,14 +632,59 @@
 						if (target.files?.[0]) handleFileUpload(target.files[0]);
 					}}
 				/>
-				<button
-					type="button"
-					onclick={() => fileInputRef?.click()}
-					class="p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors h-[46px]"
-					title="Upload Image"
-				>
-					📎
-				</button>
+				<div class="relative flex gap-1 shrink-0">
+					<button
+						type="button"
+						onclick={() => fileInputRef?.click()}
+						class="p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors h-[46px]"
+						title="Upload Image"
+					>
+						📎
+					</button>
+
+					<button
+						type="button"
+						onclick={() => (showStickerPicker = !showStickerPicker)}
+						class="p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-xl transition-colors h-[46px] flex items-center justify-center"
+						title="Send a Sticker"
+					>
+						🎭
+					</button>
+
+					{#if showStickerPicker}
+						<div
+							class="absolute bottom-full left-0 mb-3 z-50 w-64 bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200"
+						>
+							<div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-700">
+								<span class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+									>Select Sticker</span
+								>
+								<button
+									type="button"
+									onclick={() => (showStickerPicker = false)}
+									class="text-xs text-slate-400 hover:text-white">✕</button
+								>
+							</div>
+
+							<div class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto pr-1">
+								{#each stickerPacks as sticker (sticker.id)}
+									<button
+										type="button"
+										onclick={() => sendSticker(sticker.url)}
+										class="p-1.5 rounded-lg bg-slate-700/40 hover:bg-slate-700 hover:scale-105 active:scale-95 transition-all flex items-center justify-center group"
+									>
+										<img
+											src={sticker.url}
+											alt={sticker.name}
+											class="w-12 h-12 object-contain"
+											loading="lazy"
+										/>
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
+				</div>
 				<div
 					class="flex-1 flex flex-col bg-slate-700 border border-slate-600 rounded-lg focus-within:border-blue-500 transition-colors overflow-hidden"
 				>
