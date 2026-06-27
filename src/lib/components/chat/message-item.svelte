@@ -1,17 +1,27 @@
 <script lang="ts">
 	import { ALL_EMOJIS } from '$lib/constants/emojis';
-	import type { Message } from '$lib/types/message';
+	import type { Message, ReactionInfo } from '$lib/types/message';
 	import { formatDate } from '$lib/utils/date';
 	import { truncateText } from '$lib/utils/text';
 	import PhotoSwipe from 'photoswipe';
 	import 'photoswipe/dist/photoswipe.css';
 
-	let { message, onImageLoad, handleReply, handleDelete, handleReact } = $props<{
+	let {
+		message,
+		onImageLoad,
+		handleReply,
+		handleDelete,
+		handleReact,
+		openReactionId,
+		setOpenReactionId
+	} = $props<{
 		message: Message;
 		onImageLoad?: () => void;
 		handleReply?: (message: Message) => void;
 		handleDelete?: (message: Message) => void;
 		handleReact?: (messageId: number, emoji: string) => void;
+		openReactionId: number | null;
+		setOpenReactionId: (id: number | null) => void;
 	}>();
 	let imgElement = $state<HTMLImageElement>();
 
@@ -22,9 +32,22 @@
 
 	function selectEmoji(id: number, emoji: string) {
 		handleReact(id, emoji);
+		setOpenReactionId(null);
 		showMore = false;
 	}
+	let pressTimer: ReturnType<typeof setTimeout>;
 
+	function handlePressStart(id: number) {
+		clearTimeout(pressTimer);
+
+		pressTimer = setTimeout(() => {
+			setOpenReactionId(id);
+		}, 400);
+	}
+
+	function handlePressEnd() {
+		clearTimeout(pressTimer);
+	}
 	let hoveredReactionType = $state<string | null>(null);
 	let finalWidth = $state(1200);
 	let finalHeight = $state(900);
@@ -38,7 +61,6 @@
 			}
 			groups[r.type].count++;
 
-			// FIX: Read from the nested sender object
 			if (r.sender && r.sender.displayName) {
 				groups[r.type].users.push(r.sender.displayName);
 			}
@@ -112,7 +134,20 @@
 	{/if}
 
 	<div
-		class="flex flex-col gap-0.5 max-w-[85%] group relative {message.isMine
+		onmousedown={(e) => {
+			e.stopPropagation();
+			handlePressStart(message.id);
+		}}
+		ontouchstart={(e) => {
+			e.stopPropagation();
+			handlePressStart(message.id);
+		}}
+		onmouseup={handlePressEnd}
+		role="button"
+		tabindex="0"
+		onmouseleave={handlePressEnd}
+		ontouchend={handlePressEnd}
+		class="flex flex-col gap-0.5 max-w-[85%] group relative select-none {message.isMine
 			? 'self-end'
 			: 'self-start'}"
 	>
@@ -192,7 +227,9 @@
 			</div>
 		{:else if message.type === 'VIDEO'}
 			<div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-black max-w-sm">
-				<video src={message.content} controls class="max-h-64 w-full object-contain" />
+				<video src={message.content} controls class="max-h-64 w-full object-contain">
+					<track kind="captions" />
+				</video>
 			</div>
 		{:else if message.type === 'SYSTEM'}
 			<div
@@ -222,7 +259,7 @@
 									{reaction.type}
 								</div>
 								<div class="max-h-36 overflow-y-auto flex flex-col gap-1 mt-1">
-									{#each message.reactions.filter((r) => r.type === reaction.type) as r (r.sender.username)}
+									{#each message.reactions.filter((r: ReactionInfo) => r.type === reaction.type) as r (r.sender.username)}
 										<div
 											class="flex items-center gap-2 px-1 py-1 rounded hover:bg-slate-50 transition-colors"
 										>
@@ -274,14 +311,19 @@
 		{/if}
 		{#if !isSystem && !message.isUnsent}
 			<div
-				class="absolute -top-6 z-20 hidden group-hover:flex items-center gap-1 bg-white border border-slate-200
-				shadow-md rounded-full px-2 py-1 transition-all fade-in zoom-in-95
-				{message.isMine ? 'right-2' : 'left-2'}"
+				class="absolute -top-6 z-20 flex items-center gap-1 bg-white border border-slate-200
+	shadow-md rounded-full px-2 py-1 transition-all fade-in zoom-in-95
+	{message.isMine ? 'right-2' : 'left-2'}
+  {openReactionId === message.id ? 'flex' : 'hidden md:group-hover:flex'}"
 			>
+				" >
 				<div class="relative flex items-center gap-0.5 border-r-2 border-slate-500 pr-1.5 mr-0.5">
 					{#each visibleEmojis as emoji (emoji)}
 						<button
-							onclick={() => handleReact(message.id, emoji)}
+							onclick={(e) => {
+								e.stopPropagation();
+								selectEmoji(message.id, emoji);
+							}}
 							class="hover:scale-125 active:scale-90 transition-transform text-base p-0.5 rounded-full duration-700"
 							title="React with {emoji}"
 						>
