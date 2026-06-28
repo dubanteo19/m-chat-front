@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { base } from '$app/paths';
+	import Button from '../ui/button.svelte';
 
 	let { sidebarOpen = $bindable(), roomId, currentUser } = $props();
 
@@ -13,11 +14,11 @@
 </script>
 
 {#if sidebarOpen}
-	<button
+	<Button
 		onclick={() => (sidebarOpen = false)}
-		class="fixed inset-0 bg-black/60 z-40 md:hidden transition-opacity"
+		class="fixed inset-0  z-40 md:hidden "
 		aria-label="Close sidebar"
-	></button>
+	></Button>
 {/if}
 
 <aside
@@ -28,22 +29,12 @@
 	<div>
 		{#if notificationService.status === 'default'}
 			<div class="p-4 pb-0">
-				<button
-					onclick={notificationService.requestPermission}
-					class="w-full text-xs px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white rounded transition"
-				>
-					🔔 Enable Desktop Alerts
-				</button>
+				<Button onclick={notificationService.requestPermission}>🔔 Enable Desktop Alerts</Button>
 			</div>
 		{/if}
 		<div class="p-4 border-b border-slate-700 flex items-center justify-between">
 			<span class="text-xl font-bold tracking-wider text-blue-500">m-chat</span>
-			<button
-				onclick={() => (sidebarOpen = false)}
-				class="md:hidden text-slate-400 hover:text-white text-xl"
-			>
-				✕
-			</button>
+			<Button onclick={() => (sidebarOpen = false)} class="md:hidden ">✕</Button>
 		</div>
 		<nav class="p-4 space-y-2">
 			<p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Channels</p>
@@ -67,11 +58,6 @@
 				{currentUser || 'Connecting...'}
 			</p>
 		</div>
-		<button
-			onclick={handleLogout}
-			class="px-2 py-1 bg-red-600/80 hover:bg-red-600 text-xs font-medium rounded transition-colors text-white"
-		>
-			Logout
-		</button>
+		<Button onclick={handleLogout} size="sm" variant="secondary">Logout</Button>
 	</div>
 </aside>

@@ -23,4 +23,3 @@ export const formatDate = (dateInput: string) => {
 	const capitalizedDay = relativeDayString.charAt(0).toUpperCase() + relativeDayString.slice(1);
 	return `${capitalizedDay} ${timeString}`; // "Yesterday 10:45 AM" or "2 days ago 10:45 AM"
 };
-

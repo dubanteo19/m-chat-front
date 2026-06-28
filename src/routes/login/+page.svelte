@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { authService } from '$lib/api/auth';
 	import { page } from '$app/stores';
+	import Button from '$lib/components/ui/button.svelte';
 	let username = $state('');
 	let password = $state('');
 	let errorMessage = $state('');
@@ -38,7 +39,7 @@
 	};
 </script>
 
-<div class="flex items-center justify-center h-screen bg-slate-900 text-slate-100 font-sans">
+<div class="flex-center  h-screen bg-slate-900 text-slate-100 font-sans">
 	<div class="w-full max-w-md p-8 bg-slate-800 rounded-xl shadow-2xl border border-slate-700">
 		<h2 class="text-2xl font-bold text-center mb-1">Welcome Back</h2>
 		<p class="text-sm text-slate-400 text-center mb-6">Sign in to join rooms</p>
@@ -72,12 +73,7 @@
 				/>
 			</div>
 
-			<button
-				type="submit"
-				class="w-full mt-2 p-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors shadow-lg"
-			>
-				Sign In
-			</button>
+			<Button type="submit" class="w-full mt-2 ">Sign In</Button>
 		</form>
 
 		<div class="flex justify-center gap-1.5 mt-6 text-sm text-slate-400">

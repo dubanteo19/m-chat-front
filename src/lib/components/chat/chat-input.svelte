@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { MessagePayload } from '$lib/types/message';
+	import { MessageType, type MessagePayload } from '$lib/types/message';
+	import Button from '$lib/components/ui/button.svelte';
 	import { createMessagePayload } from '$lib/utils/message';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
 	import StickerPicker from './chat-input/sticker-picker.svelte';
@@ -25,7 +26,6 @@
 	let fileInputRef = $state<HTMLInputElement | null>(null);
 	let typingTimeout: NodeJS.Timeout;
 	let amITyping = false;
-
 	function handleTextAreaInput(e: Event) {
 		const textarea = e.currentTarget as HTMLTextAreaElement;
 		textarea.style.height = 'auto';
@@ -52,7 +52,7 @@
 		const payload = createMessagePayload({
 			content: trimmed,
 			replyTo: repliedToMessage?.id || null,
-			type: 'TEXT'
+			type: MessageType.TEXT
 		});
 
 		onSendMessage(payload);
@@ -85,7 +85,7 @@
 		onSendMessage(
 			createMessagePayload({
 				content: stickerUrl,
-				type: 'STICKER',
+				type: MessageType.STICKER,
 				replyTo: repliedToMessage?.id
 			})
 		);
@@ -109,23 +109,17 @@
 		/>
 
 		<div class="relative flex gap-1 shrink-0">
-			<button
-				type="button"
-				onclick={() => fileInputRef?.click()}
-				class="p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors h-[46px]"
-				title="Upload Asset"
-			>
+			<Button onclick={() => fileInputRef?.click()} class="p-3  h-[46px]" title="Upload Asset">
 				📎
-			</button>
+			</Button>
 
-			<button
-				type="button"
+			<Button
 				onclick={() => (showStickerPicker = !showStickerPicker)}
-				class="p-3 bg-slate-700 hover:bg-slate-600 rounded-lg text-xl transition-colors h-[46px] flex items-center justify-center"
+				class="p-3 h-[46px] "
 				title="Send a Sticker"
 			>
 				🎭
-			</button>
+			</Button>
 
 			{#if showStickerPicker}
 				<div
@@ -135,11 +129,7 @@
 						<span class="text-xs font-bold text-slate-400 uppercase tracking-wider"
 							>Select Sticker</span
 						>
-						<button
-							type="button"
-							onclick={() => (showStickerPicker = false)}
-							class="text-xs text-slate-400 hover:text-white">✕</button
-						>
+						<Button onclick={() => (showStickerPicker = false)} class=" hover:text-white">✕</Button>
 					</div>
 
 					<StickerPicker {sendSticker} />
@@ -165,11 +155,11 @@
 			></textarea>
 		</div>
 
-		<button
+		<Button
 			type="submit"
 			class="px-4 md:px-6 h-[46px] bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-blue-900/20 whitespace-nowrap"
 		>
 			Send
-		</button>
+		</Button>
 	</form>
 </footer>

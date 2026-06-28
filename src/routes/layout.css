@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
+
+@plugin "tailwindcss-animate";
 @plugin '@tailwindcss/typography';
 @import '@fontsource/fira-mono';
 
@@ -106,4 +108,10 @@ button:focus:not(:focus-visible) {
 	position: absolute;
 	width: 1px;
 	white-space: nowrap;
+}
+
+.flex-center{
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

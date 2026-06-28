@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { notificationService } from '$lib/services/notification-service.svelte';
+	import { scrollService } from '$lib/services/scroll-service.svelte';
 	import { roomService } from '$lib/api/room';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
@@ -14,42 +15,36 @@
 	import ChatInput from '$lib/components/chat/chat-input.svelte';
 	import ChatHeader from '$lib/components/chat/chat-header.svelte';
 	import MessageItem from '$lib/components/chat/message-item.svelte';
-	import { PUBLIC_BASE_URL } from '$env/static/public';
-	import type { Message, ReactionInfo, SenderInfo } from '$lib/types/message';
-	import { tick } from 'svelte';
+	import {
+		MessageType,
+		type Message,
+		type ReactionInfo,
+		type RepliedMessageInfo,
+		type UserInfo
+	} from '$lib/types/message';
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { storageService } from '$lib/api/storage';
-	import { createMessagePayload } from '$lib/utils/message';
+	import { createMessagePayload, processIncomingMessage } from '$lib/utils/message';
+	import Button from '$lib/components/ui/button.svelte';
+	import { websocketService } from '$lib/services/websocket-service.svelte';
+	import { onMount } from 'svelte';
 
 	let roomId = $derived($page.params.roomId);
-
-	let pingInterval: ReturnType<typeof setInterval>;
 	let openReactionId: number | null = $state(null);
 	let currentUser = $state('');
-	let repliedToMessage = $state<any>(null);
+	let repliedToMessage = $state<RepliedMessageInfo | null>(null);
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
-	let chatContainer = $state<HTMLDivElement>();
-	let typingUsers = $state<string[]>([]);
-	let socket: WebSocket;
 
-	// Dynamic wrapper ensuring local metadata identity parses out flawlessly
-	function processIncomingMessage(rawMsg: any): Message {
-		return {
-			...rawMsg,
-			isMine: rawMsg.sender.username === currentUser
-		};
-	}
-
-	export function handleLiveReactionSignal(
+	export function updateMessageReactions(
 		currentMessages: Message[],
 		payload: {
 			messageId: string | number;
 			action: 'ADDED' | 'REMOVED';
 			reaction: {
 				type: string;
-				sender: SenderInfo;
+				sender: UserInfo;
 				reactedAt: string;
 			};
 		}
@@ -78,7 +73,7 @@
 					const mockReactionMessage: Message = {
 						...msg,
 						isMine: false,
-						type: 'TEXT',
+						type: MessageType.TEXT,
 						sender: incomingReaction.sender,
 						content: `Reacted ${incomingReaction.type} to your message: "${msg.content || 'Attachment'}"`
 					};
@@ -115,33 +110,17 @@
 		});
 	}
 
-	function handleSystemSignals(parsedPayload: any) {
-		const { type, sender } = parsedPayload;
-		if (sender === currentUser) return;
-
-		if (type === 'TYPING_START') {
-			if (!typingUsers.includes(sender)) {
-				typingUsers = [...typingUsers, sender];
-			}
-		} else if (type === 'TYPING_STOP') {
-			typingUsers = typingUsers.filter((u) => u !== sender);
-		}
-	}
-
 	async function loadChatHistory(targetRoom: string) {
 		try {
 			const data = await roomService.getRoomMessages(targetRoom);
-			messages = (data.data || []).map((msg) => processIncomingMessage(msg));
-			await tick();
-			if (chatContainer) {
-				chatContainer.scrollTop = chatContainer.scrollHeight;
-			}
+			messages = (data.data || []).map((msg) => processIncomingMessage(msg, currentUser));
+			scrollService.scrollToBottom();
 		} catch (err) {
 			console.error('Failed to resolve room history channel logs:', err);
 		}
 	}
 
-	$effect(() => {
+	onMount(() => {
 		const storedUser = localStorage.getItem('m_user');
 		if (!storedUser) {
 			const currentPath = $page.url.pathname + $page.url.search;
@@ -154,80 +133,35 @@
 		currentUser = storedUser;
 		messages = [];
 		if (roomId) loadChatHistory(roomId);
+		websocketService.connect(roomId, currentUser, {
+			onMessage(raw) {
+				const message = processIncomingMessage(raw, currentUser);
 
-		socket = new WebSocket(`ws://${PUBLIC_BASE_URL}/chat/${roomId}/${currentUser}`);
+				messages = [...messages, message];
 
-		socket.onmessage = (event) => {
-			const parsed = JSON.parse(event.data);
-			if (parsed.type === 'TYPING_START' || parsed.type === 'TYPING_STOP') {
-				handleSystemSignals(parsed);
-				return;
+				notificationService.triggerPush(message, roomId);
+				scrollService.onIncomingMessage();
+			},
+
+			onReaction(payload) {
+				messages = updateMessageReactions(messages, payload);
 			}
-
-			if (parsed.type === 'REACTION') {
-				messages = handleLiveReactionSignal(messages, parsed);
-				return;
-			}
-			const formattedMessage = processIncomingMessage(parsed);
-			messages = [...messages, formattedMessage];
-			notificationService.triggerPush(formattedMessage, roomId);
-			scrollToBottom();
-			notificationService.init();
-		};
-
-		socket.onopen = () => {
-			pingInterval = setInterval(() => {
-				if (socket?.readyState === WebSocket.OPEN) {
-					socket.send(JSON.stringify({ type: 'PING' }));
-				}
-			}, 30000);
-		};
-
-		socket.onclose = () => {
-			clearInterval(pingInterval);
-		};
+		});
+		notificationService.init();
 
 		return () => {
-			if (socket) {
-				socket.close();
-			}
+			websocketService.disconnect();
 		};
 	});
 
 	function handleDelete(message: Message) {}
 
-	function handleReact(messageId: number, emoji: string) {
-		if (!socket || socket.readyState !== WebSocket.OPEN) return;
-		const payload = {
-			type: 'REACTION',
-			messageId: messageId,
-			content: emoji,
-			sender: currentUser
-		};
-		socket.send(JSON.stringify(payload));
-	}
-
-	function handleExternalSignal(payload: { type: string; sender: string }) {
-		if (!socket || socket.readyState !== WebSocket.OPEN) return;
-		socket.send(JSON.stringify(payload));
-	}
-
-	async function scrollToBottom() {
-		await tick();
-		if (chatContainer) {
-			chatContainer.scrollTo({
-				top: chatContainer.scrollHeight,
-				behavior: 'smooth'
-			});
-		}
-	}
 	async function processFile(file: File) {
 		const fileType = validateAndExtractMediaFile(file);
 		if (!fileType) {
 			alert('Only images and videos are allowed!');
 			return;
 		}
-
 		try {
 			let contentUrl = '';
 			if (fileType === 'VIDEO') {
@@ -244,14 +178,12 @@
 				contentUrl = downloadUrl;
 			}
 
-			if (socket?.readyState === WebSocket.OPEN) {
-				const payload = createMessagePayload({
-					content: contentUrl,
-					type: fileType,
-					replyTo: null
-				});
-				socket.send(JSON.stringify(payload));
-			}
+			const payload = createMessagePayload({
+				content: contentUrl,
+				type: fileType,
+				replyTo: null
+			});
+			websocketService.sendMessage(payload);
 		} catch (error) {
 			console.error('Asset upload routing engine exception:', error);
 		}
@@ -283,9 +215,17 @@
 		ondragleave={() => (isDragging = false)}
 		ondrop={handleDrop}
 	>
+		{#if !scrollService.isNearBottom}
+			<Button
+				class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
+				onclick={() => scrollService.scrollToBottom()}
+			>
+				<span>↓</span>
+			</Button>
+		{/if}
 		{#if isDragging}
 			<div
-				class="absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 flex items-center justify-center pointer-events-none"
+				class="flex-center absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 pointer-events-none"
 			>
 				<p class="text-xl font-semibold text-blue-400 animate-pulse">Drop image here to send...</p>
 			</div>
@@ -294,41 +234,29 @@
 		<ChatHeader {roomId} {sidebarOpen} />
 
 		<div
-			bind:this={chatContainer}
+			use:scrollService.use
 			class="flex flex-1 flex-col gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
 		>
 			{#each messages as message (message.sentAt)}
 				<MessageItem
 					{message}
-					onImageLoad={scrollToBottom}
+					onImageLoad={scrollService.scrollToBottom}
 					{openReactionId}
 					setOpenReactionId={(id) => (openReactionId = id)}
-					handleReply={(msg) => {
-						repliedToMessage = msg;
-					}}
+					handleReply={(msg) => (repliedToMessage = msg)}
 					{handleDelete}
-					{handleReact}
+					sendReact={websocketService.sendReaction}
 				/>
 			{/each}
-			<TypingIndicator {typingUsers} />
+			<TypingIndicator typingUsers={websocketService.typingUsers} />
 		</div>
 
 		<ChatInput
 			{roomId}
 			bind:repliedToMessage
-			onSendMessage={(payload) => {
-				if (!socket || socket.readyState !== WebSocket.OPEN) return;
-				socket.send(JSON.stringify(payload));
-			}}
-			onTypingStateChange={(isTyping: boolean) => {
-				handleExternalSignal({
-					type: isTyping ? 'TYPING_START' : 'TYPING_STOP',
-					sender: currentUser
-				});
-			}}
-			onFileUploadRequested={(file: File) => {
-				processFile(file);
-			}}
+			onSendMessage={websocketService.sendMessage}
+			onTypingStateChange={websocketService.sendTyping}
+			onFileUploadRequested={processFile}
 		/>
 	</main>
 </div>
