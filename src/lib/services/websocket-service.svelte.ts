@@ -1,5 +1,5 @@
 import { PUBLIC_BASE_URL } from '$env/static/public';
-import { type MessagePayload } from '$lib/types/message';
+import { type MessagePayload, type UserInfo } from '$lib/types/message';
 
 type ChatEventHandlers = {
 	onMessage?: (message: any) => void;
@@ -11,14 +11,14 @@ function createWebsocketService() {
 
 	let connected = $state(false);
 	let typingUsers = $state<string[]>([]);
-
+	let onlineUsers = $state<UserInfo[]>([]);
 	let currentUser = '';
 	let pingInterval: ReturnType<typeof setInterval>;
 
 	function connect(roomId: string, username: string, handlers: ChatEventHandlers) {
 		if (!roomId || !username) return;
 		currentUser = username;
-		socket = new WebSocket(`ws://${PUBLIC_BASE_URL}/chat/${roomId}/${username}`);
+		socket = new WebSocket(`${PUBLIC_BASE_URL}/chat/${roomId}/${username}`);
 		socket.onopen = () => {
 			connected = true;
 			pingInterval = setInterval(() => {
@@ -36,6 +36,10 @@ function createWebsocketService() {
 			const parsed = JSON.parse(event.data);
 
 			switch (parsed.type) {
+				case 'ONLINE_USERS':
+					const usersList = Array.isArray(parsed) ? parsed : parsed.users || [];
+					onlineUsers = usersList;
+					return;
 				case 'TYPING_START':
 					if (parsed.sender !== currentUser && !typingUsers.includes(parsed.sender)) {
 						typingUsers = [...typingUsers, parsed.sender];
@@ -92,6 +96,9 @@ function createWebsocketService() {
 
 		get typingUsers() {
 			return typingUsers;
+		},
+		get onlineUsers() {
+			return onlineUsers;
 		},
 		connect,
 		disconnect,

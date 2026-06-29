@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { PUBLIC_BASE_URL } from '$env/static/public';
 export const apiClient = axios.create({
-	baseURL: 'http://' + PUBLIC_BASE_URL,
+	baseURL:  PUBLIC_BASE_URL,
 	timeout: 8000,
 	headers: {
 		'Content-Type': 'application/json'

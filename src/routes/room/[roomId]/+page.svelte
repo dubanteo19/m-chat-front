@@ -231,7 +231,7 @@
 			</div>
 		{/if}
 
-		<ChatHeader {roomId} {sidebarOpen} />
+		<ChatHeader {roomId} {sidebarOpen} onlineUsers={websocketService.onlineUsers} />
 
 		<div
 			use:scrollService.use
