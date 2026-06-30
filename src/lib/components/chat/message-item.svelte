@@ -98,7 +98,7 @@
 		tabindex="0"
 		onmouseleave={handlePressEnd}
 		ontouchend={handlePressEnd}
-		class="flex flex-col gap-0.5 max-w-[85%] group relative select-none {message.isMine
+		class="flex flex-col gap-0.5 max-w-[85%] group relative {message.isMine
 			? 'self-end'
 			: 'self-start'}"
 	>

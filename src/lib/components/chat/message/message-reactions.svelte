@@ -57,8 +57,12 @@
 					</div>
 				{/if}
 
-				<Button variant="ghost" size="sm" onclick={() => sendReact?.(message.id, reaction.type)}>
-					<span>{reaction.type}</span>
+				<Button variant="plain" size="sm" onclick={() => sendReact?.(message.id, reaction.type)}>
+					<span
+						// class:border-amber-400={reaction.isMine}
+						// class:border-slate-500={!reaction.isMine}
+						class="border px-1 rounded-full">{reaction.type}</span
+					>
 					{#if reaction.count > 1}
 						<span class="text-[10px] font-bold text-slate-400">{reaction.count}</span>
 					{/if}

@@ -17,12 +17,13 @@
 		<span class="text-slate-400">#</span>
 		{roomId}
 	</h2>
-	<div class="flex gap-2 ">
+	<div class="flex gap-2">
 		{#each onlineUsers as user (user.username)}
-			<div class="relative inline-block p-1">
+			<div class="relative  flex p-1 group ">
 				<UserAvatar {user} />
 				<span class="absolute size-2 bottom-0 right-0 bg-green-500 rounded ring-2 ring-white z-10"
 				></span>
+				<UserBadge class="absolute -bottom-9 rounded w-max  bg-white p-2  hidden group-hover:flex z-20" {user} />
 			</div>
 		{/each}
 	</div>

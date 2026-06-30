@@ -1,12 +1,13 @@
 <script lang="ts">
 	import type { UserInfo } from '$lib/types/message';
 
-	let { user } = $props<{
+	let { user, class: className = '' } = $props<{
 		user: UserInfo;
+		class?: string;
 	}>();
 </script>
 
-<div class="text-[11px] text-slate-400 flex items-baseline gap-1.5 px-1">
+<div class="text-[11px] text-slate-400 flex items-baseline gap-1.5 px-1 {className}">
 	<span class="font-bold text-slate-600">{user.displayName}</span>
 	{#if user.title}
 		<span
