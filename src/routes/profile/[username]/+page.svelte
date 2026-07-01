@@ -1,131 +1,150 @@
 <script lang="ts">
-	import UserAvatar from '$lib/components/common/user-avatar.svelte';
+	import { storageService } from '$lib/api/storage';
+	import { userService } from '$lib/api/user';
+	import TitleBadge from '$lib/components/common/title-badge.svelte';
+	import UserBadge from '$lib/components/common/user-badge.svelte';
+	import Button from '$lib/components/ui/button.svelte';
+	import { BADGE_ANIMATIONS } from '$lib/constants/animations';
 	import type { PageData } from './$types';
 
-	// Svelte 5 reads data loaded from +page.ts via the data prop
 	let { data }: { data: PageData } = $props();
 
-	// Establish reactive local state initialized by fetched data
 	let profile = $state(data.profile);
-	let displayName = $state(profile.displayName);
-	let title = $state(profile.title || '');
+
+	const DEFAULT_STYLE = {
+		textColor: '#7e22ce',
+		backgroundColor: '#f3e8ff',
+		borderRadius: '4px',
+		borderStyle: 'none',
+		borderColor: 'transparent',
+		textEffect: 'none',
+		animationVibe: 'none'
+	};
+
+	// Single unified source of truth for the profile editing state
+	let badgeForm = $state({
+		displayName: profile.displayName,
+		title: profile.title || '',
+		...DEFAULT_STYLE,
+		...profile.titleStyle
+	});
+
+	let livePreviewUser = $derived({
+		displayName: badgeForm.displayName,
+		title: badgeForm.title,
+		titleStyle: {
+			textColor: badgeForm.textColor,
+			backgroundColor: badgeForm.backgroundColor,
+			borderRadius: badgeForm.borderRadius,
+			borderStyle: badgeForm.borderStyle,
+			borderColor: badgeForm.borderColor,
+			textEffect: badgeForm.textEffect,
+			animationVibe: badgeForm.animationVibe
+		}
+	});
 	let imageFailed = $state(false);
 	let avatarUrl = $state(profile.avatarUrl || '');
+	let selectedAvatarFile = $state<File | null>(null);
 
 	let isSaving = $state(false);
 	let isUploading = $state(false);
 	let feedbackMessage = $state({ text: '', type: '' });
+
 	async function handleAvatarUpload(event: Event) {
-		const target = event.target as HTMLInputElement;
-		if (!target.files?.length) return;
-
-		const file = target.files[0];
-		isUploading = true;
-		feedbackMessage = { text: 'Uploading avatar to cloud storage...', type: 'info' };
-
-		try {
-			// 1. Get presigned ticket url
-			const tokenRes = await fetch(
-				`/api/storage/presigned-url?filename=${encodeURIComponent(file.name)}`
-			);
-			if (!tokenRes.ok) throw new Error('Could not authorize cloud storage upload.');
-			const { uploadUrl, downloadUrl } = await tokenRes.json();
-
-			// 2. Direct upload file binary block
-			const cloudRes = await fetch(uploadUrl, {
-				method: 'PUT',
-				body: file,
-				headers: { 'Content-Type': file.type }
-			});
-			if (!cloudRes.ok) throw new Error('File transfer to bucket rejected.');
-
-			avatarUrl = downloadUrl;
-			imageFailed = false;
-			feedbackMessage = { text: 'Avatar uploaded! Save changes to finalize.', type: 'success' };
-		} catch (err: any) {
-			feedbackMessage = { text: err.message, type: 'error' };
-		} finally {
-			isUploading = false;
+		const input = event.target as HTMLInputElement;
+		if (!input.files?.length) return;
+		const file = input.files[0];
+		selectedAvatarFile = file;
+		if (avatarUrl.startsWith('blob:')) {
+			URL.revokeObjectURL(avatarUrl);
 		}
+		avatarUrl = URL.createObjectURL(file);
+		imageFailed = false;
+	}
+
+	async function uploadAvatar(file: File): Promise<string> {
+		const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(file.name);
+		await storageService.uploadFileToMinio(uploadUrl, file);
+		return downloadUrl;
 	}
 
 	async function handleProfileUpdate(event: SubmitEvent) {
 		event.preventDefault();
 		isSaving = true;
-		feedbackMessage = { text: 'Saving structural changes...', type: 'info' };
-
 		try {
-			const res = await fetch(`/api/users/${profile.username}/profile`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ displayName, title, avatarUrl })
+			let finalAvatarUrl = profile.avatarUrl;
+			if (selectedAvatarFile) {
+				isUploading = true;
+				finalAvatarUrl = await uploadAvatar(selectedAvatarFile);
+				isUploading = false;
+			}
+
+			// Clean payload built straight out of our reactive form object values
+			const updated = await userService.updateUserProfile(profile.username, {
+				displayName: badgeForm.displayName,
+				title: badgeForm.title,
+				avatarUrl: finalAvatarUrl,
+				titleStyle: {
+					textColor: badgeForm.textColor,
+					backgroundColor: badgeForm.backgroundColor,
+					borderRadius: badgeForm.borderRadius,
+					borderStyle: badgeForm.borderStyle,
+					borderColor: badgeForm.borderColor,
+					textEffect: badgeForm.textEffect,
+					animationVibe: badgeForm.animationVibe
+				}
 			});
 
-			if (!res.ok) throw new Error('Database updates rejected.');
-
-			const updatedRecord = await res.json();
-			profile = updatedRecord; // Sync back current active object
-			feedbackMessage = { text: 'Profile successfully updated!', type: 'success' };
+			profile = updated;
+			avatarUrl = updated.avatarUrl;
+			selectedAvatarFile = null;
+			feedbackMessage = { text: 'Profile updated successfully!', type: 'success' };
 		} catch (err: any) {
 			feedbackMessage = { text: err.message, type: 'error' };
 		} finally {
 			isSaving = false;
+			isUploading = false;
 		}
 	}
 </script>
 
-<div class="min-h-screen bg-slate-50 py-10 px-4">
+<div class="min-h-screen bg-slate-800 py-10 px-4">
 	<div
-		class="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden"
+		class="max-w-2xl mx-auto bg-slate-50 rounded-2xl shadow-sm border border-slate-100 overflow-hidden"
 	>
-		<div class="h-32 bg-gradient-to-r from-purple-500 to-indigo-600 relative"></div>
+		<div class="h-32 bg-linear-to-r from-slate-500 to-slate-800 relative"></div>
 
 		<div class="px-8 pb-8 relative">
 			<form onsubmit={handleProfileUpdate} class="space-y-6">
+				<!-- Avatar and Title Badge Area -->
 				<div class="flex flex-col sm:flex-row sm:items-end gap-4 -mt-16 mb-4">
-					<div
-						class="w-28 h-28 rounded-2xl overflow-hidden bg-slate-300 border-4 border-white shadow-md relative shrink-0"
-					>
-						<UserAvatar user={profile} />
-						{#if isUploading}
-							<div
-								class="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs font-semibold animate-pulse"
-							>
-								Uploading...
-							</div>
-						{/if}
+					<div class="relative size-14">
+						<div class="size-14 rounded-full overflow-hidden">
+							<img src={avatarUrl} alt="Profile avatar" class="w-full h-full object-cover" />
+						</div>
+						<label
+							class="absolute -right-0.5 -bottom-0.5 flex-center rounded-full bg-white p-2 size-5 cursor-pointer"
+						>
+							<input type="file" accept="image/*" onchange={handleAvatarUpload} class="hidden" />
+							📷
+						</label>
 					</div>
 
 					<div class="mb-2">
-						<h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
-							{profile.displayName}
-							{#if profile.title}
-								<span
-									class="bg-purple-100 text-purple-700 font-bold text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider"
-								>
-									{profile.title}
-								</span>
-							{/if}
-						</h1>
+						<div class="flex items-center gap-2">
+							<h3 class="text-3xl font-bold text-white flex items-center gap-2">
+								{badgeForm.displayName}
+							</h3>
+
+							<TitleBadge user={livePreviewUser} />
+						</div>
 						<p class="text-sm text-slate-400">@{profile.username}</p>
 					</div>
 				</div>
 
 				<hr class="border-slate-100" />
 
-				<div class="flex flex-col gap-1.5">
-					<span class="text-xs font-bold text-slate-500 uppercase tracking-wider"
-						>Change Profile Image</span
-					>
-					<input
-						type="file"
-						accept="image/*"
-						onchange={handleAvatarUpload}
-						disabled={isSaving || isUploading}
-						class="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer disabled:opacity-50"
-					/>
-				</div>
-
+				<!-- Profile Info Grid -->
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div class="flex flex-col gap-1.5">
 						<label
@@ -136,10 +155,9 @@
 						<input
 							type="text"
 							id="displayName"
-							bind:value={displayName}
+							bind:value={badgeForm.displayName}
 							required
-							disabled={isSaving}
-							class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:bg-slate-50"
+							class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
 						/>
 					</div>
 
@@ -150,11 +168,134 @@
 						<input
 							type="text"
 							id="title"
-							bind:value={title}
-							placeholder="e.g. DEVELOPER, ADMIN"
-							disabled={isSaving}
-							class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 disabled:bg-slate-50"
+							bind:value={badgeForm.title}
+							placeholder="e.g. DEVELOPER"
+							class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm"
 						/>
+					</div>
+				</div>
+
+				<!-- CUSTOM BADGE CONFIGURATION STYLING CONTROLS -->
+				<div class="bg-slate-100 p-4 rounded-xl space-y-4">
+					<h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+						Badge Customization
+					</h4>
+
+					<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+						<div class="flex flex-col gap-1.5">
+							<label class="text-[11px] font-medium text-slate-500">Text Color</label>
+							<div class="flex items-center gap-2">
+								<input
+									type="color"
+									bind:value={badgeForm.textColor}
+									class="size-8 rounded cursor-pointer p-0 border-0"
+								/>
+								<input
+									type="text"
+									bind:value={badgeForm.textColor}
+									class="w-full text-xs px-2 py-1.5 border border-slate-200 rounded bg-white font-mono"
+								/>
+							</div>
+						</div>
+
+						<div class="flex flex-col gap-1.5">
+							<label class="text-[11px] font-medium text-slate-500">Background Color</label>
+							<div class="flex items-center gap-2">
+								<input
+									type="color"
+									bind:value={badgeForm.backgroundColor}
+									class="size-8 rounded cursor-pointer p-0 border-0"
+								/>
+								<input
+									type="text"
+									bind:value={badgeForm.backgroundColor}
+									class="w-full text-xs px-2 py-1.5 border border-slate-200 rounded bg-white font-mono"
+								/>
+							</div>
+						</div>
+
+						<div class="flex flex-col gap-1.5">
+							<label for="radius" class="text-[11px] font-medium text-slate-500"
+								>Corner Radius</label
+							>
+							<select
+								id="radius"
+								bind:value={badgeForm.borderRadius}
+								class="w-full text-xs px-2 py-1.5 border border-slate-200 rounded bg-white h-[34px]"
+							>
+								<option value="0px">Sharp (0px)</option>
+								<option value="4px">Slightly Rounded (4px)</option>
+								<option value="8px">Medium Rounded (8px)</option>
+								<option value="9999px">Pill (Capsule)</option>
+							</select>
+						</div>
+					</div>
+
+					<div
+						class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 border-t border-slate-200/60"
+					>
+						<div class="flex flex-col gap-1.5">
+							<label for="borderStyle" class="text-[11px] font-medium text-slate-500"
+								>Border Type</label
+							>
+							<select
+								id="borderStyle"
+								bind:value={badgeForm.borderStyle}
+								class="w-full text-xs px-2 py-1.5 border border-slate-200 rounded bg-white h-[34px]"
+							>
+								<option value="none">No Border</option>
+								<option value="1px solid">Solid Fine</option>
+								<option value="2px dashed">Dashed Retro</option>
+								<option value="2px double">Double Royal</option>
+							</select>
+						</div>
+
+						<div class="flex flex-col gap-1.5">
+							<label class="text-[11px] font-medium text-slate-500">Border Color</label>
+							<div class="flex items-center gap-2">
+								<input
+									type="color"
+									bind:value={badgeForm.borderColor}
+									disabled={badgeForm.borderStyle === 'none'}
+									class="size-8 rounded cursor-pointer p-0 border-0 disabled:opacity-40"
+								/>
+								<input
+									type="text"
+									bind:value={badgeForm.borderColor}
+									disabled={badgeForm.borderStyle === 'none'}
+									class="w-full text-xs px-2 py-1.5 border border-slate-200 rounded bg-white font-mono disabled:bg-slate-50"
+								/>
+							</div>
+						</div>
+
+						<div class="flex flex-col gap-1.5">
+							<label for="textEffect" class="text-[11px] font-medium text-slate-500">Text FX</label>
+							<select
+								id="textEffect"
+								bind:value={badgeForm.textEffect}
+								class="w-full text-xs px-2 py-1.5 border border-slate-200 rounded bg-white h-[34px]"
+							>
+								<option value="none">Flat Text</option>
+								<option value="neon-glow">Neon Aura Glow</option>
+								<option value="retro-glitch">3D Cyber Glitch</option>
+								<option value="deep-shadow">High Contrast Shadow</option>
+							</select>
+						</div>
+
+						<div class="flex flex-col gap-1.5">
+							<label for="vibe" class="text-[11px] font-medium text-slate-500"
+								>Badge Animation</label
+							>
+							<select
+								id="vibe"
+								bind:value={badgeForm.animationVibe}
+								class="w-full text-xs px-2 py-1.5 border border-slate-200 rounded bg-white h-[34px]"
+							>
+								{#each BADGE_ANIMATIONS as animation (animation.value)}
+									<option value={animation.value}>{animation.label}</option>
+								{/each}
+							</select>
+						</div>
 					</div>
 				</div>
 
@@ -169,14 +310,14 @@
 					</div>
 				{/if}
 
-				<div class="flex justify-end pt-2">
-					<button
-						type="submit"
-						disabled={isSaving || isUploading || !displayName.trim()}
-						class="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold text-sm rounded-lg transition-colors shadow-sm cursor-pointer"
-					>
+				{#if imageFailed}
+					<div>Fail to upload avatar.</div>
+				{/if}
+				<div class="flex justify-between pt-2">
+					<Button size="sm" variant="ghost" onclick={() => history.back()}>Go back</Button>
+					<Button type="submit" disabled={isSaving || isUploading || !badgeForm.displayName.trim()}>
 						{isSaving ? 'Saving Adjustments...' : 'Save Changes'}
-					</button>
+					</Button>
 				</div>
 			</form>
 		</div>

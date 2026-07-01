@@ -1,19 +1,18 @@
 <script lang="ts">
 	import type { UserInfo } from '$lib/types/message';
+	import TitleBadge from './title-badge.svelte';
 
 	let { user, class: className = '' } = $props<{
-		user: UserInfo;
+		user: Partial<UserInfo> & { displayName: string; title?: string; titleStyle?: any };
 		class?: string;
+		textSize?: string;
 	}>();
 </script>
 
 <div class="text-[11px] text-slate-400 flex items-baseline gap-1.5 px-1 {className}">
-	<span class="font-bold text-slate-600">{user.displayName}</span>
+	<span class="font-bold text-slate-200">{user.displayName}</span>
+
 	{#if user.title}
-		<span
-			class="bg-slate-200 text-purple-500 font-bold text-[9px] px-1 rounded uppercase tracking-wide"
-		>
-			{user.title}
-		</span>
+		<TitleBadge {user} textSize="text-[9px]" />
 	{/if}
 </div>

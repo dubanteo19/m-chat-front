@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { UserInfo } from '$lib/types/message';
-
-	let { user } = $props<{
+	import { resolve } from '$app/paths';
+	let { user, class: className = '' } = $props<{
 		user: UserInfo;
+		class?: string;
 	}>();
 
-    let imageFailed = $state(false);
+	let imageFailed = $state(false);
 
 	const initials = $derived.by(() => {
 		return user.displayName
@@ -18,7 +19,10 @@
 	});
 </script>
 
-<div class="shrink-0 w-8 h-8 rounded-full overflow-hidden select-none">
+<a
+	href={resolve(`/profile/${user.username || user.id}`)}
+	class="shrink-0 size-8 rounded-full overflow-hidden select-none block hover:opacity-90 transition-opacity hover:no-underline! ${className}"
+>
 	{#if user.avatarUrl && !imageFailed}
 		<img
 			src={user.avatarUrl}
@@ -27,10 +31,8 @@
 			onerror={() => (imageFailed = true)}
 		/>
 	{:else}
-		<div
-	    		class="w-full h-full flex-center bg-slate-400 text-white text-xs font-semibold"
-		>
+		<div class="w-full h-full flex-center bg-slate-400 text-white text-xs font-semibold">
 			{initials}
 		</div>
 	{/if}
-</div>
+</a>
