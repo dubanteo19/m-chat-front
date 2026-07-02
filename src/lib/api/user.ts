@@ -1,5 +1,12 @@
 import type { TitleStyle, UserInfo } from '$lib/types/message';
 import { apiClient } from './client';
+export interface PushSubscriptionRequest {
+    endpoint: string;
+    keys: {
+        p256dh: string;
+        auth: string;
+    };
+}
 
 export interface UpdateUserProfileRequest {
 	displayName: string;
@@ -20,7 +27,12 @@ export const userService = {
 		body: UpdateUserProfileRequest
 	): Promise<UserInfo> => {
 		return apiClient.put(`/users/${username}/profile`, body);
-	}
-
+    },
+  savePushSubscription: async (
+        username: string,
+        subscription: PushSubscriptionRequest
+    ): Promise<void> => {
+        return apiClient.put(`/users/${username}/push-subscription`, subscription);
+    }
 };
 
