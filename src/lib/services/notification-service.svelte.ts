@@ -1,8 +1,9 @@
-const VAPID_PUBLIC_KEY = "BGVEJkat58I4Zb-8Dc6vtFj2Y0lLvczjtEhdCzD_YJ7o7uaj-ss1WX57xpYMQCybNEhzrii3CKX1oI-LbZvLYEc";
+const VAPID_PUBLIC_KEY = "BBqdBHGfyH6dgCSAx_p12dqvwqjjW7x7VLIpxHlzolURsPnAlQpP61W2EshVRS9MNNhJ0docsYjAX_TbSJAMzTo";
+
 import { userService } from '$lib/api/user';
 import type { Message } from '$lib/types/message';
 
-function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
@@ -12,7 +13,7 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
         outputArray[i] = rawData.charCodeAt(i);
     }
     
-    return outputArray.buffer as ArrayBuffer;
+    return outputArray;
 }
 function createNotificationService() {
     let status = $state<NotificationPermission | 'default'>('default');
@@ -73,7 +74,6 @@ function createNotificationService() {
         try {
             const registration = await navigator.serviceWorker.register('/sw.js');
             let subscription = await registration.pushManager.getSubscription();
-            
             if (!subscription) {
                 subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,

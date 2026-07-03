@@ -147,7 +147,7 @@
 				messages = updateMessageReactions(messages, payload);
 			}
 		});
-		notificationService.init();
+		notificationService.init(currentUser);
 
 		return () => {
 			websocketService.disconnect();
