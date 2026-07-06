@@ -1,15 +1,9 @@
 // static/sw.js
 self.addEventListener('push', (event) => {
-    console.log('[Service Worker] Push Event received.');
     
     if (!event.data) {
-        console.warn('[Service Worker] Push event contains no data payload.');
         return;
     }
-
-    // Print raw text payload to see exactly what Java passed down
-    const rawText = event.data.text();
-    console.log('[Service Worker] Raw payload data string:', rawText);
 
     try {
         const data = event.data.json();

@@ -25,7 +25,7 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { storageService } from '$lib/api/storage';
 	import { createMessagePayload, processIncomingMessage } from '$lib/utils/message';
-	import Button from '$lib/components/ui/button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { websocketService } from '$lib/services/websocket-service.svelte';
 	import { onMount } from 'svelte';
 
@@ -203,7 +203,7 @@
 	}
 </script>
 
-<div class="flex h-screen max-h-screen bg-slate-900 text-slate-100 font-sans overflow-hidden">
+<div class="flex h-screen max-h-screen overflow-hidden">
 	<Sidebar {sidebarOpen} {roomId} {currentUser} />
 	<main
 		class="relative flex-1 flex flex-col min-w-0 h-full"

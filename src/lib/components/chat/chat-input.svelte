@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { MessageType, type MessagePayload } from '$lib/types/message';
-	import Button from '$lib/components/ui/button.svelte';
 	import { createMessagePayload } from '$lib/utils/message';
+	import { Button } from '../ui/button';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
 	import StickerPicker from './chat-input/sticker-picker.svelte';
 	interface ChatInputProps {
@@ -123,13 +123,11 @@
 
 			{#if showStickerPicker}
 				<div
-					class="absolute bottom-full left-0 mb-3 z-50 w-64 bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200"
+					class="absolute bottom-full left-0 mb-3 z-50 w-84 rounded-xl p-3 fade-in bg-background slide-in-from-bottom-2 duration-200"
 				>
-					<div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-700">
-						<span class="text-xs font-bold text-slate-400 uppercase tracking-wider"
-							>Select Sticker</span
-						>
-						<Button onclick={() => (showStickerPicker = false)} class=" hover:text-white">✕</Button>
+					<div class="flex items-center justify-between pb-2 mb-2">
+						<span class="text-sm uppercase tracking-wider">Select Sticker</span>
+						<Button onclick={() => (showStickerPicker = false)}>✕</Button>
 					</div>
 
 					<StickerPicker {sendSticker} />
@@ -155,10 +153,7 @@
 			></textarea>
 		</div>
 
-		<Button
-			type="submit"
-			class="px-4 md:px-6 h-[46px] bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-lg shadow-blue-900/20 whitespace-nowrap"
-		>
+		<Button type="submit" class="px-4 md:px-6 h-11  font-medium rounded-lg   whitespace-nowrap">
 			Send
 		</Button>
 	</form>

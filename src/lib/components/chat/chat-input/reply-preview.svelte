@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { truncateText } from '$lib/utils/text';
 	interface ReplyPreviewProps {
 		repliedToMessage: any;

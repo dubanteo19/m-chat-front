@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { ALL_EMOJIS } from '$lib/constants/emojis';
 	import type { Message } from '$lib/types/message';
 

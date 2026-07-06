@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { scrollService } from '$lib/services/scroll-service.svelte';
 	import type { Message } from '$lib/types/message';
 	import { truncateText } from '$lib/utils/text';

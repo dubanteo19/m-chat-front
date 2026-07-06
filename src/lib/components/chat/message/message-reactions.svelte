@@ -1,7 +1,7 @@
 <script lang="ts">
 	import UserAvatar from '$lib/components/common/user-avatar.svelte';
 	import UserBadge from '$lib/components/common/user-badge.svelte';
-	import Button from '$lib/components/ui/button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import type { Message, ReactionInfo } from '$lib/types/message';
 
 	let { message, sendReact } = $props<{
