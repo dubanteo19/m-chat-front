@@ -51,6 +51,7 @@
 		"vite": "^8.0.16"
 	},
 	"dependencies": {
+		"@lucide/svelte": "^1.24.0",
 		"axios": "^1.18.0",
 		"photoswipe": "^5.4.4",
 		"tailwindcss-animate": "^1.0.7",

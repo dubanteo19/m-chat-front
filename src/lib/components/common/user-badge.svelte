@@ -9,9 +9,8 @@
 	}>();
 </script>
 
-<div class="text-[11px] text-slate-400 flex items-baseline gap-1.5 px-1 {className}">
-	<span class="font-bold text-slate-200">{user.displayName}</span>
-
+<div class="text-[11px] flex items-baseline gap-1.5 px-1 {className}">
+	<span class="font-bold">{user.displayName}</span>
 	{#if user.title}
 		<TitleBadge {user} textSize="text-[9px]" />
 	{/if}

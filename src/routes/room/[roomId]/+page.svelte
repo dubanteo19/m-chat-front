@@ -28,6 +28,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { websocketService } from '$lib/services/websocket-service.svelte';
 	import { onMount } from 'svelte';
+	import { ArrowDown } from '@lucide/svelte';
 
 	let roomId = $derived($page.params.roomId);
 	let openReactionId: number | null = $state(null);
@@ -220,7 +221,7 @@
 				class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
 				onclick={() => scrollService.scrollToBottom()}
 			>
-				<span>↓</span>
+				<ArrowDown />
 			</Button>
 		{/if}
 		{#if isDragging}

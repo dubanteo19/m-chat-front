@@ -16,7 +16,7 @@
 
 {#if message.isDeleted}
 	<div
-		class="rounded-2xl border px-4 py-2 text-sm italic text-slate-400 bg-slate-50 border-slate-200
+		class="rounded-2xl border px-4 py-2 text-sm italic
 		{message.repliedTo ? 'rounded-tl-none rounded-tr-none' : ''}
 		{message.isMine ? 'rounded-br-none' : 'rounded-bl-none'}"
 	>
@@ -27,8 +27,8 @@
 		class="inline-block w-auto max-w-full rounded-2xl border px-4 py-2 text-sm shadow-sm
 		{message.repliedTo ? 'rounded-t-none' : ''}
 		{message.isMine
-			? 'border-indigo-100 bg-indigo-600 text-white rounded-br-none'
-			: 'border-slate-200 bg-white text-slate-800 rounded-bl-none'}"
+			? ' bg-secondary/80 text-black rounded-br-none'
+			: ' bg-secondary  text-black rounded-bl-none'}"
 	>
 		<p class="whitespace-pre-wrap leading-relaxed" style="overflow-wrap: anywhere;">
 			{message.content}

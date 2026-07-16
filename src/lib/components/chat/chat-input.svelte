@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { MessageType, type MessagePayload } from '$lib/types/message';
 	import { createMessagePayload } from '$lib/utils/message';
+	import { Send } from '@lucide/svelte';
 	import { Button } from '../ui/button';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
 	import StickerPicker from './chat-input/sticker-picker.svelte';
@@ -136,7 +137,7 @@
 		</div>
 
 		<div
-			class="flex-1 flex flex-col bg-slate-700 border border-slate-600 rounded-lg focus-within:border-blue-500 transition-colors overflow-hidden"
+			class="flex-1 flex flex-col bg-background border-secondary/20 border rounded-2xl transition-colors overflow-hidden"
 		>
 			{#if repliedToMessage}
 				<ReplyPreview {repliedToMessage} onCancelReply={() => (repliedToMessage = null)} />
@@ -153,8 +154,8 @@
 			></textarea>
 		</div>
 
-		<Button type="submit" class="px-4 md:px-6 h-11  font-medium rounded-lg   whitespace-nowrap">
-			Send
+		<Button type="submit" class=" h-11  font-medium rounded-lg   whitespace-nowrap">
+			<Send />
 		</Button>
 	</form>
 </footer>

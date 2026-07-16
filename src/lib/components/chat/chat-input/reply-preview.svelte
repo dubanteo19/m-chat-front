@@ -15,9 +15,17 @@
 		<span class="font-semibold text-indigo-400 text-[11px] block">
 			Replying to {repliedToMessage.sender.displayName}
 		</span>
-		<p class="text-slate-400 italic text-[11px] mt-0.5 truncate font-mono">
-			{truncateText(repliedToMessage.content)}
-		</p>
+		<div class="mt-0.5 text-sm">
+			{#if repliedToMessage.type === 'IMAGE'}
+				🖼️ Photo
+			{:else if repliedToMessage.type === 'STICKER'}
+				🖼️ Sticker
+			{:else if repliedToMessage.type === 'VIDEO'}
+				🎥 Video
+			{:else}
+				{truncateText(repliedToMessage.content)}
+			{/if}
+		</div>
 	</div>
 	<Button size="sm" variant="ghost" onclick={onCancelReply} class="shrink-0" title="Cancel reply"
 		>X</Button

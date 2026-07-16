@@ -2,6 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ALL_EMOJIS } from '$lib/constants/emojis';
 	import type { Message } from '$lib/types/message';
+	import { Ellipsis, ReplyIcon } from '@lucide/svelte';
 
 	let { message, openReactionId, setOpenReactionId, handleReply, handleDelete, sendReact } =
 		$props<{
@@ -25,7 +26,7 @@
 </script>
 
 <div
-	class="absolute -top-6 z-20 flex items-center gap-1 bg-white border border-slate-200 shadow-md rounded-full px-2 py-1 transition-all fade-in zoom-in-95
+	class="absolute -top-6 z-20 flex items-center gap-1 bg-secondary color-accent border-primary border-1 shadow-2xs rounded-xl px-2 py-1 transition-all fade-in
 	{message.isMine ? 'right-2' : 'left-2'}
 	{openReactionId === message.id ? 'flex' : 'hidden md:group-hover:flex'}"
 >
@@ -37,7 +38,7 @@
 					selectEmoji(emoji);
 				}}
 				class="hover:scale-125 active:scale-90 rounded-full"
-				size="sm"
+				size="icon-sm"
 				variant="ghost"
 				title="React with {emoji}"
 			>
@@ -45,9 +46,14 @@
 			</Button>
 		{/each}
 
-		<Button onclick={() => (showMore = !showMore)} size="sm" variant="ghost" title="More reactions"
-			>⋯</Button
+		<Button
+			onclick={() => (showMore = !showMore)}
+			size="icon"
+			variant="link"
+			title="More reactions"
 		>
+			<Ellipsis />
+		</Button>
 
 		{#if showMore}
 			<div
@@ -56,7 +62,7 @@
 				{#each hiddenEmojis as emoji (emoji)}
 					<Button
 						onclick={() => selectEmoji(emoji)}
-						variant="ghost"
+						variant="link"
 						class="hover:scale-125 active:scale-90  rounded-full"
 						title="React with {emoji}"
 					>
@@ -67,10 +73,12 @@
 		{/if}
 	</div>
 
-	<Button onclick={() => handleReply?.(message)} size="sm" variant="ghost" title="Reply">⤶</Button>
+	<Button onclick={() => handleReply?.(message)} size="icon" variant="link" title="Reply">
+		<ReplyIcon />
+	</Button>
 
 	{#if message.isMine}
-		<Button onclick={() => handleDelete?.(message)} size="sm" variant="ghost" title="Delete">
+		<Button onclick={() => handleDelete?.(message)} size="sm" variant="link" title="Delete">
 			✖
 		</Button>
 	{/if}

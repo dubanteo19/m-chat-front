@@ -39,7 +39,7 @@
 			>
 				{#if hoveredReactionType === reaction.type}
 					<div
-						class="absolute top-full mb-1.5 z-30 min-w-[200px] bg-white border border-slate-200/80 rounded-lg shadow-xl p-2 flex flex-col gap-1 animate-fade-in {message.isMine
+						class="absolute top-full mb-1.5 z-30 min-w-50 bg-white border rounded-lg shadow-xl p-2 flex flex-col gap-1 animate-fade-in {message.isMine
 							? 'right-0'
 							: 'left-0'}"
 					>
@@ -57,12 +57,13 @@
 					</div>
 				{/if}
 
-				<Button variant="plain" size="sm" onclick={() => sendReact?.(message.id, reaction.type)}>
-					<span
-						// class:border-amber-400={reaction.isMine}
-						// class:border-slate-500={!reaction.isMine}
-						class="border px-1 rounded-full">{reaction.type}</span
-					>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					class="border-primary "
+					onclick={() => sendReact?.(message.id, reaction.type)}
+				>
+					{reaction.type}
 					{#if reaction.count > 1}
 						<span class="text-[10px] font-bold text-slate-400">{reaction.count}</span>
 					{/if}
