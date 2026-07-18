@@ -25,9 +25,10 @@
 	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { storageService } from '$lib/api/storage';
 	import { createMessagePayload, processIncomingMessage } from '$lib/utils/message';
-	import Button from '$lib/components/ui/button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { websocketService } from '$lib/services/websocket-service.svelte';
 	import { onMount } from 'svelte';
+	import { ArrowDown } from '@lucide/svelte';
 
 	let roomId = $derived($page.params.roomId);
 	let openReactionId: number | null = $state(null);
@@ -147,7 +148,7 @@
 				messages = updateMessageReactions(messages, payload);
 			}
 		});
-		notificationService.init();
+		notificationService.init(currentUser);
 
 		return () => {
 			websocketService.disconnect();
@@ -203,7 +204,7 @@
 	}
 </script>
 
-<div class="flex h-screen max-h-screen bg-slate-900 text-slate-100 font-sans overflow-hidden">
+<div class="flex h-screen max-h-screen overflow-hidden">
 	<Sidebar {sidebarOpen} {roomId} {currentUser} />
 	<main
 		class="relative flex-1 flex flex-col min-w-0 h-full"
@@ -220,7 +221,7 @@
 				class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
 				onclick={() => scrollService.scrollToBottom()}
 			>
-				<span>↓</span>
+				<ArrowDown />
 			</Button>
 		{/if}
 		{#if isDragging}

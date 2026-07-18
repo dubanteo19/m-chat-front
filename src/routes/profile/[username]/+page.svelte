@@ -2,8 +2,7 @@
 	import { storageService } from '$lib/api/storage';
 	import { userService } from '$lib/api/user';
 	import TitleBadge from '$lib/components/common/title-badge.svelte';
-	import UserBadge from '$lib/components/common/user-badge.svelte';
-	import Button from '$lib/components/ui/button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { BADGE_ANIMATIONS } from '$lib/constants/animations';
 	import type { PageData } from './$types';
 

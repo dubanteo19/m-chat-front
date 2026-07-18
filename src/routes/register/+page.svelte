@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import Button from '$lib/components/ui/button.svelte';
+	import { Button } from '$lib/components/ui/button';
 	import { resolve } from '$app/paths';
 	import { authService } from '$lib/api/auth';
-
+	import * as Field from '$lib/components/ui/field/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
 	let username = $state('');
 	let password = $state('');
 	let displayName = $state('');
@@ -31,59 +32,43 @@
 	}
 </script>
 
-<div class="flex-center h-screen bg-slate-900 text-slate-100 font-sans">
-	<div class="w-full max-w-md p-8 bg-slate-800 rounded-xl shadow-2xl border border-slate-700">
+<div class="flex-center h-screen">
+	<div class="w-full max-w-md p-8 rounded-xl shadow-2xl border">
 		<h2 class="text-2xl font-bold text-center mb-1">Create Account</h2>
-		<p class="text-sm text-slate-400 text-center mb-6">Register to start chatting</p>
+		<p class="text-sm text-center mb-6">Register to start chatting</p>
 
 		{#if errorMessage}
-			<div class="mb-4 p-3 bg-red-500 text-white text-sm rounded-md text-center font-medium">
+			<div class="mb-4 p-3 bg-destructive text-white text-sm rounded-md text-center font-medium">
 				{errorMessage}
 			</div>
 		{/if}
 
 		<form onsubmit={handleRegister} class="space-y-4">
-			<div class="flex flex-col">
-				<label for="displayName" class="text-xs text-slate-300 font-medium mb-1.5">Full Name</label>
-				<input
-					type="text"
-					id="displayName"
-					bind:value={displayName}
-					placeholder="John Doe"
-					class="p-3 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:border-blue-500 transition-colors"
-				/>
-			</div>
-
-			<div class="flex flex-col">
-				<label for="username" class="text-xs text-slate-300 font-medium mb-1.5">Username</label>
-				<input
-					type="text"
-					id="username"
-					bind:value={username}
-					placeholder="username"
-					class="p-3 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:border-blue-500 transition-colors"
-				/>
-			</div>
-
-			<div class="flex flex-col">
-				<label for="password" class="text-xs text-slate-300 font-medium mb-1.5">Password</label>
-				<input
-					type="password"
-					id="password"
-					bind:value={password}
-					placeholder="••••••••"
-					class="p-3 bg-slate-700 border border-slate-600 rounded-md text-white focus:outline-none focus:border-blue-500 transition-colors"
-				/>
+			<div class="w-full max-w-md">
+				<Field.Set>
+					<Field.Group>
+						<Field.Field>
+							<Field.Label for="displayName">Username</Field.Label>
+							<Input bind:value={displayName} id="displayName" type="text" placeholder="Join Doe" />
+						</Field.Field>
+						<Field.Field>
+							<Field.Label for="username">Username</Field.Label>
+							<Input bind:value={username} id="username" type="text" placeholder="dbt19" />
+						</Field.Field>
+						<Field.Field>
+							<Field.Label for="password">Password</Field.Label>
+							<Input bind:value={password} id="password" type="password" placeholder="••••••••" />
+						</Field.Field>
+					</Field.Group>
+				</Field.Set>
 			</div>
 
 			<Button type="submit" class="w-full mt-2 ">Sign Up</Button>
 		</form>
 
-		<div class="flex justify-center gap-1.5 mt-6 text-sm text-slate-400">
+		<div class="flex justify-center gap-1.5 mt-6 text-sm">
 			<span>Already have an account?</span>
-			<a href={resolve('/login')} class="text-blue-400 hover:text-blue-300 font-medium underline">
-				Log in here
-			</a>
+			<a href={resolve('/login')} class=" font-medium underline"> Log in here </a>
 		</div>
 	</div>
 </div>

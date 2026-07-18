@@ -81,7 +81,7 @@
 	class:justify-center={isSystem}
 	class="flex gap-2 w-full my-0.5"
 >
-	{#if !isSystem}
+	{#if !isSystem && !message.isMine}
 		<UserAvatar user={message.sender} />
 	{/if}
 	<div
@@ -109,8 +109,9 @@
 			</div>
 		{/if}
 
-		<MessageReply {message} />
-
+		{#if message.repliedTo}
+			<MessageReply {message} />
+		{/if}
 		{#if isSystem}
 			<div
 				class="text-center mx-auto text-[11px] bg-slate-100/30 border px-3 py-1 rounded-full my-1"

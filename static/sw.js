@@ -1,5 +1,9 @@
+// static/sw.js
 self.addEventListener('push', (event) => {
-    if (!event.data) return;
+    
+    if (!event.data) {
+        return;
+    }
 
     try {
         const data = event.data.json();
