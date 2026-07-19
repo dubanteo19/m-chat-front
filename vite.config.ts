@@ -7,7 +7,7 @@ export default defineConfig({
 	server: {
 		host: '0.0.0.0',
 		port: 5173,
-				allowedHosts: ['chat.dbt19.site']
+		allowedHosts: ['chat.dbt19.site', 'mchat.dbt19.site']
 	},
 	plugins: [
 		tailwindcss(),

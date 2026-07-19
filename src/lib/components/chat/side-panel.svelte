@@ -4,12 +4,34 @@
 	import { resolve } from '$app/paths';
 	import CreateRoomDiaglog from '../room/create-room-diaglog.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { roomService, type CreateRoomRequest } from '$lib/api/room';
+	import { userService } from '$lib/api/user';
+	import type { RoomInfo } from '$lib/types/room';
+	import { PlusIcon } from '@lucide/svelte';
 
 	let { sidebarOpen = $bindable(), roomId, currentUser } = $props();
-	let showCreateRoom = $state(false);
+	let rooms = $state<RoomInfo[]>([]);
+	let isOpenRoomDialog = $state(false);
 	async function handleLogout() {
 		localStorage.removeItem('m_user');
 		await goto(resolve('/login'));
+	}
+	$effect(() => {
+		const loadRooms = async () => {
+			if (currentUser) {
+				rooms = await userService.getRooms(currentUser);
+			}
+		};
+		loadRooms();
+	});
+	async function handleCreateRoom(data: CreateRoomRequest) {
+		const response = await roomService.createRoom({
+			...data,
+			roomMasterUsername: currentUser
+		});
+		if (response.id) {
+			console.log('room created');
+		}
 	}
 </script>
 
@@ -43,18 +65,22 @@
 		<nav class="p-4 space-y-2">
 			<div class="flex items-center justify-between">
 				<p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Rooms</p>
-				<Button size="sm" variant="outline" onclick={() => (showCreateRoom = true)}>+</Button>
+				<Button size="icon" variant="outline" onclick={() => (isOpenRoomDialog = true)}>
+					<PlusIcon />
+				</Button>
 			</div>
-			<a
-				href={resolve('/room/general')}
-				onclick={() => (sidebarOpen = false)}
-				class="flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors {roomId ===
-				'general'
-					? 'bg-primary'
-					: ' hover:bg-slate-700/50 hover:text-slate-200'}"
-			>
-				# general
-			</a>
+			{#each rooms as room (room.id)}
+				<a
+					href={resolve(`/room/${room.id}`)}
+					onclick={() => (sidebarOpen = false)}
+					class="flex items-center px-3 py-2 rounded-md text-sm transition-colors {room.id ===
+					roomId
+						? 'bg-primary'
+						: ' hover:bg-slate-700/50 hover:text-slate-200'}"
+				>
+					# {room.name}
+				</a>
+			{/each}
 		</nav>
 	</div>
 
@@ -62,14 +88,14 @@
 		<div class="truncate mr-2">
 			<p class="text-xs">Logged in as</p>
 			{#if currentUser}
-				<a href={resolve(`/profile/${currentUser}`)} class="text-sm font-medium text-blue-500">
+				<a href={resolve(`/profile/${currentUser}`)} class="text-sm text-primary">
 					{currentUser}
 				</a>
 			{:else}
-				<span class="text-sm font-medium text-slate-500">Connecting...</span>
+				<span class="text-sm">Connecting...</span>
 			{/if}
 		</div>
 		<Button onclick={handleLogout} size="sm" variant="destructive">Logout</Button>
 	</div>
-	<CreateRoomDiaglog bind:open={showCreateRoom} />
+	<CreateRoomDiaglog onsubmit={handleCreateRoom} bind:open={isOpenRoomDialog} />
 </aside>

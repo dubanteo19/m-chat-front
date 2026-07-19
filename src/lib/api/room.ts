@@ -1,10 +1,11 @@
 import type { Message } from '$lib/types/message';
+import type { RoomInfo } from '$lib/types/room';
 import { apiClient } from './client';
 
 export interface RoomMessage {
 	data: Message[];
 	nextCursor: string | null;
-	hasMore: boolean
+	hasMore: boolean;
 }
 export interface CreateRoomRequest {
 	name: string;
@@ -12,18 +13,12 @@ export interface CreateRoomRequest {
 	roomMasterUsername: string;
 }
 export const roomService = {
-	getRoomMessages: async (
-		roomId: string,
-		before?: string
-	): Promise<RoomMessage> => {
+	getRoomMessages: async (roomId: string, before?: string): Promise<RoomMessage> => {
 		const queryParam = before ? `?before=${encodeURIComponent(before)}` : '';
 		return apiClient.get(`/rooms/${roomId}/messages${queryParam}`);
 	},
 
-	createRoom: async (
-		request: CreateRoomRequest
-	): Promise<RoomMessage> => {
+	createRoom: async (request: CreateRoomRequest): Promise<RoomInfo> => {
 		return apiClient.post(`/rooms`, request);
 	}
 };
-

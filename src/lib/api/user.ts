@@ -1,11 +1,12 @@
 import type { TitleStyle, UserInfo } from '$lib/types/message';
+import type { RoomInfo } from '$lib/types/room';
 import { apiClient } from './client';
 export interface PushSubscriptionRequest {
-    endpoint: string;
-    keys: {
-        p256dh: string;
-        auth: string;
-    };
+	endpoint: string;
+	keys: {
+		p256dh: string;
+		auth: string;
+	};
 }
 
 export interface UpdateUserProfileRequest {
@@ -15,11 +16,11 @@ export interface UpdateUserProfileRequest {
 	titleStyle: TitleStyle;
 }
 
-
 export const userService = {
-	getUserProfile: async (
-		username: string,
-	): Promise<UserInfo> => {
+	getRooms: async (username: string): Promise<RoomInfo[]> => {
+		return apiClient.get(`/users/${username}/rooms`);
+	},
+	getUserProfile: async (username: string): Promise<UserInfo> => {
 		return apiClient.get(`/users/${username}/profile`);
 	},
 	updateUserProfile: async (
@@ -27,12 +28,11 @@ export const userService = {
 		body: UpdateUserProfileRequest
 	): Promise<UserInfo> => {
 		return apiClient.put(`/users/${username}/profile`, body);
-    },
-  savePushSubscription: async (
-        username: string,
-        subscription: PushSubscriptionRequest
-    ): Promise<void> => {
-        return apiClient.put(`/users/${username}/push-subscription`, subscription);
-    }
+	},
+	savePushSubscription: async (
+		username: string,
+		subscription: PushSubscriptionRequest
+	): Promise<void> => {
+		return apiClient.put(`/users/${username}/push-subscription`, subscription);
+	}
 };
-

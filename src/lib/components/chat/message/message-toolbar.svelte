@@ -53,7 +53,7 @@
 			</Popover.Trigger>
 			<Popover.Content>
 				<div
-					class=" z-50 grid grid-cols-6 gap-1.5 p-1.5 bg-white rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-2"
+					class=" z-50 grid grid-cols-6 gap-1.5 p-1.5 rounded-lg animate-in fade-in slide-in-from-bottom-2"
 				>
 					{#each hiddenEmojis as emoji (emoji)}
 						<Button
