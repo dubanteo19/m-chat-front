@@ -27,7 +27,7 @@
 	import { createMessagePayload, processIncomingMessage } from '$lib/utils/message';
 	import { Button } from '$lib/components/ui/button';
 	import { websocketService } from '$lib/services/websocket-service.svelte';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { ArrowDown } from '@lucide/svelte';
 
 	let roomId = $derived($page.params.roomId);
@@ -120,7 +120,7 @@
 			console.error('Failed to resolve room history channel logs:', err);
 		}
 	}
-
+	// 1. One-time client mount: Verify user once
 	onMount(() => {
 		const storedUser = localStorage.getItem('m_user');
 		if (!storedUser) {
@@ -131,30 +131,47 @@
 			goto(destination);
 			return;
 		}
+
 		currentUser = storedUser;
-		messages = [];
-		if (roomId) loadChatHistory(roomId);
-		websocketService.connect(roomId, currentUser, {
-			onMessage(raw) {
-				const message = processIncomingMessage(raw, currentUser);
-
-				messages = [...messages, message];
-
-				notificationService.triggerPush(message, roomId);
-				scrollService.onIncomingMessage();
-			},
-
-			onReaction(payload) {
-				messages = updateMessageReactions(messages, payload);
-			}
-		});
 		notificationService.init(currentUser);
+	});
 
+	// Room Switch Effect
+	$effect(() => {
+		// 1. Capture primitives as dependencies
+		const targetRoom = roomId;
+		const user = currentUser;
+
+		if (!targetRoom || !user) return;
+
+		console.log('Initializing room:', targetRoom);
+
+		// 2. Wrap ALL setup code in untrack()
+		// This prevents any reactive state accessed inside loadChatHistory or
+		// websocketService from triggering an effect re-run!
+		untrack(() => {
+			messages = [];
+			loadChatHistory(targetRoom, user);
+
+			websocketService.connect(targetRoom, user, {
+				onMessage(raw) {
+					const message = processIncomingMessage(raw, user);
+					messages = [...messages, message];
+					notificationService.triggerPush(message, targetRoom);
+					scrollService.onIncomingMessage();
+				},
+				onReaction(payload) {
+					messages = updateMessageReactions(messages, payload);
+				}
+			});
+		});
+
+		// 3. Cleanup runs when roomId or currentUser changes
 		return () => {
+			console.log('Cleaning up room:', targetRoom);
 			websocketService.disconnect();
 		};
 	});
-
 	function handleDelete(message: Message) {}
 
 	async function processFile(file: File) {
