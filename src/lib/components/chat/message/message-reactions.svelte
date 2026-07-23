@@ -48,7 +48,7 @@
 					side="bottom"
 					align={message.isMine ? 'end' : 'start'}
 					sideOffset={8}
-					class="w-52 p-2"
+					class="w-fit p-2"
 				>
 					<div class="text-xs font-medium mb-2">
 						{reaction.type}

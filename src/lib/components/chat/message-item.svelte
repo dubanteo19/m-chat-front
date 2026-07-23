@@ -103,7 +103,10 @@
 			: 'self-start'}"
 	>
 		{#if !isSystem}
-			<div class="flex items-baseline gap-1.5 px-1 my-1">
+			<div
+				class="flex items-baseline gap-1.5 px-1 my-1 {message.isMine ? 'self-end' : 'self-start'} 
+					{message.isMine ? 'flex-row-reverse' : 'flex-row'}"
+			>
 				<UserBadge user={message.sender} />
 				<span class="text-[9px]">{formatDate(message.sentAt)}</span>
 			</div>

@@ -5,7 +5,7 @@
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import * as Field from '$lib/components/ui/field/index.js';
-	import { Input } from '$lib/components/ui/input/index.js';
+	import { Input } from '$lib/components/ui/input';
 	let username = $state('');
 	let password = $state('');
 	let errorMessage = $state('');

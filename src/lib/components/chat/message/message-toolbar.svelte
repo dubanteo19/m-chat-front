@@ -3,7 +3,7 @@
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { ALL_EMOJIS } from '$lib/constants/emojis';
 	import type { Message } from '$lib/types/message';
-	import { Ellipsis, ReplyIcon } from '@lucide/svelte';
+	import { Ellipsis, ReplyIcon, TrashIcon } from '@lucide/svelte';
 
 	let { message, openReactionId, setOpenReactionId, handleReply, handleDelete, sendReact } =
 		$props<{
@@ -76,7 +76,7 @@
 
 	{#if message.isMine}
 		<Button onclick={() => handleDelete?.(message)} size="sm" variant="link" title="Delete">
-			✖
+			<TrashIcon />
 		</Button>
 	{/if}
 </div>

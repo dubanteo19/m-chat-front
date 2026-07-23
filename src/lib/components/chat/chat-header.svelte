@@ -26,7 +26,7 @@
 						></span>
 					</div>
 				</HoverCard.Trigger>
-				<HoverCard.Content side="bottom" sideOffset={2} class="w-42 ">
+				<HoverCard.Content side="bottom" sideOffset={2} class="w-fit">
 					<UserBadge {user} />
 				</HoverCard.Content>
 			</HoverCard.Root>
