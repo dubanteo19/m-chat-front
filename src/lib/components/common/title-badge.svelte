@@ -13,6 +13,15 @@
 		'retro-glitch': '1.5px 1.5px 0px #ff0000, -1.5px -1.5px 0px #0000ff',
 		'deep-shadow': '1px 1px 0px #000, 2px 2px 0px #000'
 	};
+
+	const backgroundControlledAnimations = new Set([
+		'aurora',
+		'holo',
+		'f1-racing',
+		'vung-tau-breeze',
+		'ruby-crown',
+		'obsidian'
+	]);
 </script>
 
 <span
@@ -21,8 +30,7 @@
 	}`}
 	style:color={user.titleStyle?.textColor || '#7e22ce'}
 	style:background-color={
-		user.titleStyle?.animationVibe === 'aurora' ||
-		user.titleStyle?.animationVibe === 'holo'
+		backgroundControlledAnimations.has(user.titleStyle?.animationVibe || 'none')
 			? undefined
 			: user.titleStyle?.backgroundColor || '#f3e8ff'
 	}
