@@ -1,16 +1,14 @@
 <script lang="ts">
 	import { MessageType, type Message } from '$lib/types/message';
-
+	let imgElement = $state<HTMLImageElement>();
 	let {
 		message,
-		imgElement = $bindable(),
 		onImageLoad,
 		openLightbox
 	} = $props<{
 		message: Message;
-		imgElement?: HTMLImageElement;
 		onImageLoad?: () => void;
-		openLightbox: (e: MouseEvent) => void;
+		openLightbox: (e: MouseEvent, imgElement: HTMLImageElement | undefined) => void;
 	}>();
 </script>
 
@@ -36,7 +34,7 @@
 	</div>
 {:else if message.type === MessageType.IMAGE}
 	<button
-		onclick={openLightbox}
+		onclick={(e) => openLightbox(e, imgElement)}
 		class="overflow-hidden rounded-xl border border-slate-200 shadow-sm cursor-pointer block hover:opacity-95 transition-opacity focus:outline-none bg-slate-50"
 	>
 		<img

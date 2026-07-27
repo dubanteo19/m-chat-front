@@ -222,7 +222,7 @@
 </script>
 
 <div class="flex h-screen max-h-screen overflow-hidden">
-	<Sidebar {sidebarOpen} {roomId} {currentUser} />
+	<Sidebar {sidebarOpen} {roomId} />
 	<main
 		class="relative flex-1 flex flex-col min-w-0 h-full"
 		onpaste={handlePaste}

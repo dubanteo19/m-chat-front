@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { authService } from '$lib/api/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import * as Field from '$lib/components/ui/field/index.js';
@@ -10,8 +11,7 @@
 	let password = $state('');
 	let errorMessage = $state('');
 	$effect(() => {
-		const savedUser = localStorage.getItem('m_user');
-		if (savedUser) {
+		if (auth.isAuthenticated) {
 			goto(resolve('/room/general'));
 		}
 	});
@@ -27,10 +27,10 @@
 
 		try {
 			await authService.login({ username, password });
-			localStorage.setItem('m_user', username);
+			auth.login(username);
+
 			const redirectTo = $page.url.searchParams.get('redirectTo');
 			if (redirectTo) {
-				// eslint-disable-next-line svelte/no-navigation-without-resolve
 				return goto(redirectTo);
 			}
 

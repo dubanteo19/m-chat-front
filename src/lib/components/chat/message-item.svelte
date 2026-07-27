@@ -24,7 +24,6 @@
 		openReactionId: number | null;
 		setOpenReactionId: (id: number | null) => void;
 	}>();
-	let imgElement = $state<HTMLImageElement>();
 
 	const isSystem = $derived(message.type === 'SYSTEM');
 
@@ -44,7 +43,7 @@
 
 	let finalWidth = $state(1200);
 	let finalHeight = $state(900);
-	function openLightbox(e: MouseEvent) {
+	function openLightbox(e: MouseEvent, imgElement: HTMLImageElement | undefined) {
 		e.preventDefault();
 		if (message.isUnsent) return;
 
@@ -55,8 +54,8 @@
 			dataSource: [
 				{
 					src: message.content,
-					w: finalWidth,
-					h: finalHeight,
+					width: finalWidth,
+					height: finalHeight,
 					alt: 'Chat attachment'
 				}
 			],
@@ -67,6 +66,7 @@
 			maxZoomLevel: 3,
 			bgOpacity: 0.95,
 			loop: false,
+			padding: { top: 20, bottom: 40, left: 100, right: 100 },
 			closeOnVerticalDrag: true
 		});
 
@@ -123,7 +123,7 @@
 				<span class="text-slate-400 font-normal ml-1">({formatDate(message.sentAt)})</span>
 			</div>
 		{:else}
-			<MessageContent {message} {imgElement} {onImageLoad} {openLightbox} />
+			<MessageContent {message} {onImageLoad} {openLightbox} />
 			<MessageReactions {message} {sendReact} />
 			<MessageToolbar
 				{message}
