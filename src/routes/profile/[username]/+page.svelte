@@ -8,10 +8,12 @@
 	import * as Select from '$lib/components/ui/select/index';
 	import * as Tabs from '$lib/components/ui/tabs/index';
 	import { BADGE_ANIMATIONS, BADGE_PRESETS } from '$lib/constants/animations';
+	import { auth } from '$lib/stores/auth.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
+	const { username } = $derived(auth.currentUser);
 	let profile = $state(data.profile);
 
 	const DEFAULT_STYLE = {
@@ -397,7 +399,10 @@
 						<Button size="sm" variant="outline" onclick={() => history.back()}>Go back</Button>
 						<Button
 							type="submit"
-							disabled={isSaving || isUploading || !badgeForm.displayName.trim()}
+							disabled={username !== data.profile.username ||
+								isSaving ||
+								isUploading ||
+								!badgeForm.displayName.trim()}
 						>
 							{isSaving ? 'Saving Adjustments...' : 'Save Changes'}
 						</Button>

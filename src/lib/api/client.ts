@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { PUBLIC_BASE_URL } from '$env/static/public';
 export const apiClient = axios.create({
-	baseURL:  PUBLIC_BASE_URL,
+	baseURL: PUBLIC_BASE_URL,
 	timeout: 8000,
+	withCredentials: true,
 	headers: {
 		'Content-Type': 'application/json'
 	}
@@ -29,4 +30,3 @@ apiClient.interceptors.response.use(
 		return Promise.reject(new Error(cleanMessage));
 	}
 );
-

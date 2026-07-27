@@ -1,8 +1,13 @@
 <script lang="ts">
 	import Header from './Header.svelte';
 	import './layout.css';
+	import { auth } from '$lib/stores/auth.svelte';
 
-	let { children } = $props();
+	let { data, children } = $props();
+
+	$effect(() => {
+		auth.setUser(data.user);
+	});
 </script>
 
 <div class="app flex flex-col min-h-screen">

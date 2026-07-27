@@ -13,15 +13,15 @@
 	let { sidebarOpen = $bindable(), roomId } = $props();
 	let rooms = $state<RoomInfo[]>([]);
 	let isOpenRoomDialog = $state(false);
-	let currentUser = $derived(auth.currentUser);
+	let { username } = $derived(auth.currentUser);
 	async function handleLogout() {
 		auth.logout();
 		await goto(resolve('/login'));
 	}
 	$effect(() => {
 		const loadRooms = async () => {
-			if (currentUser) {
-				rooms = await userService.getRooms(currentUser);
+			if (username) {
+				rooms = await userService.getRooms(username);
 			}
 		};
 		loadRooms();
@@ -29,7 +29,7 @@
 	async function handleCreateRoom(data: CreateRoomRequest) {
 		const response = await roomService.createRoom({
 			...data,
-			roomMasterUsername: currentUser
+			roomMasterUsername: username
 		});
 		if (response.id) {
 			console.log('room created');
@@ -55,7 +55,7 @@
 			<div class="p-4 pb-0">
 				<Button
 					onclick={async () => {
-						await notificationService.requestPermission(currentUser);
+						await notificationService.requestPermission(username);
 					}}>🔔 Enable Notification</Button
 				>
 			</div>
@@ -89,9 +89,9 @@
 	<div class="p-4 border-t flex items-center justify-between">
 		<div class="truncate mr-2">
 			<p class="text-xs">Logged in as</p>
-			{#if currentUser}
-				<a href={resolve(`/profile/${currentUser}`)} class="text-sm text-primary">
-					{currentUser}
+			{#if username}
+				<a href={resolve(`/profile/${username}`)} class="text-sm text-primary">
+					{username}
 				</a>
 			{:else}
 				<span class="text-sm">Connecting...</span>

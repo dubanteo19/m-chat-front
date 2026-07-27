@@ -26,13 +26,10 @@
 		}
 
 		try {
-			await authService.login({ username, password });
-			auth.login(username);
-
+			const userInfo = await authService.login({ username, password });
+			auth.setUser(userInfo);
 			const redirectTo = $page.url.searchParams.get('redirectTo');
-			if (redirectTo) {
-				return goto(redirectTo);
-			}
+			if (redirectTo) return goto(redirectTo);
 
 			return goto(resolve('/room/general'));
 		} catch (err: any) {

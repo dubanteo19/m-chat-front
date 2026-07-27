@@ -2,8 +2,6 @@
 	import { notificationService } from '$lib/services/notification-service.svelte';
 	import { scrollService } from '$lib/services/scroll-service.svelte';
 	import { roomService } from '$lib/api/room';
-	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
 	import {
 		validateAndExtractMediaFile,
 		extractImageFromPaste,
@@ -22,17 +20,17 @@
 		type RepliedMessageInfo,
 		type UserInfo
 	} from '$lib/types/message';
-	import { SvelteURLSearchParams } from 'svelte/reactivity';
 	import { storageService } from '$lib/api/storage';
 	import { createMessagePayload, processIncomingMessage } from '$lib/utils/message';
 	import { Button } from '$lib/components/ui/button';
 	import { websocketService } from '$lib/services/websocket-service.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { ArrowDown } from '@lucide/svelte';
+	import { auth } from '$lib/stores/auth.svelte';
 
 	let roomId = $derived($page.params.roomId);
+	let { username: currentUser } = $derived(auth.currentUser);
 	let openReactionId: number | null = $state(null);
-	let currentUser = $state('');
 	let repliedToMessage = $state<RepliedMessageInfo | null>(null);
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
@@ -122,17 +120,6 @@
 	}
 	// 1. One-time client mount: Verify user once
 	onMount(() => {
-		const storedUser = localStorage.getItem('m_user');
-		if (!storedUser) {
-			const currentPath = $page.url.pathname + $page.url.search;
-			const params = new SvelteURLSearchParams();
-			params.set('redirectTo', currentPath);
-			const destination = `${resolve('/login')}?${params.toString()}`;
-			goto(destination);
-			return;
-		}
-
-		currentUser = storedUser;
 		notificationService.init(currentUser);
 	});
 
@@ -140,9 +127,8 @@
 	$effect(() => {
 		// 1. Capture primitives as dependencies
 		const targetRoom = roomId;
-		const user = currentUser;
 
-		if (!targetRoom || !user) return;
+		if (!targetRoom) return;
 
 		console.log('Initializing room:', targetRoom);
 
@@ -151,11 +137,11 @@
 		// websocketService from triggering an effect re-run!
 		untrack(() => {
 			messages = [];
-			loadChatHistory(targetRoom, user);
+			loadChatHistory(targetRoom);
 
-			websocketService.connect(targetRoom, user, {
+			websocketService.connect(targetRoom, currentUser, {
 				onMessage(raw) {
-					const message = processIncomingMessage(raw, user);
+					const message = processIncomingMessage(raw, currentUser);
 					messages = [...messages, message];
 					notificationService.triggerPush(message, targetRoom);
 					scrollService.onIncomingMessage();
