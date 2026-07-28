@@ -1,32 +1,21 @@
-// src/lib/stores/auth.svelte.ts
+import { getContext, setContext } from 'svelte';
 
 export type User = {
 	username: string;
 };
 
-class AuthState {
-	user = $state<User | null>(null);
-	isAuthenticated = $derived(!!this.user);
+export const PROTECTED_USER_KEY = Symbol('PROTECTED_USER');
 
-	setUser(user: User | null) {
-		this.user = user;
-	}
-
-	get currentUser(): User {
-		if (!this.user) {
-			throw new Error('Attempted to access username while user is logged out.');
-		}
-		return this.user;
-	}
-
-	login(username: string) {
-		this.user = { username };
-	}
-
-	logout() {
-		this.user = null;
-	}
+// Call in (protected)/+layout.svelte
+export function setProtectedUser(user: User) {
+	setContext(PROTECTED_USER_KEY, user);
 }
 
-export const auth = new AuthState();
-
+// Call in ANY component or page inside (protected)/
+export function useUser(): User {
+	const user = getContext<User>(PROTECTED_USER_KEY);
+	if (!user) {
+		throw new Error('useUser() must be called within a protected route.');
+	}
+	return user;
+}

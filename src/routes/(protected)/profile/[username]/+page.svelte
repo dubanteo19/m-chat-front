@@ -8,12 +8,12 @@
 	import * as Select from '$lib/components/ui/select/index';
 	import * as Tabs from '$lib/components/ui/tabs/index';
 	import { BADGE_ANIMATIONS, BADGE_PRESETS } from '$lib/constants/animations';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { useUser } from '$lib/stores/auth.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	const { username } = $derived(auth.currentUser);
+	const { username } = useUser();
 	let profile = $state(data.profile);
 
 	const DEFAULT_STYLE = {
@@ -397,15 +397,16 @@
 					{/if}
 					<div class="flex justify-between pt-2">
 						<Button size="sm" variant="outline" onclick={() => history.back()}>Go back</Button>
+					{#if username ===profile.username}
 						<Button
 							type="submit"
-							disabled={username !== data.profile.username ||
-								isSaving ||
+							disabled={isSaving ||
 								isUploading ||
 								!badgeForm.displayName.trim()}
 						>
 							{isSaving ? 'Saving Adjustments...' : 'Save Changes'}
 						</Button>
+					{/if}
 					</div>
 				</Field.Set>
 			</form>

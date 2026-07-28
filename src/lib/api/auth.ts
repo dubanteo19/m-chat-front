@@ -6,6 +6,9 @@ export const authService = {
 		return apiClient.post('/auth/login', payload);
 	},
 
+	logout: (): Promise<AuthResponse> => {
+		return apiClient.post('/auth/logout');
+	},
 	register: (payload: RegisterPayload): Promise<AuthResponse> => {
 		return apiClient.post('/auth/register', payload);
 	}

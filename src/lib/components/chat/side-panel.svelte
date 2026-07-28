@@ -8,14 +8,16 @@
 	import { userService } from '$lib/api/user';
 	import type { RoomInfo } from '$lib/types/room';
 	import { PlusIcon } from '@lucide/svelte';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { useUser } from '$lib/stores/auth.svelte';
+	import { authService } from '$lib/api/auth';
 
 	let { sidebarOpen = $bindable(), roomId } = $props();
 	let rooms = $state<RoomInfo[]>([]);
 	let isOpenRoomDialog = $state(false);
-	let { username } = $derived(auth.currentUser);
+
+	const { username  } = useUser();
 	async function handleLogout() {
-		auth.logout();
+		await authService.logout();
 		await goto(resolve('/login'));
 	}
 	$effect(() => {

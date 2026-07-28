@@ -11,7 +11,7 @@
 	import TypingIndicator from '$lib/components/chat/typing-indicator.svelte';
 	import Sidebar from '$lib/components/chat/side-panel.svelte';
 	import ChatInput from '$lib/components/chat/chat-input.svelte';
-	import ChatHeader from '$lib/components/chat/chat-header.svelte';
+	import RoomHeader from '$lib/components/chat/room-header.svelte';
 	import MessageItem from '$lib/components/chat/message-item.svelte';
 	import {
 		MessageType,
@@ -26,16 +26,16 @@
 	import { websocketService } from '$lib/services/websocket-service.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { ArrowDown } from '@lucide/svelte';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { useUser } from '$lib/stores/auth.svelte';
+	import RoomEffects from '$lib/components/room-effects/room-effects.svelte';
 
 	let roomId = $derived($page.params.roomId);
-	let { username: currentUser } = $derived(auth.currentUser);
+	const { username: currentUser } = useUser();
 	let openReactionId: number | null = $state(null);
 	let repliedToMessage = $state<RepliedMessageInfo | null>(null);
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
-
 	export function updateMessageReactions(
 		currentMessages: Message[],
 		payload: {
@@ -123,22 +123,12 @@
 		notificationService.init(currentUser);
 	});
 
-	// Room Switch Effect
 	$effect(() => {
-		// 1. Capture primitives as dependencies
 		const targetRoom = roomId;
-
 		if (!targetRoom) return;
-
-		console.log('Initializing room:', targetRoom);
-
-		// 2. Wrap ALL setup code in untrack()
-		// This prevents any reactive state accessed inside loadChatHistory or
-		// websocketService from triggering an effect re-run!
 		untrack(() => {
 			messages = [];
 			loadChatHistory(targetRoom);
-
 			websocketService.connect(targetRoom, currentUser, {
 				onMessage(raw) {
 					const message = processIncomingMessage(raw, currentUser);
@@ -219,6 +209,9 @@
 		ondragleave={() => (isDragging = false)}
 		ondrop={handleDrop}
 	>
+	<!-- Background layer -->
+	<RoomEffects />
+	<div class="relative z-10 flex flex-col h-full">
 		{#if !scrollService.isNearBottom}
 			<Button
 				class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
@@ -235,7 +228,7 @@
 			</div>
 		{/if}
 
-		<ChatHeader {roomId} {sidebarOpen} onlineUsers={websocketService.onlineUsers} />
+		<RoomHeader {roomId} {sidebarOpen} onlineUsers={websocketService.onlineUsers} />
 
 		<div
 			use:scrollService.use
@@ -262,6 +255,7 @@
 			onTypingStateChange={websocketService.sendTyping}
 			onFileUploadRequested={processFile}
 		/>
+	</div>
 	</main>
 </div>
 <svelte:window onclick={() => (openReactionId = null)} />
