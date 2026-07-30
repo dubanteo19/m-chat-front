@@ -1,11 +1,10 @@
 <script lang="ts">
 	import type { Message } from '$lib/types/message';
 	import { formatDate } from '$lib/utils/date';
-	import PhotoSwipe from 'photoswipe';
 	import 'photoswipe/dist/photoswipe.css';
 	import UserAvatar from '../common/user-avatar.svelte';
 	import UserBadge from '../common/user-badge.svelte';
-	import { MessageContent, MessageToolbar, MessageReactions, MessageReply } from './message';
+	import { MessageContent, MessageReactions, MessageReply, MessageToolbar } from './message';
 
 	let {
 		message,
@@ -14,7 +13,8 @@
 		handleDelete,
 		sendReact,
 		openReactionId,
-		setOpenReactionId
+		setOpenReactionId,
+		onOpenLightbox
 	} = $props<{
 		message: Message;
 		onImageLoad?: () => void;
@@ -23,6 +23,7 @@
 		sendReact?: (messageId: number, emoji: string) => void;
 		openReactionId: number | null;
 		setOpenReactionId: (id: number | null) => void;
+		onOpenLightbox?: (message: Message, imgElement?: HTMLImageElement) => void;
 	}>();
 
 	const isSystem = $derived(message.type === 'SYSTEM');
@@ -39,38 +40,6 @@
 
 	function handlePressEnd() {
 		clearTimeout(pressTimer);
-	}
-
-	let finalWidth = $state(1200);
-	let finalHeight = $state(900);
-	function openLightbox(e: MouseEvent, imgElement: HTMLImageElement | undefined) {
-		e.preventDefault();
-		if (message.isUnsent) return;
-
-		finalWidth = imgElement?.naturalWidth || 1200;
-		finalHeight = imgElement?.naturalHeight || 900;
-
-		const pswp = new PhotoSwipe({
-			dataSource: [
-				{
-					src: message.content,
-					width: finalWidth,
-					height: finalHeight,
-					alt: 'Chat attachment'
-				}
-			],
-			imageClickAction: 'zoom-or-close',
-			bgClickAction: 'close',
-			wheelToZoom: true,
-			secondaryZoomLevel: 1.5,
-			maxZoomLevel: 3,
-			bgOpacity: 0.95,
-			loop: false,
-			padding: { top: 20, bottom: 40, left: 100, right: 100 },
-			closeOnVerticalDrag: true
-		});
-
-		pswp.init();
 	}
 </script>
 
@@ -123,7 +92,7 @@
 				<span class="text-slate-400 font-normal ml-1">({formatDate(message.sentAt)})</span>
 			</div>
 		{:else}
-			<MessageContent {message} {onImageLoad} {openLightbox} />
+			<MessageContent {message} {onImageLoad} {onOpenLightbox} />
 			<MessageReactions {message} {sendReact} />
 			<MessageToolbar
 				{message}

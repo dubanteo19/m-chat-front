@@ -6,7 +6,7 @@
     let engine: ParticleEngine;
 
     onMount(() => {
-        engine = new ParticleEngine(canvas, "snow");
+        engine = new ParticleEngine(canvas, "sakura");
 
         engine.start();
 

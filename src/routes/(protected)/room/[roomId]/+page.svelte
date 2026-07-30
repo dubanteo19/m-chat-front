@@ -28,6 +28,7 @@
 	import { ArrowDown } from '@lucide/svelte';
 	import { useUser } from '$lib/stores/auth.svelte';
 	import RoomEffects from '$lib/components/room-effects/room-effects.svelte';
+	import PhotoSwipe from 'photoswipe';
 
 	let roomId = $derived($page.params.roomId);
 	const { username: currentUser } = useUser();
@@ -148,7 +149,52 @@
 			websocketService.disconnect();
 		};
 	});
-	function handleDelete(message: Message) {}
+	function handleDelete(message: Message) {
+		// roomService.deleteMessage(roomId, message.id).then((response) => {
+		// 	if (response.ok) {
+		// 		messages = messages.filter((msg) => msg.id !== message.id);
+		// 	} else {
+		// 		console.error('Failed to delete message:', response.statusText);
+		// 	}
+		// });
+	}
+	function onOpenLightbox(selectedMsg: Message, imgElement?: HTMLImageElement) {
+		// 1. Filter image messages
+		const imageMessages = messages.filter((msg) => msg.type === 'IMAGE' && !msg.isDeleted);
+
+		if (imageMessages.length === 0) return;
+
+		// 2. Map gallery items
+		const dataSource = imageMessages.map((msg) => {
+			const isSelected = msg.id === selectedMsg.id;
+			return {
+				src: msg.content,
+				width: isSelected && imgElement ? imgElement.naturalWidth : 1200,
+				height: isSelected && imgElement ? imgElement.naturalHeight : 900,
+				alt: 'Chat attachment'
+			};
+		});
+
+		// 3. Find active index
+		const initialIndex = imageMessages.findIndex((msg) => msg.id === selectedMsg.id);
+		console.log('Opening lightbox for message ID:', selectedMsg.id, 'at index:', initialIndex);
+		// 4. Instantiate PhotoSwipe
+		const pswp = new PhotoSwipe({
+			dataSource,
+			index: initialIndex >= 0 ? initialIndex : 0,
+			imageClickAction: 'zoom-or-close',
+			bgClickAction: 'close',
+			wheelToZoom: true,
+			secondaryZoomLevel: 1.5,
+			maxZoomLevel: 3,
+			bgOpacity: 0.95,
+			loop: true,
+			padding: { top: 20, bottom: 40, left: 100, right: 100 },
+			closeOnVerticalDrag: true
+		});
+
+		pswp.init();
+	}
 
 	async function processFile(file: File) {
 		const fileType = validateAndExtractMediaFile(file);
@@ -209,53 +255,56 @@
 		ondragleave={() => (isDragging = false)}
 		ondrop={handleDrop}
 	>
-	<!-- Background layer -->
-	<RoomEffects />
-	<div class="relative z-10 flex flex-col h-full">
-		{#if !scrollService.isNearBottom}
-			<Button
-				class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
-				onclick={() => scrollService.scrollToBottom()}
-			>
-				<ArrowDown />
-			</Button>
-		{/if}
-		{#if isDragging}
+		<!-- Background layer -->
+		<RoomEffects />
+		<div class="relative z-10 flex flex-col h-full">
+			{#if !scrollService.isNearBottom}
+				<Button
+					class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
+					onclick={() => scrollService.scrollToBottom()}
+				>
+					<ArrowDown />
+				</Button>
+			{/if}
+			{#if isDragging}
+				<div
+					class="flex-center absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 pointer-events-none"
+				>
+					<p class="text-xl font-semibold text-blue-400 animate-pulse">
+						Drop image here to send...
+					</p>
+				</div>
+			{/if}
+
+			<RoomHeader {roomId} {sidebarOpen} onlineUsers={websocketService.onlineUsers} />
+
 			<div
-				class="flex-center absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 pointer-events-none"
+				use:scrollService.use
+				class="flex flex-1 flex-col gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
 			>
-				<p class="text-xl font-semibold text-blue-400 animate-pulse">Drop image here to send...</p>
+				{#each messages as message (message.sentAt)}
+					<MessageItem
+						{message}
+						onImageLoad={scrollService.scrollToBottom}
+						{openReactionId}
+						setOpenReactionId={(id) => (openReactionId = id)}
+						handleReply={(msg) => (repliedToMessage = msg)}
+						{handleDelete}
+						sendReact={websocketService.sendReaction}
+						{onOpenLightbox}
+					/>
+				{/each}
+				<TypingIndicator typingUsers={websocketService.typingUsers} />
 			</div>
-		{/if}
 
-		<RoomHeader {roomId} {sidebarOpen} onlineUsers={websocketService.onlineUsers} />
-
-		<div
-			use:scrollService.use
-			class="flex flex-1 flex-col gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
-		>
-			{#each messages as message (message.sentAt)}
-				<MessageItem
-					{message}
-					onImageLoad={scrollService.scrollToBottom}
-					{openReactionId}
-					setOpenReactionId={(id) => (openReactionId = id)}
-					handleReply={(msg) => (repliedToMessage = msg)}
-					{handleDelete}
-					sendReact={websocketService.sendReaction}
-				/>
-			{/each}
-			<TypingIndicator typingUsers={websocketService.typingUsers} />
+			<ChatInput
+				{roomId}
+				bind:repliedToMessage
+				onSendMessage={websocketService.sendMessage}
+				onTypingStateChange={websocketService.sendTyping}
+				onFileUploadRequested={processFile}
+			/>
 		</div>
-
-		<ChatInput
-			{roomId}
-			bind:repliedToMessage
-			onSendMessage={websocketService.sendMessage}
-			onTypingStateChange={websocketService.sendTyping}
-			onFileUploadRequested={processFile}
-		/>
-	</div>
 	</main>
 </div>
 <svelte:window onclick={() => (openReactionId = null)} />

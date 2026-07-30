@@ -4,11 +4,11 @@
 	let {
 		message,
 		onImageLoad,
-		openLightbox
+		onOpenLightbox
 	} = $props<{
 		message: Message;
 		onImageLoad?: () => void;
-		openLightbox: (e: MouseEvent, imgElement: HTMLImageElement | undefined) => void;
+		onOpenLightbox?: (selectedMsg: Message, imgElement: HTMLImageElement | undefined) => void;
 	}>();
 </script>
 
@@ -34,7 +34,7 @@
 	</div>
 {:else if message.type === MessageType.IMAGE}
 	<button
-		onclick={(e) => openLightbox(e, imgElement)}
+		onclick={(e) => onOpenLightbox?.(message, imgElement)}
 		class="overflow-hidden rounded-xl border border-slate-200 shadow-sm cursor-pointer block hover:opacity-95 transition-opacity focus:outline-none bg-slate-50"
 	>
 		<img
