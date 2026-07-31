@@ -1,11 +1,8 @@
 <script lang="ts">
 	import { MessageType, type Message } from '$lib/types/message';
+	import { renderMessage } from '$lib/utils/message-renderer';
 	let imgElement = $state<HTMLImageElement>();
-	let {
-		message,
-		onImageLoad,
-		onOpenLightbox
-	} = $props<{
+	let { message, onImageLoad, onOpenLightbox } = $props<{
 		message: Message;
 		onImageLoad?: () => void;
 		onOpenLightbox?: (selectedMsg: Message, imgElement: HTMLImageElement | undefined) => void;
@@ -29,7 +26,7 @@
 			: ' bg-secondary  text-black rounded-bl-none'}"
 	>
 		<p class="whitespace-pre-wrap leading-relaxed" style="overflow-wrap: anywhere;">
-			{message.content}
+			{@html renderMessage(message.content)}
 		</p>
 	</div>
 {:else if message.type === MessageType.IMAGE}

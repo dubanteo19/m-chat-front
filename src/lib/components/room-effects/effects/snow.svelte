@@ -1,22 +1,19 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { ParticleEngine } from "./particles";
+	import { onMount } from 'svelte';
+	import { ParticleEngine } from './particles';
 
-    let canvas: HTMLCanvasElement;
-    let engine: ParticleEngine;
+	let canvas: HTMLCanvasElement;
+	let engine: ParticleEngine;
 
-    onMount(() => {
-        engine = new ParticleEngine(canvas, "sakura");
+	onMount(() => {
+		engine = new ParticleEngine(canvas, 'radiance-of-amitabha');
 
-        engine.start();
+		engine.start();
 
-        return () => {
-            engine.destroy();
-        };
-    });
+		return () => {
+			engine.destroy();
+		};
+	});
 </script>
 
-<canvas
-    bind:this={canvas}
-    class="absolute inset-0 h-full w-full pointer-events-none"
-/>
+<canvas bind:this={canvas} class="absolute inset-0 h-full w-full pointer-events-none" />
