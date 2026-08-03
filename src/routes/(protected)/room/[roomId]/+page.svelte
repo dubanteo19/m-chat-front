@@ -17,8 +17,7 @@
 		MessageType,
 		type Message,
 		type ReactionInfo,
-		type RepliedMessageInfo,
-		type UserInfo
+		type RepliedMessageInfo
 	} from '$lib/types/message';
 	import { storageService } from '$lib/api/storage';
 	import { createMessagePayload, processIncomingMessage } from '$lib/utils/message';
@@ -29,9 +28,10 @@
 	import { useUser } from '$lib/stores/auth.svelte';
 	import RoomEffects from '$lib/components/room-effects/room-effects.svelte';
 	import PhotoSwipe from 'photoswipe';
+	import type { UserInfo } from '$lib/types/user';
 
 	let roomId = $derived($page.params.roomId);
-	const { username: currentUser } = useUser();
+	const currentUser = useUser();
 	let openReactionId: number | null = $state(null);
 	let repliedToMessage = $state<RepliedMessageInfo | null>(null);
 	let messages = $state<Message[]>([]);
@@ -66,8 +66,8 @@
 				);
 				if (exists) return msg;
 
-				const isMyMessage = msg.sender.username === currentUser;
-				const isNotMyOwnReaction = incomingReaction.sender.username !== currentUser;
+				const isMyMessage = msg.sender.username === currentUser.username;
+				const isNotMyOwnReaction = incomingReaction.sender.username !== currentUser.username;
 
 				if (isMyMessage && isNotMyOwnReaction) {
 					const mockReactionMessage: Message = {
@@ -113,7 +113,7 @@
 	async function loadChatHistory(targetRoom: string) {
 		try {
 			const data = await roomService.getRoomMessages(targetRoom);
-			messages = (data.data || []).map((msg) => processIncomingMessage(msg, currentUser));
+			messages = (data.data || []).map((msg) => processIncomingMessage(msg, currentUser.username));
 			scrollService.scrollToBottom();
 		} catch (err) {
 			console.error('Failed to resolve room history channel logs:', err);
@@ -121,7 +121,7 @@
 	}
 	// 1. One-time client mount: Verify user once
 	onMount(() => {
-		notificationService.init(currentUser);
+		notificationService.init(currentUser.username);
 	});
 
 	$effect(() => {
@@ -132,7 +132,7 @@
 			loadChatHistory(targetRoom);
 			websocketService.connect(targetRoom, currentUser, {
 				onMessage(raw) {
-					const message = processIncomingMessage(raw, currentUser);
+					const message = processIncomingMessage(raw, currentUser.username);
 					messages = [...messages, message];
 					notificationService.triggerPush(message, targetRoom);
 					scrollService.onIncomingMessage();
@@ -145,7 +145,6 @@
 
 		// 3. Cleanup runs when roomId or currentUser changes
 		return () => {
-			console.log('Cleaning up room:', targetRoom);
 			websocketService.disconnect();
 		};
 	});
@@ -158,6 +157,7 @@
 		// 	}
 		// });
 	}
+
 	function onOpenLightbox(selectedMsg: Message, imgElement?: HTMLImageElement) {
 		// 1. Filter image messages
 		const imageMessages = messages.filter((msg) => msg.type === 'IMAGE' && !msg.isDeleted);

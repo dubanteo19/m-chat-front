@@ -1,5 +1,5 @@
-import type { TitleStyle, UserInfo } from '$lib/types/message';
 import type { RoomInfo } from '$lib/types/room';
+import type { TitleStyle, UserInfo } from '$lib/types/user';
 import { apiClient } from './client';
 export interface PushSubscriptionRequest {
 	endpoint: string;

@@ -1,10 +1,13 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
+
+import type { UserInfo } from "$lib/types/user";
+
 // for information about these interfaces
 declare global {
 	namespace App {
 		// interface Error {}
 		interface Locals {
-			user: { username: string } | null;
+			user: UserInfo | null;
 		}
 		// interface PageData {}
 		// interface PageState {}

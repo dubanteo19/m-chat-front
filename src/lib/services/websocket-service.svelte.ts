@@ -1,5 +1,6 @@
 import { PUBLIC_BASE_URL } from '$env/static/public';
-import { type MessagePayload, type UserInfo } from '$lib/types/message';
+import { type MessagePayload } from '$lib/types/message';
+import type { UserInfo } from '$lib/types/user';
 
 type ChatEventHandlers = {
 	onMessage?: (message: any) => void;
@@ -10,15 +11,15 @@ function createWebsocketService() {
 	let socket = $state<WebSocket | null>(null);
 
 	let connected = $state(false);
-	let typingUsers = $state<string[]>([]);
+	let typingUsers = $state<UserInfo[]>([]);
 	let onlineUsers = $state<UserInfo[]>([]);
-	let currentUser = '';
+	let currentUser: UserInfo | null = null;
 	let pingInterval: ReturnType<typeof setInterval>;
 
-	function connect(roomId: string, username: string, handlers: ChatEventHandlers) {
-		if (!roomId || !username) return;
-		currentUser = username;
-		socket = new WebSocket(`${PUBLIC_BASE_URL}/chat/${roomId}/${username}`);
+	function connect(roomId: string, user: UserInfo, handlers: ChatEventHandlers) {
+		if (!roomId || !user) return;
+		currentUser = user;
+		socket = new WebSocket(`${PUBLIC_BASE_URL}/chat/${roomId}/${currentUser.username}`);
 		socket.onopen = () => {
 			connected = true;
 			pingInterval = setInterval(() => {
@@ -34,20 +35,19 @@ function createWebsocketService() {
 
 		socket.onmessage = (event) => {
 			const parsed = JSON.parse(event.data);
-
 			switch (parsed.type) {
 				case 'ONLINE_USERS':
 					const usersList = Array.isArray(parsed) ? parsed : parsed.users || [];
 					onlineUsers = usersList;
 					return;
 				case 'TYPING_START':
-					if (parsed.sender !== currentUser && !typingUsers.includes(parsed.sender)) {
+					if (parsed.sender.username !== currentUser?.username && !typingUsers.includes(parsed.sender)) {
 						typingUsers = [...typingUsers, parsed.sender];
 					}
 					return;
 
 				case 'TYPING_STOP':
-					typingUsers = typingUsers.filter((u) => u !== parsed.sender);
+					typingUsers = typingUsers.filter((u) => u.username !== parsed.sender.username);
 					return;
 
 				case 'REACTION':
@@ -78,7 +78,7 @@ function createWebsocketService() {
 			type: 'REACTION',
 			messageId,
 			content: emoji,
-			sender: currentUser
+			sender: currentUser?.username
 		});
 	}
 

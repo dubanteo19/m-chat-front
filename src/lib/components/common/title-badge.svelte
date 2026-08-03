@@ -1,6 +1,6 @@
 <script lang="ts">
+	import type { UserInfo } from '$lib/api/types';
 	import { animationClassMap } from '$lib/constants/animations';
-	import type { UserInfo } from '$lib/types/message';
 
 	let { user } = $props<{
 		user: Partial<UserInfo> & { title?: string; titleStyle?: any };
@@ -29,17 +29,15 @@
 		animationClassMap[user.titleStyle?.animationVibe || 'none']
 	}`}
 	style:color={user.titleStyle?.textColor || '#7e22ce'}
-	style:background-color={
-		backgroundControlledAnimations.has(user.titleStyle?.animationVibe || 'none')
-			? undefined
-			: user.titleStyle?.backgroundColor || '#f3e8ff'
-	}
+	style:background-color={backgroundControlledAnimations.has(
+		user.titleStyle?.animationVibe || 'none'
+	)
+		? undefined
+		: user.titleStyle?.backgroundColor || '#f3e8ff'}
 	style:border-radius={user.titleStyle?.borderRadius || '4px'}
-	style:border={
-		!user.titleStyle?.borderStyle || user.titleStyle.borderStyle === 'none'
-			? 'none'
-			: `${user.titleStyle.borderStyle} ${user.titleStyle.borderColor || 'transparent'}`
-	}
+	style:border={!user.titleStyle?.borderStyle || user.titleStyle.borderStyle === 'none'
+		? 'none'
+		: `${user.titleStyle.borderStyle} ${user.titleStyle.borderColor || 'transparent'}`}
 	style:text-shadow={textShadowMap[user.titleStyle?.textEffect || 'none']}
 >
 	{user.title}

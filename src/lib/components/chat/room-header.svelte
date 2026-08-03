@@ -16,9 +16,9 @@
 		{roomId}
 	</h2>
 	<div class="flex-1 flex items-center justify-between gap-2">
-		<div class="flex gap-2">
+		<div class="flex gap-4">
 			{#each onlineUsers as user (user.username)}
-				<HoverCard.Root openDelay={150} closeDelay={100}>
+				<HoverCard.Root openDelay={200} closeDelay={50}>
 					<HoverCard.Trigger>
 						<div class="relative">
 							<UserAvatar {user} />

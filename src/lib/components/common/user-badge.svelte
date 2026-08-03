@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { UserInfo } from '$lib/types/message';
+	import type { UserInfo } from '$lib/types/user';
 	import TitleBadge from './title-badge.svelte';
 
 	let { user, class: className = '' } = $props<{

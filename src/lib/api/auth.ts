@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { LoginPayload, RegisterPayload, AuthResponse } from './types';
+import type { AuthResponse, LoginPayload, RegisterPayload } from './types';
 
 export const authService = {
 	login: (payload: LoginPayload): Promise<AuthResponse> => {
