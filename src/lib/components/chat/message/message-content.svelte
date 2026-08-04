@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Button } from '$lib/components/ui/button';
+	import { downloadService } from '$lib/services/download-service.svelte';
 	import { MessageType, type Message } from '$lib/types/message';
 	import { renderMessage } from '$lib/utils/message-renderer';
 	let imgElement = $state<HTMLImageElement>();
@@ -7,6 +9,7 @@
 		onImageLoad?: () => void;
 		onOpenLightbox?: (selectedMsg: Message, imgElement: HTMLImageElement | undefined) => void;
 	}>();
+
 </script>
 
 {#if message.isDeleted}
@@ -52,9 +55,12 @@
 		/>
 	</div>
 {:else if message.type === MessageType.VIDEO}
-	<div class="overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-black max-w-sm">
+	<div class="overflow-hidden group rounded-xl border border-slate-200 shadow-sm bg-black max-w-sm">
 		<video src={message.content} controls class="max-h-64 w-full object-contain">
 			<track kind="captions" />
 		</video>
+		<Button onclick={() => downloadService.downloadVideo(message.content)} size="sm" class="absolute top-6 left-2 hidden group-hover:block ">
+			Download
+		</Button>
 	</div>
 {/if}
