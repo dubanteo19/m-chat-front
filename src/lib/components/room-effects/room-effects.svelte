@@ -1,16 +1,21 @@
 <script lang="ts">
-	import Snow from "./effects/snow.svelte";
+	import { ParticleEngine, type RoomEffect } from './effects/particles';
 
+	let { roomEffect }: { roomEffect: RoomEffect | null } = $props();
+	console.log('roomEffect', roomEffect);
+	let canvas: HTMLCanvasElement;
 
-    import { RoomEffectType } from "./types";
+	$effect(() => {
+		if (!canvas || !roomEffect) return;
+		const engine = new ParticleEngine(canvas, roomEffect);
+		engine.start();
 
-    const effect = RoomEffectType.SNOW;
+		return () => {
+			engine.destroy();
+		};
+	});
 </script>
 
 <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
-    {#if effect === RoomEffectType.SNOW}
-        <Snow />
-    {:else if effect === RoomEffectType.SAKURA}
-    <div></div>
-    {/if}
+	<canvas bind:this={canvas} class="absolute inset-0 h-full w-full pointer-events-none" />
 </div>

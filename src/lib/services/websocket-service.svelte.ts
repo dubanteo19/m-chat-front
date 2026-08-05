@@ -1,10 +1,24 @@
 import { PUBLIC_BASE_URL } from '$env/static/public';
 import { type MessagePayload } from '$lib/types/message';
 import type { UserInfo } from '$lib/types/user';
+export const EventType = {
+	MESSAGE: 'MESSAGE',
+	ONLINE_USERS: 'ONLINE_USERS',
+	TYPING_START: 'TYPING_START',
+	TYPING_STOP: 'TYPING_STOP',
+	REACTION: 'REACTION',
+	MESSAGE_DELETE: 'MESSAGE_DELETE',
+	PING: 'PING',
+	ROOM_EFFECT: 'ROOM_EFFECT'
+} as const;
+
+export type EventType = (typeof EventType)[keyof typeof EventType];
 
 type ChatEventHandlers = {
 	onMessage?: (message: any) => void;
 	onReaction?: (payload: any) => void;
+	onDeleteMessage?: (payload: any) => void;
+	onRoomEffect?: (payload: any) => void;
 };
 
 function createWebsocketService() {
@@ -23,7 +37,7 @@ function createWebsocketService() {
 		socket.onopen = () => {
 			connected = true;
 			pingInterval = setInterval(() => {
-				sendRaw({ type: 'PING' });
+				sendRaw({ eventType: EventType.PING });
 			}, 30000);
 		};
 
@@ -34,26 +48,33 @@ function createWebsocketService() {
 		};
 
 		socket.onmessage = (event) => {
-			const parsed = JSON.parse(event.data);
-			switch (parsed.type) {
-				case 'ONLINE_USERS':
-					const usersList = Array.isArray(parsed) ? parsed : parsed.users || [];
-					onlineUsers = usersList;
+			const parsed = JSON.parse(event.data)
+			console.log('Received event:', parsed);
+			switch (parsed.eventType as EventType) {
+				case EventType.ONLINE_USERS:
+					onlineUsers = Array.isArray(parsed) ? parsed : parsed.users || [];
 					return;
-				case 'TYPING_START':
+				case EventType.TYPING_START:
 					if (parsed.sender.username !== currentUser?.username && !typingUsers.includes(parsed.sender)) {
 						typingUsers = [...typingUsers, parsed.sender];
 					}
 					return;
 
-				case 'TYPING_STOP':
+				case EventType.TYPING_STOP:
 					typingUsers = typingUsers.filter((u) => u.username !== parsed.sender.username);
 					return;
 
-				case 'REACTION':
+				case EventType.REACTION:
 					handlers.onReaction?.(parsed);
 					return;
 
+				case EventType.MESSAGE_DELETE:
+					handlers.onDeleteMessage?.(parsed);
+					return;
+
+				case EventType.ROOM_EFFECT:
+					handlers.onRoomEffect?.(parsed);
+					return;
 				default:
 					handlers.onMessage?.(parsed);
 			}
@@ -70,12 +91,12 @@ function createWebsocketService() {
 	}
 
 	function sendMessage(payload: MessagePayload) {
-		sendRaw(payload);
+		sendRaw({ ...payload, eventType: EventType.MESSAGE });
 	}
 
 	function sendReaction(messageId: number, emoji: string) {
 		sendRaw({
-			type: 'REACTION',
+			eventType: EventType.REACTION,
 			messageId,
 			content: emoji,
 			sender: currentUser?.username
@@ -84,7 +105,7 @@ function createWebsocketService() {
 
 	function sendTyping(isTyping: boolean) {
 		sendRaw({
-			type: isTyping ? 'TYPING_START' : 'TYPING_STOP',
+			eventType: isTyping ? EventType.TYPING_START : EventType.TYPING_STOP,
 			sender: currentUser
 		});
 	}
@@ -104,7 +125,8 @@ function createWebsocketService() {
 		disconnect,
 		sendMessage,
 		sendReaction,
-		sendTyping
+		sendTyping,
+		sendRaw
 	};
 }
 

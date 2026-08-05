@@ -124,7 +124,7 @@
 			}
 
 			// Clean payload built straight out of our reactive form object values
-			const updated = await userService.updateUserProfile(profile.username, {
+			const updated = await userService.updateUserProfile({
 				displayName: badgeForm.displayName,
 				title: badgeForm.title,
 				avatarUrl: finalAvatarUrl,
@@ -397,16 +397,14 @@
 					{/if}
 					<div class="flex justify-between pt-2">
 						<Button size="sm" variant="outline" onclick={() => history.back()}>Go back</Button>
-					{#if username ===profile.username}
-						<Button
-							type="submit"
-							disabled={isSaving ||
-								isUploading ||
-								!badgeForm.displayName.trim()}
-						>
-							{isSaving ? 'Saving Adjustments...' : 'Save Changes'}
-						</Button>
-					{/if}
+						{#if username === profile.username}
+							<Button
+								type="submit"
+								disabled={isSaving || isUploading || !badgeForm.displayName.trim()}
+							>
+								{isSaving ? 'Saving Adjustments...' : 'Save Changes'}
+							</Button>
+						{/if}
 					</div>
 				</Field.Set>
 			</form>

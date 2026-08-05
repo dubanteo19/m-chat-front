@@ -15,7 +15,7 @@
 	let rooms = $state<RoomInfo[]>([]);
 	let isOpenRoomDialog = $state(false);
 
-	const { username  } = useUser();
+	const { username } = useUser();
 	async function handleLogout() {
 		await authService.logout();
 		await goto(resolve('/login'));
@@ -23,16 +23,13 @@
 	$effect(() => {
 		const loadRooms = async () => {
 			if (username) {
-				rooms = await userService.getRooms(username);
+				rooms = await userService.getRooms();
 			}
 		};
 		loadRooms();
 	});
 	async function handleCreateRoom(data: CreateRoomRequest) {
-		const response = await roomService.createRoom({
-			...data,
-			roomMasterUsername: username
-		});
+		const response = await roomService.createRoom(data);
 		if (response.id) {
 			console.log('room created');
 		}
@@ -57,7 +54,7 @@
 			<div class="p-4 pb-0">
 				<Button
 					onclick={async () => {
-						await notificationService.requestPermission(username);
+						await notificationService.requestPermission();
 					}}>🔔 Enable Notification</Button
 				>
 			</div>

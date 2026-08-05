@@ -29,10 +29,12 @@
 	import RoomEffects from '$lib/components/room-effects/room-effects.svelte';
 	import PhotoSwipe from 'photoswipe';
 	import type { UserInfo } from '$lib/types/user';
+	import type { RoomEffect } from '$lib/components/room-effects/effects/particles';
 
 	let roomId = $derived($page.params.roomId);
 	const currentUser = useUser();
 	let openReactionId: number | null = $state(null);
+	let roomEffect = $state<RoomEffect | null>(null);
 	let repliedToMessage = $state<RepliedMessageInfo | null>(null);
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
@@ -121,7 +123,7 @@
 	}
 	// 1. One-time client mount: Verify user once
 	onMount(() => {
-		notificationService.init(currentUser.username);
+		notificationService.init();
 	});
 
 	$effect(() => {
@@ -139,6 +141,20 @@
 				},
 				onReaction(payload) {
 					messages = updateMessageReactions(messages, payload);
+				},
+				onDeleteMessage(payload) {
+					const targetId = Number(payload.messageId);
+					messages = messages.map((msg) => {
+						if (msg.id !== targetId) return msg;
+						return {
+							...msg,
+							content: 'This message was deleted.',
+							isDeleted: true
+						};
+					});
+				},
+				onRoomEffect(payload) {
+					roomEffect = payload.effect;
 				}
 			});
 		});
@@ -149,13 +165,8 @@
 		};
 	});
 	function handleDelete(message: Message) {
-		// roomService.deleteMessage(roomId, message.id).then((response) => {
-		// 	if (response.ok) {
-		// 		messages = messages.filter((msg) => msg.id !== message.id);
-		// 	} else {
-		// 		console.error('Failed to delete message:', response.statusText);
-		// 	}
-		// });
+		if (!roomId) return;
+		roomService.deleteMessage(roomId, message.id);
 	}
 
 	function onOpenLightbox(selectedMsg: Message, imgElement?: HTMLImageElement) {
@@ -256,7 +267,7 @@
 		ondrop={handleDrop}
 	>
 		<!-- Background layer -->
-		<RoomEffects />
+		<RoomEffects {roomEffect} />
 		<div class="relative z-10 flex flex-col h-full">
 			{#if !scrollService.isNearBottom}
 				<Button
@@ -276,7 +287,13 @@
 				</div>
 			{/if}
 
-			<RoomHeader {roomId} {sidebarOpen} onlineUsers={websocketService.onlineUsers} />
+			<RoomHeader
+				sendRaw={websocketService.sendRaw}
+				selectedRoomEffect={roomEffect}
+				{roomId}
+				{sidebarOpen}
+				onlineUsers={websocketService.onlineUsers}
+			/>
 
 			<div
 				use:scrollService.use

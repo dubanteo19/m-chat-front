@@ -8,33 +8,33 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
-    
+
     for (let i = 0; i < rawData.length; ++i) {
         outputArray[i] = rawData.charCodeAt(i);
     }
-    
+
     return outputArray;
 }
 function createNotificationService() {
     let status = $state<NotificationPermission | 'default'>('default');
 
-    async function init(username: string) {
+    async function init() {
         if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
             status = Notification.permission;
-            
-            if (status === 'granted' && username) {
-                await ensureSubscriptionSync(username);
+
+            if (status === 'granted') {
+                await ensureSubscriptionSync();
             }
         }
     }
 
-    async function requestPermission(username: string) {
+    async function requestPermission() {
         if (typeof window !== 'undefined' && 'Notification' in window) {
             try {
                 const permission = await Notification.requestPermission();
                 status = permission;
-                if (permission === 'granted' && username) {
-                    await ensureSubscriptionSync(username);
+                if (permission === 'granted') {
+                    await ensureSubscriptionSync();
                 }
             } catch (err) {
                 console.error('Error requesting notification permission:', err);
@@ -70,7 +70,7 @@ function createNotificationService() {
         }
     }
 
-    async function ensureSubscriptionSync(username: string) {
+    async function ensureSubscriptionSync() {
         try {
             const registration = await navigator.serviceWorker.register('/sw.js');
             let subscription = await registration.pushManager.getSubscription();
@@ -81,10 +81,10 @@ function createNotificationService() {
                 });
             }
             const subscriptionJSON = subscription.toJSON();
-        await userService.savePushSubscription(username, {
-            endpoint: subscriptionJSON.endpoint!,
-            keys: subscriptionJSON.keys as { p256dh: string; auth: string }
-        });
+            await userService.savePushSubscription({
+                endpoint: subscriptionJSON.endpoint!,
+                keys: subscriptionJSON.keys as { p256dh: string; auth: string }
+            });
         } catch (err) {
             console.error('Failed to connect subscription with web-push endpoint', err);
         }

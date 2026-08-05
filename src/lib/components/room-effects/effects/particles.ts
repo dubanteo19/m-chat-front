@@ -1,4 +1,4 @@
-export type Effect =
+export type RoomEffect =
     | "snow"
     | "sakura"
     | "aurora"
@@ -65,7 +65,7 @@ export class ParticleEngine {
 
     constructor(
         canvas: HTMLCanvasElement,
-        private effect: Effect,
+        private effect: RoomEffect,
         seed = Date.now()
     ) {
         this.canvas = canvas;

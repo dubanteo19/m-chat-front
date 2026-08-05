@@ -3,8 +3,24 @@
 	import * as HoverCard from '$lib/components/ui/hover-card/index.js';
 	import UserBadge from '../common/user-badge.svelte';
 	import { Button } from '../ui/button';
+	import type { RoomEffect } from '../room-effects/effects/particles';
+	import { EventType } from '$lib/services/websocket-service.svelte';
 
-	let { sidebarOpen = $bindable(), roomId, onlineUsers } = $props();
+	let { sidebarOpen = $bindable(), roomId, onlineUsers, sendRaw, selectedRoomEffect } = $props();
+	const roomEffects: { type: RoomEffect; icon: string; label: string }[] = [
+		{ type: 'snow', icon: '❄️', label: 'Snow' },
+		{ type: 'sakura', icon: '🌸', label: 'Sakura' },
+		{ type: 'aurora', icon: '🌌', label: 'Aurora' },
+		{ type: 'thunderstorm', icon: '🌩️', label: 'Thunderstorm' },
+		{ type: 'radiance-of-amitabha', icon: '☸️', label: 'Radiance of Amitabha' }
+	];
+	console.log('selectedRoomEffect', selectedRoomEffect);
+	const onRoomEffectSelect = (roomEffect: string) => {
+		sendRaw({
+			eventType: EventType.ROOM_EFFECT,
+			effect: roomEffect
+		});
+	};
 </script>
 
 <header class="h-16 border-b flex items-center px-4 md:px-6 gap-3">
@@ -33,11 +49,18 @@
 				</HoverCard.Root>
 			{/each}
 		</div>
-		<div class="flex gap-1 border items-center rounded-full border-secondary ">
-			<Button variant="ghost" size="icon">😀</Button>
-			<Button variant="ghost" size="icon">🥹</Button>
-			<Button variant="ghost" size="icon">😇</Button>
-			<Button variant="ghost" size="icon">😚</Button>
+		<div class="flex gap-1 px-2 py-1 border items-center rounded-full border-secondary">
+			{#each roomEffects as effect (effect.type)}
+				<Button
+					variant={selectedRoomEffect.type === effect.type ? 'destructive' : 'ghost'}
+					size="icon"
+					title={effect.label}
+					aria-label={effect.label}
+					onclick={() => onRoomEffectSelect(effect.type)}
+				>
+					{effect.icon}
+				</Button>
+			{/each}
 		</div>
 	</div>
 </header>

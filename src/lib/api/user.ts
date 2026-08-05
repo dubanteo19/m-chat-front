@@ -17,22 +17,20 @@ export interface UpdateUserProfileRequest {
 }
 
 export const userService = {
-	getRooms: async (username: string): Promise<RoomInfo[]> => {
-		return apiClient.get(`/users/${username}/rooms`);
+	getRooms: async (): Promise<RoomInfo[]> => {
+		return apiClient.get(`/users/rooms`);
 	},
 	getUserProfile: async (username: string): Promise<UserInfo> => {
 		return apiClient.get(`/users/${username}/profile`);
 	},
 	updateUserProfile: async (
-		username: string,
 		body: UpdateUserProfileRequest
 	): Promise<UserInfo> => {
-		return apiClient.put(`/users/${username}/profile`, body);
+		return apiClient.put(`/users/profile`, body);
 	},
 	savePushSubscription: async (
-		username: string,
 		subscription: PushSubscriptionRequest
 	): Promise<void> => {
-		return apiClient.put(`/users/${username}/push-subscription`, subscription);
+		return apiClient.put(`/users/push-subscription`, subscription);
 	}
 };
