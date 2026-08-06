@@ -1,12 +1,39 @@
 <script lang="ts">
-	import UserAvatar from '../common/user-avatar.svelte';
 	import * as HoverCard from '$lib/components/ui/hover-card/index.js';
-	import UserBadge from '../common/user-badge.svelte';
-	import { Button } from '../ui/button';
-	import type { RoomEffect } from '../room-effects/effects/particles';
+	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { EventType } from '$lib/services/websocket-service.svelte';
+	import UserAvatar from '../common/user-avatar.svelte';
+	import UserBadge from '../common/user-badge.svelte';
+	import type { RoomEffect } from '../room-effects/effects/particles';
+	import { Button } from '../ui/button';
 
+	import { roomService } from '$lib/api/room';
+	import * as Popover from '$lib/components/ui/popover/index.js';
+	import { useUser } from '$lib/stores/auth.svelte';
+	import type { RoomMemberInfo } from '$lib/types/user';
+	import { CornerUpLeft, Users, XIcon } from '@lucide/svelte';
+	import { onMount } from 'svelte';
+	import AddUserPopover from './room-header/add-user-popover.svelte';
+	import { roomMemberService } from '$lib/api/room-member';
 	let { sidebarOpen = $bindable(), roomId, onlineUsers, sendRaw, selectedRoomEffect } = $props();
+	let roomMembers: RoomMemberInfo[] = $state([]);
+	let isSubmitting = $state(false);
+	let memberToKick: string | null = $state(null);
+	onMount(() => {
+		const fetchRoomMembers = async () => {
+			try {
+				isSubmitting = true;
+				roomMembers = await roomService.getRoomMembers(roomId);
+			} catch (error) {
+				console.error('Error fetching room members:', error);
+			} finally {
+				isSubmitting = false;
+			}
+		};
+
+		fetchRoomMembers();
+	});
+	const currentUser = useUser();
 	const roomEffects: { type: RoomEffect; icon: string; label: string }[] = [
 		{ type: 'snow', icon: '❄️', label: 'Snow' },
 		{ type: 'sakura', icon: '🌸', label: 'Sakura' },
@@ -14,12 +41,27 @@
 		{ type: 'thunderstorm', icon: '🌩️', label: 'Thunderstorm' },
 		{ type: 'radiance-of-amitabha', icon: '☸️', label: 'Radiance of Amitabha' }
 	];
-	console.log('selectedRoomEffect', selectedRoomEffect);
 	const onRoomEffectSelect = (roomEffect: string) => {
 		sendRaw({
 			eventType: EventType.ROOM_EFFECT,
-			effect: roomEffect
+			effect: roomEffect,
+			sender: {
+				displayName: currentUser.displayName
+			}
 		});
+	};
+	const handleKickUser = async () => {
+		if (!memberToKick) return;
+
+		try {
+			await roomMemberService.kickMember(roomId, memberToKick);
+			alert(`User ${memberToKick} has been kicked from the room.`);
+			memberToKick = null;
+			roomMembers = roomMembers.filter((member) => member.user.username !== memberToKick);
+		} catch (error) {
+			console.error('Error kicking user from room:', error);
+			alert('Failed to kick user from the room.');
+		}
 	};
 </script>
 
@@ -49,18 +91,100 @@
 				</HoverCard.Root>
 			{/each}
 		</div>
-		<div class="flex gap-1 px-2 py-1 border items-center rounded-full border-secondary">
-			{#each roomEffects as effect (effect.type)}
-				<Button
-					variant={selectedRoomEffect.type === effect.type ? 'destructive' : 'ghost'}
-					size="icon"
-					title={effect.label}
-					aria-label={effect.label}
-					onclick={() => onRoomEffectSelect(effect.type)}
-				>
-					{effect.icon}
-				</Button>
-			{/each}
+		<div class="flex gap-2 items-center">
+			<Popover.Root>
+				<Popover.Trigger>
+					<div class="flex-center gap-1">
+						<Users size={18} />
+						<span>{roomMembers.length}</span>
+					</div>
+				</Popover.Trigger>
+				<Popover.Content side="bottom" sideOffset={2} class="w-fit px-4">
+					<div class="flex flex-col gap-1 min-w-54 max-h-64 overflow-y-auto">
+						<span>Room members ({roomMembers.length})</span>
+						{#each roomMembers as member (member.user.username)}
+							<div
+								class="group relative flex justify-between items-center gap-2 px-2 py-1 hover:bg-secondary rounded"
+							>
+								<div class="flex items-center gap-2">
+									<UserAvatar user={member.user} />
+									<div class="flex flex-col items-start">
+										<span
+											>{member.user.displayName}
+											{#if member.user.username === currentUser.username}
+												<span class="text-xs text-muted-foreground">(You)</span>
+											{/if}
+										</span>
+										<span
+											class="text-xs font-semibold"
+											class:text-red-600={member.role === 'MASTER'}
+										>
+											{member.role.charAt(0).toUpperCase() + member.role.slice(1).toLowerCase()}
+										</span>
+									</div>
+								</div>
+								{#if member.user.username !== currentUser.username}
+									<Button
+										variant="ghost"
+										size="icon"
+										class="invisible group-hover:visible"
+										onclick={() => (memberToKick = member.user.username)}
+									>
+										<XIcon size={16} />
+									</Button>
+								{/if}
+							</div>
+						{/each}
+
+						<div class="border-t border-bg-gray-500 my-2"></div>
+						<AddUserPopover {roomId} />
+
+						<Button variant="ghost" size="sm">
+							<CornerUpLeft />
+							<span> Leave Room </span>
+						</Button>
+					</div>
+				</Popover.Content>
+			</Popover.Root>
+			<div class="flex gap-1 px-2 py-1 border items-center rounded-full border-secondary">
+				{#each roomEffects as effect (effect.type)}
+					<Button
+						variant={selectedRoomEffect === effect.type ? 'default' : 'ghost'}
+						size="icon"
+						title={effect.label}
+						aria-label={effect.label}
+						onclick={() => onRoomEffectSelect(effect.type)}
+					>
+						{effect.icon}
+					</Button>
+				{/each}
+			</div>
 		</div>
 	</div>
+	<Dialog.Root
+		open={memberToKick !== null}
+		onOpenChange={(isOpen) => {
+			if (!isOpen) {
+				memberToKick = null;
+			}
+		}}
+	>
+		<Dialog.Content>
+			<Dialog.Header>
+				<Dialog.Title>Kick User</Dialog.Title>
+				<Dialog.Description>
+					Are you sure you want to kick this user from the room?
+				</Dialog.Description>
+			</Dialog.Header>
+
+			<Dialog.Footer class="mt-4">
+				<Dialog.Close>
+					<Button type="button" variant="destructive">Cancel</Button>
+				</Dialog.Close>
+				<Button onclick={handleKickUser} disabled={isSubmitting}>
+					{isSubmitting ? 'Kicking...' : 'Kick User'}
+				</Button>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Root>
 </header>

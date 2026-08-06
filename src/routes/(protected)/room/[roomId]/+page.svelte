@@ -20,7 +20,11 @@
 		type RepliedMessageInfo
 	} from '$lib/types/message';
 	import { storageService } from '$lib/api/storage';
-	import { createMessagePayload, processIncomingMessage } from '$lib/utils/message';
+	import {
+		createMessagePayload,
+		createRoomEffectMessage,
+		processIncomingMessage
+	} from '$lib/utils/message';
 	import { Button } from '$lib/components/ui/button';
 	import { websocketService } from '$lib/services/websocket-service.svelte';
 	import { onMount, untrack } from 'svelte';
@@ -155,6 +159,9 @@
 				},
 				onRoomEffect(payload) {
 					roomEffect = payload.effect;
+					messages.push(
+						createRoomEffectMessage({ sender: payload.sender, effect: payload.effect })
+					);
 				}
 			});
 		});

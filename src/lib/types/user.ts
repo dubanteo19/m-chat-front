@@ -15,3 +15,10 @@ export type UserInfo = {
     title: string | null;
     titleStyle: TitleStyle;
 };
+
+export type RoomRole = 'MASTER' | 'MEMBER';
+export type RoomMemberInfo = {
+    user: UserInfo;
+    role: RoomRole;
+    joinedAt: string;
+};

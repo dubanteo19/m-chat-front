@@ -2,7 +2,6 @@
 	import { ParticleEngine, type RoomEffect } from './effects/particles';
 
 	let { roomEffect }: { roomEffect: RoomEffect | null } = $props();
-	console.log('roomEffect', roomEffect);
 	let canvas: HTMLCanvasElement;
 
 	$effect(() => {

@@ -32,5 +32,8 @@ export const userService = {
 		subscription: PushSubscriptionRequest
 	): Promise<void> => {
 		return apiClient.put(`/users/push-subscription`, subscription);
-	}
+	},
+	search: async (query: string): Promise<UserInfo[]> => {
+		return apiClient.get(`/users`, { params: { q: query } });
+	},
 };

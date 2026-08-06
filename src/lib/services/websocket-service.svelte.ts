@@ -49,7 +49,6 @@ function createWebsocketService() {
 
 		socket.onmessage = (event) => {
 			const parsed = JSON.parse(event.data)
-			console.log('Received event:', parsed);
 			switch (parsed.eventType as EventType) {
 				case EventType.ONLINE_USERS:
 					onlineUsers = Array.isArray(parsed) ? parsed : parsed.users || [];

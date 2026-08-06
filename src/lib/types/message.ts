@@ -35,6 +35,6 @@ export type Message = {
 	sentAt: string;
 	isMine?: boolean;
 	isDeleted: boolean;
-	repliedTo: RepliedMessageInfo | null;
-	reactions: ReactionInfo[];
+	repliedTo?: RepliedMessageInfo | null;
+	reactions?: ReactionInfo[];
 };

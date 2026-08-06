@@ -1,4 +1,4 @@
-import type { Message, MessageType } from '$lib/types/message';
+import { MessageType, type Message } from '$lib/types/message';
 
 export interface CreateMessagePayloadOptions {
 	content: string;
@@ -18,5 +18,18 @@ export function processIncomingMessage(rawMsg: any, currentUser: string): Messag
 	return {
 		...rawMsg,
 		isMine: rawMsg.sender.username === currentUser
+	};
+}
+
+
+export function createRoomEffectMessage(options: { sender: { displayName: string }, effect: string }): Message {
+	const id = Date.now(); // Generate a unique ID based on the current timestamp
+	return {
+		id: id,
+		content: `${options.sender.displayName} activated the ${options.effect} effect!`,
+		type: MessageType.SYSTEM,
+		sender: options.sender,
+		sentAt: new Date().toISOString(),
+		isDeleted: false
 	};
 }
