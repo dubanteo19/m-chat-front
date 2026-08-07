@@ -17,18 +17,21 @@
 
 	const visibleEmojis = ALL_EMOJIS.slice(0, 5);
 	const hiddenEmojis = ALL_EMOJIS.slice(5);
-
+	let isPopoverOpen = $state(false);
 	function selectEmoji(emoji: string) {
 		sendReact?.(message.id, emoji);
 		setOpenReactionId(null);
+		isPopoverOpen = false;
 	}
+	// Determine toolbar visibility
+	let isVisible = $derived(openReactionId === message.id || isPopoverOpen);
 </script>
 
 {#if !message.isDeleted}
 	<div
 		class="absolute -top-6 z-20 flex items-center gap-1 bg-secondary color-accent border-primary border shadow-2xs rounded-xl px-2 py-1 transition-all fade-in
 	{message.isMine ? 'right-2' : 'left-2'}
-	{openReactionId === message.id ? 'flex' : 'hidden md:group-hover:flex'}"
+	{isVisible ? 'flex' : 'hidden md:group-hover:flex'}"
 	>
 		<div class="relative flex items-center gap-0.5 border-r border-slate-200 pr-1.5 mr-0.5">
 			{#each visibleEmojis as emoji (emoji)}
@@ -46,7 +49,7 @@
 				</Button>
 			{/each}
 
-			<Popover.Root>
+			<Popover.Root bind:open={isPopoverOpen}>
 				<Popover.Trigger>
 					<Button size="icon" variant="link" title="More reactions">
 						<Ellipsis />

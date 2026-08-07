@@ -27,6 +27,12 @@
 	let fileInputRef = $state<HTMLInputElement | null>(null);
 	let typingTimeout: NodeJS.Timeout;
 	let amITyping = false;
+
+	//mention
+	let showMentionMenu = $state(false);
+	let mentionQuery = $state('');
+	let mentionPosition = $state({ top: 0, left: 0 });
+
 	function handleTextAreaInput(e: Event) {
 		const textarea = e.currentTarget as HTMLTextAreaElement;
 		textarea.style.height = 'auto';
@@ -42,8 +48,22 @@
 			amITyping = false;
 			onTypingStateChange?.(false);
 		}, 2000);
+		checkMentionTrigger(textarea);
 	}
+	function checkMentionTrigger(textarea: HTMLTextAreaElement) {
+		const cursorPosition = textarea.selectionStart;
+		const textBeforeCursor = textarea.value.slice(0, cursorPosition);
 
+		// Match @ followed by letters/numbers right up to cursor position
+		const match = textBeforeCursor.match(/@([a-zA-Z0-9_-]*)$/);
+
+		if (match) {
+			mentionQuery = match[1];
+			showMentionMenu = true;
+		} else {
+			showMentionMenu = false;
+		}
+	}
 	function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 
@@ -142,7 +162,21 @@
 			{#if repliedToMessage}
 				<ReplyPreview {repliedToMessage} onCancelReply={() => (repliedToMessage = null)} />
 			{/if}
-
+			<!-- {#if showMentionMenu && filteredMembers.length > 0}
+				<div
+					class="absolute bottom-full mb-2 left-0 z-50 max-h-48 w-64 overflow-y-auto rounded-lg border bg-white shadow-lg"
+				>
+					{#each filteredMembers as member (member.username)}
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-blue-50"
+							on:click={() => selectMention(member.username)}
+						>
+							<span class="font-medium text-gray-800">@{member.username}</span>
+						</button>
+					{/each}
+				</div>
+			{/if} -->
 			<textarea
 				bind:this={textareaRef}
 				bind:value={inputMessage}

@@ -25,5 +25,8 @@ export const roomService = {
 	},
 	createRoom: async (request: CreateRoomRequest): Promise<RoomInfo> => {
 		return apiClient.post(`/rooms`, request);
+	},
+	deleteRoom: async (roomId: string): Promise<boolean> => {
+		return apiClient.delete(`/rooms/${roomId}`);
 	}
 };

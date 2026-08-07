@@ -9,7 +9,6 @@
 		onImageLoad?: () => void;
 		onOpenLightbox?: (selectedMsg: Message, imgElement: HTMLImageElement | undefined) => void;
 	}>();
-
 </script>
 
 {#if message.isDeleted}
@@ -59,7 +58,11 @@
 		<video src={message.content} controls class="max-h-64 w-full object-contain">
 			<track kind="captions" />
 		</video>
-		<Button onclick={() => downloadService.downloadVideo(message.content)} size="sm" class="absolute top-6 left-2 hidden group-hover:block ">
+		<Button
+			onclick={() => downloadService.downloadVideo(message.content)}
+			size="sm"
+			class="absolute top-6 left-2 hidden group-hover:block "
+		>
 			Download
 		</Button>
 	</div>

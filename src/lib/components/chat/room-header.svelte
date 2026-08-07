@@ -1,6 +1,6 @@
 <script lang="ts">
-	import * as HoverCard from '$lib/components/ui/hover-card/index.js';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import * as HoverCard from '$lib/components/ui/hover-card/index.js';
 	import { EventType } from '$lib/services/websocket-service.svelte';
 	import UserAvatar from '../common/user-avatar.svelte';
 	import UserBadge from '../common/user-badge.svelte';
@@ -8,18 +8,21 @@
 	import { Button } from '../ui/button';
 
 	import { roomService } from '$lib/api/room';
+	import { roomMemberService } from '$lib/api/room-member';
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { useUser } from '$lib/stores/auth.svelte';
 	import type { RoomMemberInfo } from '$lib/types/user';
 	import { CornerUpLeft, Users, XIcon } from '@lucide/svelte';
-	import { onMount } from 'svelte';
 	import AddUserPopover from './room-header/add-user-popover.svelte';
-	import { roomMemberService } from '$lib/api/room-member';
+	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
+	import type { RoomInfo } from '$lib/types/room';
 	let { sidebarOpen = $bindable(), roomId, onlineUsers, sendRaw, selectedRoomEffect } = $props();
+	let selectedRoom = $state<RoomInfo | null>(null);
 	let roomMembers: RoomMemberInfo[] = $state([]);
 	let isSubmitting = $state(false);
 	let memberToKick: string | null = $state(null);
-	onMount(() => {
+
+	$effect(() => {
 		const fetchRoomMembers = async () => {
 			try {
 				isSubmitting = true;
@@ -33,13 +36,16 @@
 
 		fetchRoomMembers();
 	});
+
 	const currentUser = useUser();
 	const roomEffects: { type: RoomEffect; icon: string; label: string }[] = [
 		{ type: 'snow', icon: '❄️', label: 'Snow' },
 		{ type: 'sakura', icon: '🌸', label: 'Sakura' },
 		{ type: 'aurora', icon: '🌌', label: 'Aurora' },
 		{ type: 'thunderstorm', icon: '🌩️', label: 'Thunderstorm' },
-		{ type: 'radiance-of-amitabha', icon: '☸️', label: 'Radiance of Amitabha' }
+		{ type: 'radiance-of-amitabha', icon: '☸️', label: 'Radiance of Amitabha' },
+		{ type: 'disco-fever', icon: '🎆', label: 'Disco Fever' },
+		{ type: 'paper-butterfly-dream', icon: '🦋', label: 'Paper Butterfly Dream' }
 	];
 	const onRoomEffectSelect = (roomEffect: string) => {
 		sendRaw({
@@ -66,12 +72,21 @@
 </script>
 
 <header class="h-16 border-b flex items-center px-4 md:px-6 gap-3">
-	<Button onclick={() => (sidebarOpen = true)} class="md:hidden p-2  " aria-label="Open sidebar">
-		☰
-	</Button>
+	{#if !sidebarOpen}
+		<Button onclick={() => (sidebarOpen = true)} class="md:hidden p-2  " aria-label="Open sidebar">
+			☰
+		</Button>
+	{/if}
 	<h2 class="text-lg font-bold tracking-wide truncate">
 		<span class="text-accent">#</span>
-		{roomId}
+		<Button
+			variant="link"
+			size="sm"
+			class="p-0 text-primary-foreground"
+			onclick={() => (selectedRoom = { id: roomId, name: roomId })}
+		>
+			{roomId}
+		</Button>
 	</h2>
 	<div class="flex-1 flex items-center justify-between gap-2">
 		<div class="flex gap-4">
@@ -146,7 +161,7 @@
 					</div>
 				</Popover.Content>
 			</Popover.Root>
-			<div class="flex gap-1 px-2 py-1 border items-center rounded-full border-secondary">
+			{#snippet effectButtons()}
 				{#each roomEffects as effect (effect.type)}
 					<Button
 						variant={selectedRoomEffect === effect.type ? 'default' : 'ghost'}
@@ -158,6 +173,25 @@
 						{effect.icon}
 					</Button>
 				{/each}
+			{/snippet}
+			<!--  Desktop View -->
+			<div class="hidden md:flex gap-1 px-2 py-1 border items-center rounded-full border-secondary">
+				{@render effectButtons()}
+			</div>
+			<!--  Mobile View -->
+			<div class="block md:hidden">
+				<Popover.Root>
+					<Popover.Trigger>
+						<Button variant="outline" size="icon" aria-label="Room Effects">
+							{roomEffects.find((e) => e.type === selectedRoomEffect)?.icon ?? '✨'}
+						</Button>
+					</Popover.Trigger>
+					<Popover.Content class="w-auto p-2">
+						<div class="flex gap-1 items-center">
+							{@render effectButtons()}
+						</div>
+					</Popover.Content>
+				</Popover.Root>
 			</div>
 		</div>
 	</div>
@@ -187,4 +221,5 @@
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Root>
+	<RoomDetailDiaglog open={selectedRoom !== null} />
 </header>

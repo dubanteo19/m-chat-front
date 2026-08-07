@@ -21,8 +21,7 @@
 
 		try {
 			await authService.login({ username, password });
-			const targetUrl = $page.url.searchParams.get('redirectTo') || '/room/s7';
-			console.log('Redirecting to:', targetUrl);
+			const targetUrl = $page.url.searchParams.get('redirectTo') || '/room/hall';
 			await goto(targetUrl, { invalidateAll: true, replaceState: true });
 		} catch (err: any) {
 			errorMessage = err.message;

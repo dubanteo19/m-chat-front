@@ -1,4 +1,31 @@
 import { truncateText } from "./text";
+const MENTION_REGEX = /@([a-zA-Z0-9_-]+)/g;
+
+function renderMentions(text: string, members: Array<{ id: string; username: string }>): string {
+    return text.replace(MENTION_REGEX, (match, username) => {
+        // Optional: Check if the mentioned user actually exists in the room
+        const matchedMember = members.find(
+            (m) => m.username.toLowerCase() === username.toLowerCase()
+        );
+
+        if (!matchedMember) {
+            return match; // If not a valid member, render raw text
+        }
+
+        return `<span
+            class="mention-chip"
+            data-user-id="${matchedMember.id}"
+            style="
+                background-color: #dbeafe;
+                color: #1e40af;
+                font-weight: 600;
+                padding: 2px 6px;
+                border-radius: 4px;
+                cursor: pointer;
+            "
+        >@${matchedMember.username}</span>`;
+    });
+}
 
 function escapeHtml(text: string): string {
     return text

@@ -25,7 +25,7 @@
 			});
 
 			localStorage.setItem('m_user', username);
-			return goto(resolve('/room/general'));
+			return goto(resolve('/room/hall'));
 		} catch (err: any) {
 			errorMessage = err.message;
 		}

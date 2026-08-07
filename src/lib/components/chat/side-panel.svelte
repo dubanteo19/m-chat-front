@@ -2,7 +2,7 @@
 	import { notificationService } from '$lib/services/notification-service.svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import CreateRoomDiaglog from '../room/create-room-diaglog.svelte';
+	import CreateRoomDialog from '../room/create-room-dialog.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { roomService, type CreateRoomRequest } from '$lib/api/room';
 	import { userService } from '$lib/api/user';
@@ -20,29 +20,22 @@
 		await authService.logout();
 		await goto(resolve('/login'));
 	}
+
+	const loadRooms = async () => {
+		if (username) {
+			rooms = await userService.getRooms();
+		}
+	};
 	$effect(() => {
-		const loadRooms = async () => {
-			if (username) {
-				rooms = await userService.getRooms();
-			}
-		};
 		loadRooms();
 	});
 	async function handleCreateRoom(data: CreateRoomRequest) {
 		const response = await roomService.createRoom(data);
 		if (response.id) {
-			console.log('room created');
+			loadRooms();
 		}
 	}
 </script>
-
-{#if sidebarOpen}
-	<Button
-		onclick={() => (sidebarOpen = false)}
-		class="fixed inset-0  z-40 md:hidden "
-		aria-label="Close sidebar"
-	></Button>
-{/if}
 
 <aside
 	class="w-64 border-r flex flex-col bg-sidebar justify-between fixed md:static inset-y-0 left-0 z-50 transform {sidebarOpen
@@ -98,5 +91,5 @@
 		</div>
 		<Button onclick={handleLogout} size="sm" variant="destructive">Logout</Button>
 	</div>
-	<CreateRoomDiaglog onsubmit={handleCreateRoom} bind:open={isOpenRoomDialog} />
+	<CreateRoomDialog onsubmit={handleCreateRoom} bind:open={isOpenRoomDialog} />
 </aside>

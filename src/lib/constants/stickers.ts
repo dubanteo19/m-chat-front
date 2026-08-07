@@ -1,5 +1,25 @@
 export const STICKER_PACKS = [
 	{
+		id: 'silly_goose',
+		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1fabf/512.webp',
+		name: 'Goose'
+	},
+	{
+		id: 'skull_face',
+		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f480/512.webp',
+		name: 'Dead'
+	},
+	{
+		id: 'collapse_dizzy',
+		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f635/512.webp',
+		name: 'Xỉu'
+	},
+	{
+		id: 'comic_boom',
+		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a5/512.webp',
+		name: 'Boom'
+	},
+	{
 		id: 'pepe_dance',
 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f483/512.webp',
 		name: 'Dance'

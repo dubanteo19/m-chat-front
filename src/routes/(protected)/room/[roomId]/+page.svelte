@@ -262,73 +262,83 @@
 </script>
 
 <div class="flex h-screen max-h-screen overflow-hidden">
-	<Sidebar {sidebarOpen} {roomId} />
-	<main
-		class="relative flex-1 flex flex-col min-w-0 h-full"
-		onpaste={handlePaste}
-		ondragover={(e) => {
-			e.preventDefault();
-			isDragging = true;
-		}}
-		ondragleave={() => (isDragging = false)}
-		ondrop={handleDrop}
-	>
-		<!-- Background layer -->
-		<RoomEffects {roomEffect} />
-		<div class="relative z-10 flex flex-col h-full">
-			{#if !scrollService.isNearBottom}
-				<Button
-					class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
-					onclick={() => scrollService.scrollToBottom()}
-				>
-					<ArrowDown />
-				</Button>
-			{/if}
-			{#if isDragging}
-				<div
-					class="flex-center absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 pointer-events-none"
-				>
-					<p class="text-xl font-semibold text-blue-400 animate-pulse">
-						Drop image here to send...
-					</p>
-				</div>
-			{/if}
+	<Sidebar bind:sidebarOpen {roomId} />
 
-			<RoomHeader
-				sendRaw={websocketService.sendRaw}
-				selectedRoomEffect={roomEffect}
-				{roomId}
-				{sidebarOpen}
-				onlineUsers={websocketService.onlineUsers}
-			/>
-
-			<div
-				use:scrollService.use
-				class="flex flex-1 flex-col gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
-			>
-				{#each messages as message (message.sentAt)}
-					<MessageItem
-						{message}
-						onImageLoad={scrollService.scrollToBottom}
-						{openReactionId}
-						setOpenReactionId={(id) => (openReactionId = id)}
-						handleReply={(msg) => (repliedToMessage = msg)}
-						{handleDelete}
-						sendReact={websocketService.sendReaction}
-						{onOpenLightbox}
-					/>
-				{/each}
-				<TypingIndicator typingUsers={websocketService.typingUsers} />
-			</div>
-
-			<ChatInput
-				{roomId}
-				bind:repliedToMessage
-				onSendMessage={websocketService.sendMessage}
-				onTypingStateChange={websocketService.sendTyping}
-				onFileUploadRequested={processFile}
-			/>
+	{#if roomId === 'hall'}
+		<div class="flex-center h-full w-full flex-col">
+			<Button onclick={() => (sidebarOpen = true)} aria-label="Open sidebar">☰</Button>
+			<p class="text-lg text-slate-400">Select a room to start chatting</p>
 		</div>
-	</main>
+	{/if}
+
+	{#if roomId !== 'hall'}
+		<main
+			class="relative flex-1 flex flex-col min-w-0 h-full"
+			onpaste={handlePaste}
+			ondragover={(e) => {
+				e.preventDefault();
+				isDragging = true;
+			}}
+			ondragleave={() => (isDragging = false)}
+			ondrop={handleDrop}
+		>
+			<!-- Background layer -->
+			<RoomEffects {roomEffect} />
+			<div class="relative z-10 flex flex-col h-full">
+				{#if !scrollService.isNearBottom}
+					<Button
+						class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
+						onclick={() => scrollService.scrollToBottom()}
+					>
+						<ArrowDown />
+					</Button>
+				{/if}
+				{#if isDragging}
+					<div
+						class="flex-center absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 pointer-events-none"
+					>
+						<p class="text-xl font-semibold text-blue-400 animate-pulse">
+							Drop image here to send...
+						</p>
+					</div>
+				{/if}
+
+				<RoomHeader
+					sendRaw={websocketService.sendRaw}
+					selectedRoomEffect={roomEffect}
+					{roomId}
+					bind:sidebarOpen
+					onlineUsers={websocketService.onlineUsers}
+				/>
+
+				<div
+					use:scrollService.use
+					class="flex flex-1 flex-col gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
+				>
+					{#each messages as message (message.sentAt)}
+						<MessageItem
+							{message}
+							onImageLoad={scrollService.scrollToBottom}
+							{openReactionId}
+							setOpenReactionId={(id) => (openReactionId = id)}
+							handleReply={(msg) => (repliedToMessage = msg)}
+							{handleDelete}
+							sendReact={websocketService.sendReaction}
+							{onOpenLightbox}
+						/>
+					{/each}
+					<TypingIndicator typingUsers={websocketService.typingUsers} />
+				</div>
+
+				<ChatInput
+					{roomId}
+					bind:repliedToMessage
+					onSendMessage={websocketService.sendMessage}
+					onTypingStateChange={websocketService.sendTyping}
+					onFileUploadRequested={processFile}
+				/>
+			</div>
+		</main>
+	{/if}
 </div>
 <svelte:window onclick={() => (openReactionId = null)} />

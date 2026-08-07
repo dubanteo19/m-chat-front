@@ -3,7 +3,89 @@ export type RoomEffect =
     | "sakura"
     | "aurora"
     | "thunderstorm"
-    | "radiance-of-amitabha";
+    | "radiance-of-amitabha"
+    | "disco-fever"
+    | "paper-butterfly-dream";
+
+const discoColors = [
+    [236, 72, 153],
+    [168, 85, 247],
+    [34, 211, 238],
+    [59, 130, 246],
+    [163, 230, 53],
+    [251, 191, 36],
+] as const;
+
+interface DiscoBeam {
+    baseAngle: number;
+    sweep: number;
+    speed: number;
+    phase: number;
+    width: number;
+    length: number;
+    alpha: number;
+    colorIndex: number;
+}
+
+interface DiscoLightPool {
+    phase: number;
+    speed: number;
+    radius: number;
+    alpha: number;
+    colorIndex: number;
+    yRatio: number;
+}
+
+const paperButterflyDreamColors = [
+    [153, 27, 27],
+    [190, 24, 93],
+    [244, 114, 182],
+    [202, 138, 4],
+    [165, 243, 252],
+    [167, 243, 208],
+] as const;
+
+type PaperButterflyDreamParticleKind =
+    | "butterfly"
+    | "paper-ash"
+    | "red-thread"
+    | "spirit-light";
+
+interface PaperButterflyDreamFogLayer {
+    yRatio: number;
+    speed: number;
+    phase: number;
+    wave: number;
+    alpha: number;
+    scale: number;
+    spriteIndex: number;
+}
+
+interface PaperButterflyDreamLantern {
+    xRatio: number;
+    yRatio: number;
+    scale: number;
+    phase: number;
+    alpha: number;
+}
+
+interface PaperButterflyDreamShadow {
+    xRatio: number;
+    yRatio: number;
+    scale: number;
+    phase: number;
+    cycleDuration: number;
+    variant: number;
+}
+
+interface PaperButterflyDreamPattern {
+    xRatio: number;
+    yRatio: number;
+    scale: number;
+    phase: number;
+    cycleDuration: number;
+    variant: number;
+}
 
 const sakuraColors = [
     "#ffd7e5",
@@ -33,7 +115,7 @@ interface Particle {
     depth: number;
     flutter: number;
     flutterSpeed: number;
-    kind?: AmitabhaParticleKind;
+    kind?: AmitabhaParticleKind | PaperButterflyDreamParticleKind;
     glyphIndex?: number;
     variant?: number;
     colorIndex?: number;
@@ -63,6 +145,34 @@ export class ParticleEngine {
     private amitabhaParticleSprites = new Map<string, HTMLCanvasElement>();
     private readonly amitabhaSpriteDpr = 1.5;
 
+    // The disco ball, light pools and glitter sprites are cached so the
+    // per-frame work is limited to transforms, simple paths and drawImage.
+    private discoBackdrop: HTMLCanvasElement | null = null;
+    private discoBall: HTMLCanvasElement | null = null;
+    private discoLightPoolSprites: HTMLCanvasElement[] = [];
+    private discoParticleSprites = new Map<string, HTMLCanvasElement>();
+    private discoBeams: DiscoBeam[] = [];
+    private discoLightPools: DiscoLightPool[] = [];
+    private discoBallLogicalSize = 168;
+    private readonly discoSpriteDpr = 1.35;
+
+
+    // Static paper-cut artwork, lanterns, fog and particle sprites are cached.
+    // Per-frame work is limited to transforms and lightweight paths.
+    private paperButterflyDreamBackdrop: HTMLCanvasElement | null = null;
+    private paperButterflyDreamMoonlight: HTMLCanvasElement | null = null;
+    private paperButterflyDreamFogSprites: HTMLCanvasElement[] = [];
+    private paperButterflyDreamLanternSprites: HTMLCanvasElement[] = [];
+    private paperButterflyDreamPatternSprites: HTMLCanvasElement[] = [];
+    private paperButterflyDreamShadowSprites: HTMLCanvasElement[] = [];
+    private paperButterflyDreamParticleSprites = new Map<string, HTMLCanvasElement>();
+    private paperButterflyDreamFogLayers: PaperButterflyDreamFogLayer[] = [];
+    private paperButterflyDreamLanterns: PaperButterflyDreamLantern[] = [];
+    private paperButterflyDreamShadows: PaperButterflyDreamShadow[] = [];
+    private paperButterflyDreamPatterns: PaperButterflyDreamPattern[] = [];
+    private paperButterflyDreamInversionOffset = 0;
+    private readonly paperButterflyDreamSpriteDpr = 1.35;
+
     constructor(
         canvas: HTMLCanvasElement,
         private effect: RoomEffect,
@@ -70,6 +180,7 @@ export class ParticleEngine {
     ) {
         this.canvas = canvas;
         this.randomState = seed >>> 0 || 1;
+        this.paperButterflyDreamInversionOffset = this.random() * 29;
         const ctx = canvas.getContext("2d");
 
         if (!ctx)
@@ -89,15 +200,19 @@ export class ParticleEngine {
         this.height = this.canvas.clientHeight;
 
         const deviceDpr = window.devicePixelRatio || 1;
-        const isLargeAmitabhaCanvas =
-            this.effect === "radiance-of-amitabha" &&
+        const isSoftGlowEffect =
+            this.effect === "radiance-of-amitabha" ||
+            this.effect === "disco-fever" ||
+            this.effect === "paper-butterfly-dream";
+        const isLargeSoftGlowCanvas =
+            isSoftGlowEffect &&
             this.width * this.height > 1_400_000;
 
-        // The Amitabha effect relies on soft glows, so a slightly lower DPR
-        // is visually harmless and saves a large amount of fill-rate.
+        // Soft glow effects tolerate a slightly lower DPR and save a large
+        // amount of fill-rate on large room canvases.
         const maxDpr =
-            this.effect === "radiance-of-amitabha"
-                ? isLargeAmitabhaCanvas
+            isSoftGlowEffect
+                ? isLargeSoftGlowCanvas
                     ? 1.25
                     : 1.5
                 : 2;
@@ -111,6 +226,14 @@ export class ParticleEngine {
 
         if (this.effect === "radiance-of-amitabha") {
             this.rebuildAmitabhaCaches();
+        }
+
+        if (this.effect === "disco-fever") {
+            this.rebuildDiscoCaches();
+        }
+
+        if (this.effect === "paper-butterfly-dream") {
+            this.rebuildPaperButterflyDreamCaches();
         }
 
         // Recreate particles so density stays balanced after resize.
@@ -201,6 +324,16 @@ export class ParticleEngine {
 
             if (this.effect === "radiance-of-amitabha") {
                 this.updateAmitabhaParticle(p, deltaSeconds);
+                continue;
+            }
+
+            if (this.effect === "disco-fever") {
+                this.updateDiscoParticle(p, deltaSeconds);
+                continue;
+            }
+
+            if (this.effect === "paper-butterfly-dream") {
+                this.updatePaperButterflyDreamParticle(p, deltaSeconds);
             }
         }
     }
@@ -261,6 +394,25 @@ export class ParticleEngine {
             this.wind =
                 Math.sin(this.timer * 0.22) * 0.06 +
                 Math.sin(this.timer * 0.09 + 1.1) * 0.025;
+            return;
+        }
+
+        if (this.effect === "disco-fever") {
+            this.wind =
+                Math.sin(this.timer * 0.31) * 0.08 +
+                Math.sin(this.timer * 0.12 + 1.4) * 0.035;
+            return;
+        }
+
+        if (this.effect === "paper-butterfly-dream") {
+            const inversion = this.getPaperButterflyDreamInversion();
+
+            this.wind =
+                Math.sin(this.timer * 0.17 + 0.4) * 0.085 +
+                Math.sin(this.timer * 0.061 + 1.8) * 0.045 +
+                Math.sin(this.timer * 0.33 + 2.3) * 0.022;
+
+            this.wind *= 1 - inversion * 0.58;
             return;
         }
 
@@ -526,6 +678,279 @@ export class ParticleEngine {
             baseAlpha * envelope * pulse;
     }
 
+    private updateDiscoParticle(
+        p: Particle,
+        deltaSeconds: number
+    ) {
+        const sidewaysOscillation =
+            Math.sin(
+                this.timer * p.wobbleSpeed +
+                p.wobble
+            ) * (4 + p.depth * 11);
+
+        p.x +=
+            (
+                p.vx +
+                sidewaysOscillation +
+                this.wind * (6 + p.depth * 10)
+            ) * deltaSeconds;
+        p.y += p.vy * deltaSeconds;
+        p.rotation += p.rotationSpeed * deltaSeconds;
+
+        const shimmer =
+            0.76 +
+            Math.sin(
+                this.timer * p.flutterSpeed +
+                p.flutter
+            ) * 0.24;
+
+        const flashDuration =
+            4.2 +
+            (p.variant ?? 0) * 0.72 +
+            p.depth * 1.1;
+        const flashCycle =
+            (this.timer + p.flutter) % flashDuration;
+        const restrainedFlash = this.smoothPulse(
+            flashCycle,
+            0.12 + (p.variant ?? 0) * 0.035,
+            0.075
+        );
+        const beat = this.getDiscoBeatPulse();
+
+        p.alpha =
+            (p.baseAlpha ?? 0.44) *
+            (shimmer + restrainedFlash * 0.34) *
+            (1 + beat * 0.22);
+
+        if (p.y > this.height + 24) {
+            p.y = -24 - this.random() * 36;
+            p.x = this.random() * this.width;
+            p.rotation = this.random() * Math.PI * 2;
+        }
+
+        this.wrapHorizontal(p, 34);
+    }
+
+    private updatePaperButterflyDreamParticle(
+        p: Particle,
+        deltaSeconds: number
+    ) {
+        p.wobble += p.wobbleSpeed * deltaSeconds;
+        p.flutter += p.flutterSpeed * deltaSeconds;
+
+        const inversion = this.getPaperButterflyDreamInversion();
+        const baseAlpha = p.baseAlpha ?? 0.3;
+
+        if (p.kind === "butterfly") {
+            const slowDown = 1 - inversion * 0.9;
+            const pathMotion =
+                Math.sin(p.wobble) * (7 + p.depth * 12) +
+                Math.sin(p.flutter * 0.48 + p.wobble) * 4;
+            const verticalMotion =
+                Math.sin(p.flutter) * (3 + p.depth * 6) +
+                Math.sin(p.wobble * 0.43) * 2;
+
+            p.x +=
+                (
+                    p.vx +
+                    this.wind * (16 + p.depth * 28) +
+                    pathMotion
+                ) * deltaSeconds * slowDown;
+            p.y +=
+                (p.vy + verticalMotion) *
+                deltaSeconds *
+                (0.34 + slowDown * 0.66);
+            p.rotation =
+                Math.sin(p.wobble * 0.52) * 0.34 +
+                Math.sin(p.flutter * 0.31) * 0.12;
+
+            const dissolve =
+                this.getPaperButterflyDreamButterflyDissolve(p);
+            const pulse =
+                0.84 +
+                Math.sin(p.flutter * 0.72 + p.wobble) * 0.16;
+
+            p.alpha =
+                baseAlpha *
+                pulse *
+                (1 - dissolve * 0.72) *
+                (1 + inversion * 0.08);
+
+            if (
+                p.x > this.width + 70 ||
+                p.x < -70 ||
+                p.y > this.height + 70 ||
+                p.y < -70
+            ) {
+                p.x = -40 - this.random() * 70;
+                p.y =
+                    this.height * 0.18 +
+                    this.random() * this.height * 0.54;
+                p.wobble = this.random() * Math.PI * 2;
+                p.flutter = this.random() * Math.PI * 2;
+            }
+
+            return;
+        }
+
+        if (p.kind === "paper-ash") {
+            const reverse = 1 - inversion * 2;
+            const sway =
+                Math.sin(p.wobble) * (2 + p.depth * 5) +
+                Math.sin(p.flutter * 0.61) * 1.8;
+
+            p.x +=
+                (
+                    p.vx +
+                    this.wind * (6 + p.depth * 10) +
+                    sway
+                ) * deltaSeconds;
+            p.y += p.vy * reverse * deltaSeconds;
+            p.rotation +=
+                (
+                    p.rotationSpeed +
+                    Math.sin(p.flutter) * 0.08
+                ) * deltaSeconds;
+
+            const flicker =
+                0.72 +
+                Math.sin(p.flutter * 0.83 + p.wobble) * 0.28;
+
+            p.alpha =
+                baseAlpha *
+                flicker *
+                (1 + inversion * 0.22);
+
+            if (p.y < -36) {
+                p.y = this.height + 24 + this.random() * 42;
+                p.x = this.random() * this.width;
+            } else if (p.y > this.height + 48) {
+                p.y = -24 - this.random() * 36;
+                p.x = this.random() * this.width;
+            }
+
+            this.wrapHorizontal(p, 44);
+            return;
+        }
+
+        if (p.kind === "red-thread") {
+            const drift =
+                p.vx +
+                this.wind * (4 + p.depth * 7) +
+                Math.sin(p.wobble) * 1.8;
+
+            p.x += drift * deltaSeconds;
+            p.y +=
+                (
+                    p.vy +
+                    Math.sin(p.flutter * 0.46) * 1.4
+                ) * deltaSeconds;
+            p.rotation =
+                Math.sin(p.wobble * 0.4) * 0.14;
+            p.alpha =
+                baseAlpha *
+                (0.78 + Math.sin(p.flutter * 0.31) * 0.22) *
+                (1 - inversion * 0.18);
+
+            this.wrapHorizontal(p, p.length + 70);
+
+            if (p.y < -60)
+                p.y = this.height + 50;
+
+            if (p.y > this.height + 60)
+                p.y = -50;
+
+            return;
+        }
+
+        const wanderingX =
+            Math.sin(p.wobble) * (4 + p.depth * 8) +
+            Math.sin(p.flutter * 0.53 + 1.2) * 2.5;
+        const wanderingY =
+            Math.sin(p.flutter) * (3 + p.depth * 5) +
+            Math.sin(p.wobble * 0.39) * 2;
+
+        p.x +=
+            (
+                p.vx +
+                wanderingX +
+                this.wind * 5
+            ) * deltaSeconds;
+        p.y += (p.vy + wanderingY) * deltaSeconds;
+        p.rotation += p.rotationSpeed * deltaSeconds;
+
+        const vanish =
+            this.getPaperButterflyDreamButterflyProximity(p);
+        const glowPulse =
+            0.66 +
+            Math.sin(p.flutter * 0.64 + p.wobble) * 0.34;
+
+        p.alpha =
+            baseAlpha *
+            glowPulse *
+            (1 - vanish * 0.72) *
+            (1 + inversion * 0.35);
+
+        if (
+            p.x < -48 ||
+            p.x > this.width + 48 ||
+            p.y < -48 ||
+            p.y > this.height + 48
+        ) {
+            p.x = this.random() * this.width;
+            p.y =
+                this.height * 0.26 +
+                this.random() * this.height * 0.5;
+        }
+    }
+
+    private getPaperButterflyDreamButterflyDissolve(p: Particle) {
+        if ((p.variant ?? 0) !== 2)
+            return 0;
+
+        const phase =
+            (
+                this.timer * 0.075 +
+                p.flutter / (Math.PI * 2)
+            ) % 1;
+
+        if (phase < 0.68)
+            return 0;
+
+        const normalized =
+            this.clamp((phase - 0.68) / 0.32, 0, 1);
+
+        return normalized * normalized *
+            (3 - 2 * normalized);
+    }
+
+    private getPaperButterflyDreamButterflyProximity(p: Particle) {
+        let checked = 0;
+        let proximity = 0;
+
+        for (const butterfly of this.particles) {
+            if (butterfly.kind !== "butterfly")
+                continue;
+
+            const distance = Math.hypot(
+                butterfly.x - p.x,
+                butterfly.y - p.y
+            );
+
+            proximity = Math.max(
+                proximity,
+                1 - this.clamp(distance / 62, 0, 1)
+            );
+
+            checked++;
+
+            if (checked >= 12 || proximity > 0.92)
+                break;
+        }
+
+        return proximity;
+    }
+
     private wrapHorizontal(p: Particle, margin: number) {
         if (p.x < -margin)
             p.x = this.width + margin;
@@ -558,6 +983,26 @@ export class ParticleEngine {
         this.amitabhaBackdrop = null;
         this.amitabhaFigure = null;
         this.amitabhaParticleSprites.clear();
+
+        this.discoBackdrop = null;
+        this.discoBall = null;
+        this.discoLightPoolSprites = [];
+        this.discoParticleSprites.clear();
+        this.discoBeams = [];
+        this.discoLightPools = [];
+    
+
+        this.paperButterflyDreamBackdrop = null;
+        this.paperButterflyDreamMoonlight = null;
+        this.paperButterflyDreamFogSprites = [];
+        this.paperButterflyDreamLanternSprites = [];
+        this.paperButterflyDreamPatternSprites = [];
+        this.paperButterflyDreamShadowSprites = [];
+        this.paperButterflyDreamParticleSprites.clear();
+        this.paperButterflyDreamFogLayers = [];
+        this.paperButterflyDreamLanterns = [];
+        this.paperButterflyDreamShadows = [];
+        this.paperButterflyDreamPatterns = [];
     }
 
     private createParticles(reset = false) {
@@ -597,6 +1042,22 @@ export class ParticleEngine {
                 case "radiance-of-amitabha":
                     this.particles.push(
                         this.createAmitabhaParticle(
+                            depth,
+                            i,
+                            count
+                        )
+                    );
+                    break;
+
+                case "disco-fever":
+                    this.particles.push(
+                        this.createDiscoParticle(depth)
+                    );
+                    break;
+
+                case "paper-butterfly-dream":
+                    this.particles.push(
+                        this.createPaperButterflyDreamParticle(
                             depth,
                             i,
                             count
@@ -644,6 +1105,20 @@ export class ParticleEngine {
                     Math.floor(area / 36000),
                     24,
                     38
+                );
+
+            case "disco-fever":
+                return this.clamp(
+                    Math.floor(area / 13500),
+                    42,
+                    92
+                );
+
+            case "paper-butterfly-dream":
+                return this.clamp(
+                    Math.floor(area / 14800),
+                    42,
+                    86
                 );
 
             default:
@@ -834,6 +1309,202 @@ export class ParticleEngine {
         return particle;
     }
 
+    private createPaperButterflyDreamParticle(
+        depth: number,
+        index: number,
+        total: number
+    ): Particle {
+        const butterflyCount = this.clamp(
+            Math.floor(total * 0.34),
+            14,
+            28
+        );
+        const ashCount = this.clamp(
+            Math.floor(total * 0.38),
+            16,
+            34
+        );
+        const threadCount = this.clamp(
+            Math.floor(total * 0.12),
+            5,
+            10
+        );
+
+        const kind: PaperButterflyDreamParticleKind =
+            index < butterflyCount
+                ? "butterfly"
+                : index < butterflyCount + ashCount
+                    ? "paper-ash"
+                    : index <
+                        butterflyCount +
+                        ashCount +
+                        threadCount
+                        ? "red-thread"
+                        : "spirit-light";
+
+        const centerBias =
+            0.5 +
+            (this.random() - 0.5) * 0.92;
+        let x = centerBias * this.width;
+        let y = this.random() * this.height;
+
+        if (kind === "butterfly") {
+            x = -50 + this.random() * (this.width + 100);
+            y =
+                this.height * 0.16 +
+                this.random() * this.height * 0.58;
+        }
+
+        if (kind === "red-thread") {
+            const left = this.random() < 0.5;
+            x = left
+                ? -20 + this.random() * this.width * 0.2
+                : this.width * 0.8 + this.random() * this.width * 0.2;
+            y = this.random() * this.height;
+        }
+
+        if (kind === "spirit-light") {
+            y =
+                this.height * 0.28 +
+                this.random() * this.height * 0.48;
+        }
+
+        const variant =
+            kind === "butterfly"
+                ? this.random() < 0.24
+                    ? 2
+                    : this.random() < 0.5
+                        ? 1
+                        : 0
+                : kind === "paper-ash"
+                    ? Math.floor(this.random() * 3)
+                    : kind === "red-thread"
+                        ? Math.floor(this.random() * 2)
+                        : 0;
+
+        const baseAlpha =
+            kind === "butterfly"
+                ? 0.34 + depth * 0.34
+                : kind === "paper-ash"
+                    ? 0.12 + depth * 0.28
+                    : kind === "red-thread"
+                        ? 0.035 + depth * 0.055
+                        : 0.17 + depth * 0.26;
+
+        return {
+            originX: x,
+            originY: y,
+            x,
+            y,
+
+            vx:
+                kind === "butterfly"
+                    ? 12 + depth * 22 + this.random() * 10
+                    : kind === "paper-ash"
+                        ? (this.random() - 0.5) * 7
+                        : kind === "red-thread"
+                            ? 2 + depth * 5
+                            : (this.random() - 0.5) * 3,
+            vy:
+                kind === "butterfly"
+                    ? (this.random() - 0.5) * 4
+                    : kind === "paper-ash"
+                        ? -(8 + depth * 22 + this.random() * 8)
+                        : kind === "red-thread"
+                            ? (this.random() - 0.5) * 2.4
+                            : (this.random() - 0.5) * 2.8,
+
+            size:
+                kind === "butterfly"
+                    ? 4.2 + depth * 7.2
+                    : kind === "paper-ash"
+                        ? 0.9 + depth * 3.1
+                        : kind === "red-thread"
+                            ? 0.42 + depth * 0.58
+                            : 2 + depth * 3.8,
+            length:
+                kind === "red-thread"
+                    ? 52 + depth * 92
+                    : kind === "butterfly"
+                        ? 16 + depth * 22
+                        : 0,
+            alpha: baseAlpha,
+
+            rotation: this.random() * Math.PI * 2,
+            rotationSpeed:
+                (this.random() - 0.5) *
+                (kind === "paper-ash" ? 0.78 : 0.34),
+
+            wobble: this.random() * Math.PI * 2,
+            wobbleSpeed:
+                kind === "butterfly"
+                    ? 0.5 + this.random() * 0.72
+                    : 0.24 + this.random() * 0.54,
+
+            flutter: this.random() * Math.PI * 2,
+            flutterSpeed:
+                kind === "butterfly"
+                    ? 2.1 + this.random() * 2.2
+                    : kind === "spirit-light"
+                        ? 0.52 + this.random() * 0.72
+                        : 0.28 + this.random() * 0.6,
+
+            depth,
+            kind,
+            variant,
+            colorIndex:
+                kind === "spirit-light"
+                    ? 4 + Math.floor(this.random() * 2)
+                    : Math.floor(this.random() * 4),
+            baseAlpha,
+        };
+    }
+
+    private createDiscoParticle(depth: number): Particle {
+        const x = this.random() * this.width;
+        const y = this.random() * this.height;
+        const variantSelector = this.random();
+        const variant =
+            variantSelector < 0.7
+                ? 0
+                : variantSelector < 0.92
+                    ? 1
+                    : 2;
+        const baseAlpha = 0.18 + depth * 0.46;
+
+        return {
+            originX: x,
+            originY: y,
+            x,
+            y,
+
+            vx: (this.random() - 0.5) * 5,
+            vy: 10 + depth * 34 + this.random() * 10,
+
+            size: 0.8 + depth * 2.8,
+            length: 0,
+            alpha: baseAlpha,
+
+            rotation: this.random() * Math.PI * 2,
+            rotationSpeed:
+                (this.random() - 0.5) *
+                (1.1 + depth * 1.9),
+
+            wobble: this.random() * Math.PI * 2,
+            wobbleSpeed: 0.35 + this.random() * 0.75,
+
+            flutter: this.random() * Math.PI * 2,
+            flutterSpeed: 0.55 + this.random() * 1.05,
+
+            depth,
+            variant,
+            colorIndex: Math.floor(
+                this.random() * discoColors.length
+            ),
+            baseAlpha,
+        };
+    }
+
     private createAmitabhaParticle(
         depth: number,
         index: number,
@@ -947,6 +1618,21 @@ export class ParticleEngine {
             this.drawAmitabhaBackground();
         }
 
+        if (this.effect === "disco-fever") {
+            this.drawDiscoBackground();
+            this.drawDiscoBeams();
+        }
+
+        if (this.effect === "paper-butterfly-dream") {
+            this.drawPaperButterflyDreamBackground();
+            this.drawPaperButterflyDreamMoonlight();
+            this.drawPaperButterflyDreamLanterns();
+            this.drawPaperButterflyDreamPaperPatterns();
+            this.drawPaperButterflyDreamSilhouette();
+            this.drawPaperButterflyDreamFog();
+            this.drawPaperButterflyDreamMirror();
+        }
+
         this.ctx.restore();
 
         if (this.effect === "radiance-of-amitabha") {
@@ -979,6 +1665,13 @@ export class ParticleEngine {
                     this.drawRainDrop(p);
                     break;
 
+                case "disco-fever":
+                    this.drawDiscoParticle(p);
+                    break;
+
+                case "paper-butterfly-dream":
+                    this.drawPaperButterflyDreamParticle(p);
+                    break;
             }
 
             this.ctx.restore();
@@ -991,6 +1684,2007 @@ export class ParticleEngine {
             this.ctx.restore();
         }
 
+        if (this.effect === "disco-fever") {
+            this.ctx.save();
+            this.ctx.globalAlpha = this.transitionAlpha;
+            this.drawDiscoBall();
+            this.ctx.restore();
+        }
+
+        if (this.effect === "paper-butterfly-dream") {
+            this.ctx.save();
+            this.ctx.globalAlpha = this.transitionAlpha;
+            this.drawPaperButterflyDreamReflections();
+            this.ctx.restore();
+        }
+    }
+
+    private rebuildDiscoCaches() {
+        this.discoParticleSprites.clear();
+        this.discoBallLogicalSize = this.clamp(
+            Math.min(this.width, this.height) * 0.25,
+            128,
+            184
+        );
+        this.discoBackdrop = this.createDiscoBackdropCache();
+        this.discoBall = this.createDiscoBallCache();
+        this.discoLightPoolSprites = discoColors.map(
+            (_, index) => this.createDiscoLightPoolSprite(index)
+        );
+        this.rebuildDiscoScene();
+    }
+
+    private rebuildDiscoScene() {
+        const beamCount = this.width < 640 ? 7 : 9;
+
+        this.discoBeams = Array.from(
+            { length: beamCount },
+            (_, index): DiscoBeam => {
+                const side = index % 2 === 0 ? -1 : 1;
+                const sideAngle =
+                    side < 0
+                        ? Math.PI * (0.59 + this.random() * 0.27)
+                        : Math.PI * (0.14 + this.random() * 0.27);
+
+                return {
+                    baseAngle: sideAngle,
+                    sweep: 0.1 + this.random() * 0.2,
+                    speed: 0.08 + this.random() * 0.15,
+                    phase: this.random() * Math.PI * 2,
+                    width: 0.075 + this.random() * 0.085,
+                    length: 0.86 + this.random() * 0.24,
+                    alpha: 0.026 + this.random() * 0.035,
+                    colorIndex: index % discoColors.length,
+                };
+            }
+        );
+
+        this.discoLightPools = Array.from(
+            { length: 3 },
+            (_, index): DiscoLightPool => ({
+                phase: this.random() * Math.PI * 2,
+                speed: 0.045 + this.random() * 0.06,
+                radius: 0.2 + this.random() * 0.13,
+                alpha: 0.022 + this.random() * 0.02,
+                colorIndex: (index * 2 + 1) % discoColors.length,
+                yRatio: 0.52 + this.random() * 0.32,
+            })
+        );
+    }
+
+    private createDiscoBackdropCache() {
+        const scale =
+            this.width * this.height > 1_400_000
+                ? 0.5
+                : 0.68;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(
+            1,
+            Math.round(this.width * scale)
+        );
+        canvas.height = Math.max(
+            1,
+            Math.round(this.height * scale)
+        );
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(scale, 0, 0, scale, 0, 0);
+
+        const tint = c.createLinearGradient(
+            0,
+            0,
+            0,
+            this.height
+        );
+        tint.addColorStop(0, "rgba(30, 27, 75, 0.11)");
+        tint.addColorStop(0.48, "rgba(49, 46, 129, 0.055)");
+        tint.addColorStop(1, "rgba(15, 23, 42, 0.08)");
+
+        c.fillStyle = tint;
+        c.fillRect(0, 0, this.width, this.height);
+
+        const topGlow = c.createRadialGradient(
+            this.width * 0.5,
+            0,
+            0,
+            this.width * 0.5,
+            0,
+            Math.max(this.width, this.height) * 0.58
+        );
+        topGlow.addColorStop(0, "rgba(196, 181, 253, 0.07)");
+        topGlow.addColorStop(0.44, "rgba(59, 130, 246, 0.028)");
+        topGlow.addColorStop(1, "rgba(30, 27, 75, 0)");
+
+        c.fillStyle = topGlow;
+        c.fillRect(0, 0, this.width, this.height);
+
+        return canvas;
+    }
+
+    private createDiscoBallCache() {
+        const logicalSize = this.discoBallLogicalSize;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(
+            logicalSize * this.discoSpriteDpr
+        );
+        canvas.height = canvas.width;
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(
+            this.discoSpriteDpr,
+            0,
+            0,
+            this.discoSpriteDpr,
+            0,
+            0
+        );
+
+        const center = logicalSize * 0.5;
+        const radius = logicalSize * 0.37;
+
+        c.save();
+        c.translate(center, center);
+        c.beginPath();
+        c.arc(0, 0, radius, 0, Math.PI * 2);
+        c.clip();
+
+        const chrome = c.createRadialGradient(
+            -radius * 0.28,
+            -radius * 0.34,
+            radius * 0.06,
+            0,
+            0,
+            radius * 1.12
+        );
+        chrome.addColorStop(0, "rgba(255, 255, 255, 0.98)");
+        chrome.addColorStop(0.22, "rgba(226, 232, 240, 0.94)");
+        chrome.addColorStop(0.56, "rgba(148, 163, 184, 0.9)");
+        chrome.addColorStop(0.82, "rgba(109, 90, 146, 0.88)");
+        chrome.addColorStop(1, "rgba(30, 27, 75, 0.95)");
+
+        c.fillStyle = chrome;
+        c.fillRect(
+            -radius,
+            -radius,
+            radius * 2,
+            radius * 2
+        );
+
+        const tileSize = this.clamp(logicalSize * 0.047, 6, 8);
+        const tileGap = 1.05;
+
+        for (
+            let y = -radius;
+            y < radius;
+            y += tileSize
+        ) {
+            const normalizedY = y / radius;
+            const halfRow =
+                Math.sqrt(
+                    Math.max(0, 1 - normalizedY * normalizedY)
+                ) * radius;
+
+            for (
+                let x = -halfRow;
+                x < halfRow;
+                x += tileSize
+            ) {
+                const normalizedX = x / radius;
+                const shine = this.clamp(
+                    0.3 +
+                    (1 - Math.abs(normalizedX)) * 0.42 +
+                    Math.sin(x * 0.21 + y * 0.17) * 0.18,
+                    0.18,
+                    0.92
+                );
+                const alternate =
+                    (
+                        Math.floor((x + y) / tileSize)
+                    ) % 2 === 0;
+
+                c.fillStyle = alternate
+                    ? `rgba(240, 249, 255, ${shine})`
+                    : `rgba(216, 180, 254, ${shine * 0.72})`;
+                c.fillRect(
+                    x + tileGap * 0.5,
+                    y + tileGap * 0.5,
+                    tileSize - tileGap,
+                    tileSize - tileGap
+                );
+            }
+        }
+
+        c.restore();
+
+        c.strokeStyle = "rgba(255, 255, 255, 0.68)";
+        c.lineWidth = 1.1;
+        c.beginPath();
+        c.arc(center, center, radius, 0, Math.PI * 2);
+        c.stroke();
+
+        return canvas;
+    }
+
+    private createDiscoLightPoolSprite(colorIndex: number) {
+        const logicalSize = 220;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(
+            logicalSize * this.discoSpriteDpr
+        );
+        canvas.height = canvas.width;
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(
+            this.discoSpriteDpr,
+            0,
+            0,
+            this.discoSpriteDpr,
+            0,
+            0
+        );
+
+        const center = logicalSize * 0.5;
+        const gradient = c.createRadialGradient(
+            center,
+            center,
+            0,
+            center,
+            center,
+            center
+        );
+        gradient.addColorStop(
+            0,
+            this.getDiscoColor(colorIndex, 0.82)
+        );
+        gradient.addColorStop(0.46, this.getDiscoColor(colorIndex, 0.22));
+        gradient.addColorStop(1, this.getDiscoColor(colorIndex, 0));
+
+        c.fillStyle = gradient;
+        c.fillRect(0, 0, logicalSize, logicalSize);
+
+        return canvas;
+    }
+
+    private getDiscoBeatPulse() {
+        const cycle = this.timer % 3.55;
+        const primary = this.smoothPulse(
+            cycle,
+            0.18,
+            0.12
+        );
+        const secondary = this.smoothPulse(
+            cycle,
+            0.48,
+            0.085
+        ) * 0.34;
+
+        return this.clamp(primary + secondary, 0, 1);
+    }
+
+    private drawDiscoBackground() {
+        const c = this.ctx;
+        const beat = this.getDiscoBeatPulse();
+
+        if (this.discoBackdrop) {
+            c.drawImage(
+                this.discoBackdrop,
+                0,
+                0,
+                this.width,
+                this.height
+            );
+        }
+
+        if (!this.discoLightPoolSprites.length)
+            return;
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+
+        for (const pool of this.discoLightPools) {
+            const centerX =
+                (
+                    0.5 +
+                    Math.sin(
+                        this.timer * pool.speed +
+                        pool.phase
+                    ) * 0.47
+                ) * this.width;
+            const centerY =
+                pool.yRatio * this.height +
+                Math.sin(
+                    this.timer * pool.speed * 0.73 +
+                    pool.phase
+                ) * this.height * 0.045;
+            const diameter =
+                Math.max(this.width, this.height) *
+                pool.radius *
+                2;
+            const sprite =
+                this.discoLightPoolSprites[pool.colorIndex];
+
+            c.globalAlpha =
+                pool.alpha *
+                (1 + beat * 0.55);
+            c.drawImage(
+                sprite,
+                centerX - diameter * 0.5,
+                centerY - diameter * 0.5,
+                diameter,
+                diameter
+            );
+        }
+
+        c.restore();
+    }
+
+    private drawDiscoBeams() {
+        const c = this.ctx;
+        const beat = this.getDiscoBeatPulse();
+        const centerX = this.width * 0.5;
+        const centerY = this.clamp(
+            this.height * 0.14,
+            70,
+            108
+        );
+        const ballRadius = this.discoBallLogicalSize * 0.37;
+        const maxLength =
+            Math.hypot(this.width, this.height) * 1.08;
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+
+        for (const beam of this.discoBeams) {
+            const angle =
+                beam.baseAngle +
+                Math.sin(
+                    this.timer * beam.speed +
+                    beam.phase
+                ) * beam.sweep +
+                Math.sin(
+                    this.timer * beam.speed * 0.43 +
+                    beam.phase * 0.7
+                ) * beam.sweep * 0.28;
+            const halfWidth =
+                beam.width * (1 + beat * 0.28);
+            const length = maxLength * beam.length;
+            const startRadius = ballRadius * 0.55;
+            const startX =
+                centerX + Math.cos(angle) * startRadius;
+            const startY =
+                centerY + Math.sin(angle) * startRadius;
+            const firstAngle = angle - halfWidth;
+            const secondAngle = angle + halfWidth;
+            const edgeBias =
+                0.5 +
+                Math.abs(Math.cos(angle)) * 0.5;
+            const alpha =
+                beam.alpha *
+                edgeBias *
+                (1 + beat * 0.66);
+
+            c.fillStyle = this.getDiscoColor(
+                beam.colorIndex,
+                alpha
+            );
+            c.beginPath();
+            c.moveTo(startX, startY);
+            c.lineTo(
+                startX + Math.cos(firstAngle) * length,
+                startY + Math.sin(firstAngle) * length
+            );
+            c.lineTo(
+                startX + Math.cos(secondAngle) * length,
+                startY + Math.sin(secondAngle) * length
+            );
+            c.closePath();
+            c.fill();
+        }
+
+        c.restore();
+    }
+
+    private drawDiscoBall() {
+        if (!this.discoBall)
+            return;
+
+        const c = this.ctx;
+        const beat = this.getDiscoBeatPulse();
+        const centerX = this.width * 0.5;
+        const centerY = this.clamp(
+            this.height * 0.14,
+            70,
+            108
+        );
+        const logicalWidth =
+            this.discoBall.width / this.discoSpriteDpr;
+        const logicalHeight =
+            this.discoBall.height / this.discoSpriteDpr;
+        const glowDiameter =
+            this.discoBallLogicalSize *
+            (1.8 + beat * 0.28);
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+
+        const violetGlow = this.discoLightPoolSprites[1];
+        const cyanGlow = this.discoLightPoolSprites[2];
+
+        if (violetGlow && cyanGlow) {
+            const colorBlend =
+                Math.sin(this.timer * 0.34) * 0.5 + 0.5;
+
+            c.globalAlpha = 0.12 + beat * 0.07;
+            c.drawImage(
+                violetGlow,
+                centerX - glowDiameter * 0.5,
+                centerY - glowDiameter * 0.5,
+                glowDiameter,
+                glowDiameter
+            );
+            c.globalAlpha = 0.04 + colorBlend * 0.055;
+            c.drawImage(
+                cyanGlow,
+                centerX - glowDiameter * 0.46,
+                centerY - glowDiameter * 0.46,
+                glowDiameter * 0.92,
+                glowDiameter * 0.92
+            );
+        }
+
+        c.translate(centerX, centerY);
+        c.rotate(this.timer * 0.062);
+        c.scale(
+            1 + beat * 0.012,
+            1 + beat * 0.012
+        );
+        c.globalAlpha = 0.93 + beat * 0.07;
+        c.drawImage(
+            this.discoBall,
+            -logicalWidth * 0.5,
+            -logicalHeight * 0.5,
+            logicalWidth,
+            logicalHeight
+        );
+        c.restore();
+
+        c.save();
+        c.strokeStyle = "rgba(226, 232, 240, 0.28)";
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(centerX, 0);
+        c.lineTo(
+            centerX,
+            centerY - this.discoBallLogicalSize * 0.36
+        );
+        c.stroke();
+        c.restore();
+    }
+
+    private drawDiscoParticle(p: Particle) {
+        const sprite = this.getDiscoParticleSprite(p);
+        const logicalWidth =
+            sprite.width / this.discoSpriteDpr;
+        const logicalHeight =
+            sprite.height / this.discoSpriteDpr;
+
+        this.ctx.globalCompositeOperation = "screen";
+        this.ctx.drawImage(
+            sprite,
+            -logicalWidth * 0.5,
+            -logicalHeight * 0.5,
+            logicalWidth,
+            logicalHeight
+        );
+    }
+
+    private getDiscoParticleSprite(p: Particle) {
+        const sizeBucket = Math.max(
+            1,
+            Math.round(p.size)
+        );
+        const variant = p.variant ?? 0;
+        const colorIndex = p.colorIndex ?? 0;
+        const key =
+            `${variant}:${sizeBucket}:${colorIndex}`;
+        const cached = this.discoParticleSprites.get(key);
+
+        if (cached)
+            return cached;
+
+        const sprite = this.createDiscoParticleSprite(
+            variant,
+            sizeBucket,
+            colorIndex
+        );
+        this.discoParticleSprites.set(key, sprite);
+
+        return sprite;
+    }
+
+    private createDiscoParticleSprite(
+        variant: number,
+        size: number,
+        colorIndex: number
+    ) {
+        const logicalSize = size * 7 + 14;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(
+            1,
+            Math.ceil(logicalSize * this.discoSpriteDpr)
+        );
+        canvas.height = canvas.width;
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(
+            this.discoSpriteDpr,
+            0,
+            0,
+            this.discoSpriteDpr,
+            0,
+            0
+        );
+        c.translate(logicalSize * 0.5, logicalSize * 0.5);
+        c.fillStyle = this.getDiscoColor(colorIndex, 0.94);
+        c.shadowColor = this.getDiscoColor(colorIndex, 0.7);
+        c.shadowBlur = 3 + size * 1.4;
+
+        if (variant === 1) {
+            c.fillRect(
+                -size * 0.95,
+                -size * 0.22,
+                size * 1.9,
+                size * 0.44
+            );
+            return canvas;
+        }
+
+        c.beginPath();
+        c.moveTo(0, -size);
+        c.lineTo(size * 0.62, 0);
+        c.lineTo(0, size);
+        c.lineTo(-size * 0.62, 0);
+        c.closePath();
+        c.fill();
+
+        if (variant === 2) {
+            c.globalAlpha = 0.54;
+            c.fillStyle = "rgba(255, 255, 255, 0.9)";
+            c.fillRect(
+                -size * 1.7,
+                -0.4,
+                size * 3.4,
+                0.8
+            );
+            c.fillRect(
+                -0.4,
+                -size * 1.7,
+                0.8,
+                size * 3.4
+            );
+        }
+
+        return canvas;
+    }
+
+    private getDiscoColor(
+        colorIndex: number,
+        alpha: number
+    ) {
+        const [red, green, blue] =
+            discoColors[
+                colorIndex % discoColors.length
+            ];
+
+        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+    }
+
+    private rebuildPaperButterflyDreamCaches() {
+        this.paperButterflyDreamParticleSprites.clear();
+        this.paperButterflyDreamBackdrop = this.createPaperButterflyDreamBackdropCache();
+        this.paperButterflyDreamMoonlight = this.createPaperButterflyDreamMoonlightCache();
+        this.paperButterflyDreamFogSprites = [0, 1, 2].map(
+            variant => this.createPaperButterflyDreamFogSprite(variant)
+        );
+        this.paperButterflyDreamLanternSprites = [0, 1].map(
+            variant => this.createPaperButterflyDreamLanternSprite(variant)
+        );
+        this.paperButterflyDreamPatternSprites = [0, 1].map(
+            variant => this.createPaperButterflyDreamPatternSprite(variant)
+        );
+        this.paperButterflyDreamShadowSprites = [0, 1].map(
+            variant => this.createPaperButterflyDreamShadowSprite(variant)
+        );
+        this.rebuildPaperButterflyDreamScene();
+    }
+
+    private rebuildPaperButterflyDreamScene() {
+        this.paperButterflyDreamFogLayers = [
+            {
+                yRatio: 0.54,
+                speed: 7.5,
+                phase: this.random() * 640,
+                wave: 7,
+                alpha: 0.11,
+                scale: 0.94,
+                spriteIndex: 0,
+            },
+            {
+                yRatio: 0.69,
+                speed: -10.5,
+                phase: this.random() * 720,
+                wave: 10,
+                alpha: 0.14,
+                scale: 1.08,
+                spriteIndex: 1,
+            },
+            {
+                yRatio: 0.84,
+                speed: 13.5,
+                phase: this.random() * 820,
+                wave: 13,
+                alpha: 0.16,
+                scale: 1.22,
+                spriteIndex: 2,
+            },
+        ];
+
+        this.paperButterflyDreamLanterns = [
+            {
+                xRatio: 0.08,
+                yRatio: 0.1,
+                scale: 0.82,
+                phase: this.random() * Math.PI * 2,
+                alpha: 0.42,
+            },
+            {
+                xRatio: 0.91,
+                yRatio: 0.14,
+                scale: 0.72,
+                phase: this.random() * Math.PI * 2,
+                alpha: 0.34,
+            },
+            {
+                xRatio: 0.17,
+                yRatio: 0.25,
+                scale: 0.5,
+                phase: this.random() * Math.PI * 2,
+                alpha: 0.2,
+            },
+        ];
+
+        this.paperButterflyDreamShadows = [0, 1, 2].map(index => ({
+            xRatio:
+                index === 0
+                    ? 0.12
+                    : index === 1
+                        ? 0.84
+                        : 0.67,
+            yRatio: 0.68 + index * 0.055,
+            scale: 0.7 + this.random() * 0.34,
+            phase: this.random(),
+            cycleDuration: 18 + this.random() * 9,
+            variant: index % 2,
+        }));
+
+        this.paperButterflyDreamPatterns = [0, 1, 2].map(index => ({
+            xRatio:
+                index === 0
+                    ? 0.12
+                    : index === 1
+                        ? 0.88
+                        : 0.72,
+            yRatio: 0.56 + index * 0.11,
+            scale: 0.56 + this.random() * 0.42,
+            phase: this.random(),
+            cycleDuration: 13 + this.random() * 9,
+            variant: index === 2 ? 1 : 0,
+        }));
+    }
+
+    private createPaperButterflyDreamBackdropCache() {
+        const scale =
+            this.width * this.height > 1_400_000
+                ? 0.5
+                : 0.68;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(
+            1,
+            Math.round(this.width * scale)
+        );
+        canvas.height = Math.max(
+            1,
+            Math.round(this.height * scale)
+        );
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(scale, 0, 0, scale, 0, 0);
+
+        const background = c.createLinearGradient(
+            0,
+            0,
+            0,
+            this.height
+        );
+        background.addColorStop(0, "rgba(5, 8, 25, 0.98)");
+        background.addColorStop(0.48, "rgba(9, 9, 25, 0.96)");
+        background.addColorStop(1, "rgba(3, 5, 14, 0.99)");
+        c.fillStyle = background;
+        c.fillRect(0, 0, this.width, this.height);
+
+        const agedRed = c.createRadialGradient(
+            this.width * 0.12,
+            this.height * 0.28,
+            0,
+            this.width * 0.12,
+            this.height * 0.28,
+            Math.max(this.width, this.height) * 0.64
+        );
+        agedRed.addColorStop(0, "rgba(127, 29, 29, 0.075)");
+        agedRed.addColorStop(0.52, "rgba(76, 29, 149, 0.026)");
+        agedRed.addColorStop(1, "rgba(15, 23, 42, 0)");
+        c.fillStyle = agedRed;
+        c.fillRect(0, 0, this.width, this.height);
+
+        this.drawPaperButterflyDreamCachedEdges(c);
+
+        return canvas;
+    }
+
+    private drawPaperButterflyDreamCachedEdges(c: CanvasRenderingContext2D) {
+        c.save();
+        c.strokeStyle = "rgba(2, 6, 23, 0.45)";
+        c.lineCap = "round";
+
+        for (const side of [-1, 1]) {
+            const baseX = side < 0 ? 0 : this.width;
+            const direction = side < 0 ? 1 : -1;
+            const baseY = this.height * 0.72;
+
+            c.lineWidth = Math.max(2.6, this.width * 0.0035);
+            c.beginPath();
+            c.moveTo(baseX, baseY);
+            c.bezierCurveTo(
+                baseX + direction * this.width * 0.04,
+                this.height * 0.55,
+                baseX + direction * this.width * 0.085,
+                this.height * 0.39,
+                baseX + direction * this.width * 0.14,
+                this.height * 0.25
+            );
+            c.stroke();
+
+            for (let branch = 0; branch < 5; branch++) {
+                const startX =
+                    baseX +
+                    direction * this.width *
+                    (0.03 + branch * 0.019);
+                const startY =
+                    baseY -
+                    this.height * (0.06 + branch * 0.06);
+
+                c.lineWidth = Math.max(0.9, this.width * 0.0012);
+                c.beginPath();
+                c.moveTo(startX, startY);
+                c.quadraticCurveTo(
+                    startX + direction * this.width * 0.055,
+                    startY - this.height * 0.035,
+                    startX + direction * this.width *
+                    (0.085 + branch * 0.01),
+                    startY - this.height *
+                    (0.065 + branch * 0.012)
+                );
+                c.stroke();
+            }
+        }
+
+        c.restore();
+    }
+
+
+    private createPaperButterflyDreamMoonlightCache() {
+        const logicalSize = 420;
+        const moonRadius = 52;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(
+            logicalSize * this.paperButterflyDreamSpriteDpr
+        );
+        canvas.height = canvas.width;
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0,
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0
+        );
+
+        const center = logicalSize * 0.5;
+        const glow = c.createRadialGradient(
+            center,
+            center,
+            moonRadius * 0.36,
+            center,
+            center,
+            logicalSize * 0.5
+        );
+
+        glow.addColorStop(0, "rgba(224, 242, 254, 0.34)");
+        glow.addColorStop(0.18, "rgba(165, 243, 252, 0.18)");
+        glow.addColorStop(0.48, "rgba(129, 140, 248, 0.075)");
+        glow.addColorStop(1, "rgba(76, 29, 149, 0)");
+
+        c.fillStyle = glow;
+        c.fillRect(0, 0, logicalSize, logicalSize);
+
+        c.save();
+        c.translate(center, center);
+        c.shadowColor = "rgba(186, 230, 253, 0.32)";
+        c.shadowBlur = 16;
+
+        const moonGradient = c.createRadialGradient(
+            -moonRadius * 0.3,
+            -moonRadius * 0.34,
+            moonRadius * 0.06,
+            0,
+            0,
+            moonRadius
+        );
+
+        moonGradient.addColorStop(0, "rgba(248, 250, 252, 0.98)");
+        moonGradient.addColorStop(0.38, "rgba(226, 232, 240, 0.95)");
+        moonGradient.addColorStop(0.72, "rgba(186, 200, 216, 0.92)");
+        moonGradient.addColorStop(1, "rgba(100, 116, 139, 0.88)");
+
+        c.fillStyle = moonGradient;
+        c.beginPath();
+        c.arc(0, 0, moonRadius, 0, Math.PI * 2);
+        c.fill();
+
+        c.save();
+        c.beginPath();
+        c.arc(0, 0, moonRadius, 0, Math.PI * 2);
+        c.clip();
+
+        const surfaceShade = c.createLinearGradient(
+            -moonRadius,
+            -moonRadius,
+            moonRadius,
+            moonRadius
+        );
+
+        surfaceShade.addColorStop(0, "rgba(255, 255, 255, 0.12)");
+        surfaceShade.addColorStop(0.55, "rgba(148, 163, 184, 0.04)");
+        surfaceShade.addColorStop(1, "rgba(30, 41, 59, 0.22)");
+
+        c.fillStyle = surfaceShade;
+        c.fillRect(
+            -moonRadius,
+            -moonRadius,
+            moonRadius * 2,
+            moonRadius * 2
+        );
+
+        const craters: Array<
+            [number, number, number, number]
+        > = [
+            [-20, -14, 9, 0.11],
+            [14, -20, 7, 0.09],
+            [23, 8, 11, 0.12],
+            [-10, 20, 6, 0.08],
+            [-29, 13, 5, 0.07],
+            [7, 25, 4, 0.06],
+            [3, -4, 13, 0.07],
+        ];
+
+        for (const [x, y, radius, alpha] of craters) {
+            const crater = c.createRadialGradient(
+                x - radius * 0.24,
+                y - radius * 0.24,
+                radius * 0.08,
+                x,
+                y,
+                radius
+            );
+
+            crater.addColorStop(
+                0,
+                `rgba(71, 85, 105, ${alpha * 0.3})`
+            );
+            crater.addColorStop(
+                0.58,
+                `rgba(71, 85, 105, ${alpha})`
+            );
+            crater.addColorStop(
+                1,
+                "rgba(255, 255, 255, 0)"
+            );
+
+            c.fillStyle = crater;
+            c.beginPath();
+            c.arc(x, y, radius, 0, Math.PI * 2);
+            c.fill();
+        }
+
+        c.fillStyle = "rgba(255, 255, 255, 0.08)";
+        c.beginPath();
+        c.ellipse(
+            -17,
+            -23,
+            20,
+            8,
+            -0.45,
+            0,
+            Math.PI * 2
+        );
+        c.fill();
+
+        c.restore();
+
+        c.strokeStyle = "rgba(224, 242, 254, 0.34)";
+        c.lineWidth = 1;
+        c.beginPath();
+        c.arc(
+            0,
+            0,
+            moonRadius - 0.5,
+            0,
+            Math.PI * 2
+        );
+        c.stroke();
+
+        c.restore();
+
+        return canvas;
+    }
+
+    private createPaperButterflyDreamFogSprite(variant: number) {
+        const logicalWidth = 720;
+        const logicalHeight = 180;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(
+            logicalWidth * this.paperButterflyDreamSpriteDpr
+        );
+        canvas.height = Math.round(
+            logicalHeight * this.paperButterflyDreamSpriteDpr
+        );
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0,
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0
+        );
+
+        const gradient = c.createLinearGradient(
+            0,
+            0,
+            0,
+            logicalHeight
+        );
+        gradient.addColorStop(0, "rgba(186, 230, 253, 0)");
+        gradient.addColorStop(
+            0.48,
+            variant === 1
+                ? "rgba(148, 163, 184, 0.2)"
+                : "rgba(165, 243, 252, 0.17)"
+        );
+        gradient.addColorStop(1, "rgba(100, 116, 139, 0)");
+        c.fillStyle = gradient;
+
+        for (let lobe = -2; lobe < 15; lobe++) {
+            const x = lobe * 58 + variant * 23;
+            const y =
+                logicalHeight * 0.58 +
+                Math.sin(lobe * 1.37 + variant) * 16;
+            const radiusX = 72 + (lobe % 3) * 16;
+            const radiusY = 29 + ((lobe + variant) % 4) * 7;
+
+            c.beginPath();
+            c.ellipse(
+                x,
+                y,
+                radiusX,
+                radiusY,
+                0,
+                0,
+                Math.PI * 2
+            );
+            c.fill();
+        }
+
+        return canvas;
+    }
+
+    private createPaperButterflyDreamLanternSprite(variant: number) {
+        const logicalWidth = 150;
+        const logicalHeight = 210;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(
+            logicalWidth * this.paperButterflyDreamSpriteDpr
+        );
+        canvas.height = Math.round(
+            logicalHeight * this.paperButterflyDreamSpriteDpr
+        );
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0,
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0
+        );
+        c.translate(logicalWidth * 0.5, logicalHeight * 0.5);
+
+        const glowColor =
+            variant === 0
+                ? [220, 38, 38]
+                : [165, 243, 252];
+        const glow = c.createRadialGradient(
+            0,
+            2,
+            0,
+            0,
+            2,
+            72
+        );
+        glow.addColorStop(
+            0,
+            `rgba(${glowColor[0]}, ${glowColor[1]}, ${glowColor[2]}, 0.42)`
+        );
+        glow.addColorStop(
+            1,
+            `rgba(${glowColor[0]}, ${glowColor[1]}, ${glowColor[2]}, 0)`
+        );
+        c.fillStyle = glow;
+        c.fillRect(-75, -75, 150, 150);
+
+        c.fillStyle =
+            variant === 0
+                ? "rgba(127, 29, 29, 0.68)"
+                : "rgba(71, 85, 105, 0.58)";
+        c.beginPath();
+        c.ellipse(0, 0, 26, 37, 0, 0, Math.PI * 2);
+        c.fill();
+
+        c.strokeStyle = "rgba(15, 23, 42, 0.72)";
+        c.lineWidth = 3;
+        c.beginPath();
+        c.moveTo(-21, -34);
+        c.lineTo(21, -34);
+        c.moveTo(-21, 34);
+        c.lineTo(21, 34);
+        c.stroke();
+
+        c.lineWidth = 1.4;
+        c.beginPath();
+        c.moveTo(-9, 37);
+        c.lineTo(-5, 60);
+        c.moveTo(0, 37);
+        c.lineTo(0, 66);
+        c.moveTo(9, 37);
+        c.lineTo(5, 60);
+        c.stroke();
+
+        return canvas;
+    }
+
+    private createPaperButterflyDreamPatternSprite(variant: number) {
+        const logicalSize = 170;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(
+            logicalSize * this.paperButterflyDreamSpriteDpr
+        );
+        canvas.height = canvas.width;
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0,
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0
+        );
+        c.translate(logicalSize * 0.5, logicalSize * 0.5);
+
+        c.strokeStyle = "rgba(153, 27, 27, 0.46)";
+        c.fillStyle = "rgba(153, 27, 27, 0.28)";
+        c.lineWidth = 1.2;
+
+        if (variant === 1) {
+            c.font = "600 68px serif";
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText("囍", 0, 1);
+            return canvas;
+        }
+
+        for (let ring = 0; ring < 3; ring++) {
+            const radius = 25 + ring * 19;
+
+            for (let petal = 0; petal < 8; petal++) {
+                const angle = petal * Math.PI * 0.25;
+                c.save();
+                c.rotate(angle);
+                c.translate(0, -radius);
+                c.rotate(Math.PI * 0.25);
+                c.strokeRect(-7, -7, 14, 14);
+                c.restore();
+            }
+        }
+
+        return canvas;
+    }
+
+    private createPaperButterflyDreamShadowSprite(variant: number) {
+        const logicalWidth = 150;
+        const logicalHeight = 240;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(
+            logicalWidth * this.paperButterflyDreamSpriteDpr
+        );
+        canvas.height = Math.round(
+            logicalHeight * this.paperButterflyDreamSpriteDpr
+        );
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0,
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0
+        );
+        c.translate(logicalWidth * 0.5, logicalHeight * 0.5);
+        c.fillStyle = "rgba(2, 6, 23, 0.82)";
+        c.shadowColor = "rgba(15, 23, 42, 0.7)";
+        c.shadowBlur = 12;
+
+        if (variant === 0) {
+            c.beginPath();
+            c.arc(0, -64, 12, 0, Math.PI * 2);
+            c.fill();
+            c.beginPath();
+            c.moveTo(0, -48);
+            c.bezierCurveTo(-22, -34, -24, 20, -38, 82);
+            c.quadraticCurveTo(0, 104, 38, 82);
+            c.bezierCurveTo(24, 20, 22, -34, 0, -48);
+            c.closePath();
+            c.fill();
+        } else {
+            c.beginPath();
+            c.moveTo(0, -88);
+            c.lineTo(24, -42);
+            c.lineTo(31, 82);
+            c.lineTo(-31, 82);
+            c.lineTo(-24, -42);
+            c.closePath();
+            c.fill();
+        }
+
+        return canvas;
+    }
+
+    private getPaperButterflyDreamInversion() {
+        const cycleDuration = 29;
+        const phase =
+            (this.timer + this.paperButterflyDreamInversionOffset) %
+            cycleDuration;
+
+        return this.smoothPulse(phase, 18.2, 0.92);
+    }
+
+    private drawPaperButterflyDreamBackground() {
+        if (this.paperButterflyDreamBackdrop) {
+            this.ctx.drawImage(
+                this.paperButterflyDreamBackdrop,
+                0,
+                0,
+                this.width,
+                this.height
+            );
+        }
+
+        const inversion = this.getPaperButterflyDreamInversion();
+
+        if (inversion > 0.002) {
+            this.ctx.fillStyle =
+                `rgba(8, 47, 73, ${0.12 * inversion})`;
+            this.ctx.fillRect(0, 0, this.width, this.height);
+        }
+    }
+
+
+    private drawPaperButterflyDreamMoonlight() {
+        if (!this.paperButterflyDreamMoonlight)
+            return;
+
+        const c = this.ctx;
+        const inversion =
+            this.getPaperButterflyDreamInversion();
+
+        const diameter = this.clamp(
+            Math.min(this.width, this.height) * 0.62,
+            300,
+            440
+        );
+
+        const centerX = this.width * 0.84;
+        const centerY = this.clamp(
+            this.height * 0.145,
+            78,
+            122
+        );
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+        c.globalAlpha = 0.82 + inversion * 0.14;
+
+        c.drawImage(
+            this.paperButterflyDreamMoonlight,
+            centerX - diameter * 0.5,
+            centerY - diameter * 0.5,
+            diameter,
+            diameter
+        );
+
+        c.globalAlpha = 0.032 + inversion * 0.03;
+        c.fillStyle = "rgba(165, 243, 252, 0.9)";
+        c.beginPath();
+        c.moveTo(centerX - 8, centerY + 22);
+        c.lineTo(this.width * 0.62, this.height * 0.91);
+        c.lineTo(this.width * 0.98, this.height * 0.91);
+        c.closePath();
+        c.fill();
+
+        const mistWidth = diameter * 0.42;
+        const mistY =
+            centerY +
+            diameter * 0.03 +
+            Math.sin(this.timer * 0.07) * 4;
+
+        const mistGradient = c.createLinearGradient(
+            centerX - mistWidth,
+            mistY,
+            centerX + mistWidth,
+            mistY
+        );
+
+        mistGradient.addColorStop(
+            0,
+            "rgba(148, 163, 184, 0)"
+        );
+        mistGradient.addColorStop(
+            0.28,
+            `rgba(
+                148,
+                163,
+                184,
+                ${0.08 + inversion * 0.025}
+            )`
+        );
+        mistGradient.addColorStop(
+            0.64,
+            `rgba(
+                165,
+                243,
+                252,
+                ${0.055 + inversion * 0.02}
+            )`
+        );
+        mistGradient.addColorStop(
+            1,
+            "rgba(148, 163, 184, 0)"
+        );
+
+        c.globalAlpha = 1;
+        c.strokeStyle = mistGradient;
+        c.lineWidth = 10;
+        c.lineCap = "round";
+        c.beginPath();
+        c.moveTo(centerX - mistWidth, mistY);
+        c.bezierCurveTo(
+            centerX - mistWidth * 0.4,
+            mistY - 5,
+            centerX + mistWidth * 0.35,
+            mistY + 6,
+            centerX + mistWidth,
+            mistY
+        );
+        c.stroke();
+
+        c.restore();
+    }
+
+    private drawPaperButterflyDreamLanterns() {
+        if (this.paperButterflyDreamLanternSprites.length < 2)
+            return;
+
+        const c = this.ctx;
+        const inversion = this.getPaperButterflyDreamInversion();
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+
+        for (const lantern of this.paperButterflyDreamLanterns) {
+            const sway =
+                Math.sin(this.timer * 0.38 + lantern.phase) *
+                0.07 *
+                (1 - inversion * 0.55);
+            const bob =
+                Math.sin(this.timer * 0.23 + lantern.phase) * 4;
+            const sprite = this.paperButterflyDreamLanternSprites[0];
+            const spectral = this.paperButterflyDreamLanternSprites[1];
+            const logicalWidth =
+                sprite.width / this.paperButterflyDreamSpriteDpr;
+            const logicalHeight =
+                sprite.height / this.paperButterflyDreamSpriteDpr;
+            const scale = lantern.scale *
+                this.clamp(
+                    Math.min(this.width, this.height) / 720,
+                    0.72,
+                    1.08
+                );
+
+            c.save();
+            c.translate(
+                lantern.xRatio * this.width,
+                lantern.yRatio * this.height + bob
+            );
+            c.rotate(sway);
+            c.globalAlpha =
+                lantern.alpha * (1 - inversion * 0.78);
+            c.drawImage(
+                sprite,
+                -logicalWidth * scale * 0.5,
+                -logicalHeight * scale * 0.5,
+                logicalWidth * scale,
+                logicalHeight * scale
+            );
+            c.globalAlpha =
+                lantern.alpha * inversion * 0.58;
+            c.drawImage(
+                spectral,
+                -logicalWidth * scale * 0.5,
+                -logicalHeight * scale * 0.5,
+                logicalWidth * scale,
+                logicalHeight * scale
+            );
+            c.restore();
+        }
+
+        c.restore();
+    }
+
+    private drawPaperButterflyDreamFog() {
+        if (!this.paperButterflyDreamFogSprites.length)
+            return;
+
+        const c = this.ctx;
+        const inversion = this.getPaperButterflyDreamInversion();
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+
+        for (const layer of this.paperButterflyDreamFogLayers) {
+            const sprite =
+                this.paperButterflyDreamFogSprites[layer.spriteIndex];
+            const logicalWidth =
+                sprite.width / this.paperButterflyDreamSpriteDpr;
+            const logicalHeight =
+                sprite.height / this.paperButterflyDreamSpriteDpr;
+            const drawWidth = logicalWidth * layer.scale;
+            const drawHeight = Math.max(
+                this.height * 0.2,
+                logicalHeight * 0.72
+            );
+            const travel =
+                this.timer *
+                layer.speed *
+                (1 - inversion * 0.38) +
+                layer.phase;
+            const offset =
+                ((travel % drawWidth) + drawWidth) % drawWidth;
+            const y =
+                layer.yRatio * this.height +
+                Math.sin(
+                    this.timer * 0.12 +
+                    layer.phase * 0.01
+                ) * layer.wave -
+                drawHeight * 0.5;
+            const startX = -offset - drawWidth;
+            const tileCount =
+                Math.ceil(this.width / drawWidth) + 3;
+
+            c.globalAlpha =
+                layer.alpha *
+                (1 + inversion * 0.22);
+
+            for (let tile = 0; tile < tileCount; tile++) {
+                c.drawImage(
+                    sprite,
+                    startX + tile * drawWidth,
+                    y,
+                    drawWidth,
+                    drawHeight
+                );
+            }
+        }
+
+        c.restore();
+    }
+
+    private drawPaperButterflyDreamPaperPatterns() {
+        if (!this.paperButterflyDreamPatternSprites.length)
+            return;
+
+        const c = this.ctx;
+        const inversion = this.getPaperButterflyDreamInversion();
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+
+        for (const pattern of this.paperButterflyDreamPatterns) {
+            const phase =
+                (
+                    this.timer / pattern.cycleDuration +
+                    pattern.phase
+                ) % 1;
+
+            if (phase > 0.28)
+                continue;
+
+            const reveal = Math.sin(
+                Math.PI * phase / 0.28
+            );
+            const sprite =
+                this.paperButterflyDreamPatternSprites[pattern.variant];
+            const logicalSize =
+                sprite.width / this.paperButterflyDreamSpriteDpr;
+            const scale = pattern.scale *
+                this.clamp(
+                    Math.min(this.width, this.height) / 720,
+                    0.7,
+                    1.08
+                );
+
+            c.globalAlpha =
+                reveal *
+                reveal *
+                (0.035 + inversion * 0.026);
+            c.drawImage(
+                sprite,
+                pattern.xRatio * this.width -
+                logicalSize * scale * 0.5,
+                pattern.yRatio * this.height -
+                logicalSize * scale * 0.5,
+                logicalSize * scale,
+                logicalSize * scale
+            );
+        }
+
+        c.restore();
+    }
+
+    private drawPaperButterflyDreamSilhouette() {
+        if (!this.paperButterflyDreamShadowSprites.length)
+            return;
+
+        const c = this.ctx;
+        const inversion = this.getPaperButterflyDreamInversion();
+
+        c.save();
+
+        for (const shadow of this.paperButterflyDreamShadows) {
+            const phase =
+                (
+                    this.timer / shadow.cycleDuration +
+                    shadow.phase
+                ) % 1;
+
+            if (phase > 0.25 && inversion < 0.22)
+                continue;
+
+            const reveal =
+                phase <= 0.25
+                    ? Math.sin(Math.PI * phase / 0.25)
+                    : 0;
+            const alpha =
+                reveal * reveal * 0.042 +
+                inversion * 0.052;
+            const sprite =
+                this.paperButterflyDreamShadowSprites[shadow.variant];
+            const logicalWidth =
+                sprite.width / this.paperButterflyDreamSpriteDpr;
+            const logicalHeight =
+                sprite.height / this.paperButterflyDreamSpriteDpr;
+            const scale = shadow.scale *
+                this.clamp(
+                    Math.min(this.width, this.height) / 720,
+                    0.72,
+                    1.08
+                );
+            const drift =
+                Math.sin(
+                    this.timer * 0.08 +
+                    shadow.phase * Math.PI * 2
+                ) * 6;
+
+            c.globalAlpha = alpha;
+            c.drawImage(
+                sprite,
+                shadow.xRatio * this.width + drift -
+                logicalWidth * scale * 0.5,
+                shadow.yRatio * this.height -
+                logicalHeight * scale * 0.76,
+                logicalWidth * scale,
+                logicalHeight * scale
+            );
+        }
+
+        c.restore();
+    }
+
+    private drawPaperButterflyDreamMirror() {
+        const c = this.ctx;
+        const mirrorY = this.height * 0.78;
+        const inversion = this.getPaperButterflyDreamInversion();
+        const reflection = c.createLinearGradient(
+            0,
+            mirrorY,
+            0,
+            this.height
+        );
+        reflection.addColorStop(0, "rgba(15, 23, 42, 0)");
+        reflection.addColorStop(
+            0.34,
+            `rgba(15, 23, 42, ${0.13 + inversion * 0.04})`
+        );
+        reflection.addColorStop(1, "rgba(2, 6, 23, 0.36)");
+        c.fillStyle = reflection;
+        c.fillRect(0, mirrorY, this.width, this.height - mirrorY);
+
+        c.strokeStyle =
+            `rgba(165, 243, 252, ${0.035 + inversion * 0.025})`;
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(this.width * 0.08, mirrorY);
+        c.lineTo(this.width * 0.92, mirrorY);
+        c.stroke();
+    }
+
+    private drawPaperButterflyDreamReflections() {
+        const c = this.ctx;
+        const mirrorY = this.height * 0.78;
+        const inversion = this.getPaperButterflyDreamInversion();
+        let drawn = 0;
+
+        c.save();
+        c.beginPath();
+        c.rect(0, mirrorY, this.width, this.height - mirrorY);
+        c.clip();
+        c.globalCompositeOperation = "screen";
+
+        for (const p of this.particles) {
+            if (
+                p.kind === "red-thread" ||
+                p.y > mirrorY ||
+                p.y < mirrorY - this.height * 0.48
+            ) {
+                continue;
+            }
+
+            const reflectedY =
+                mirrorY +
+                (mirrorY - p.y) * 0.38;
+            const lag =
+                Math.sin(
+                    this.timer * 0.28 +
+                    p.wobble
+                ) *
+                (3 + inversion * 16);
+
+            c.save();
+            c.translate(p.x + lag, reflectedY);
+            c.scale(1, -0.48);
+            c.rotate(-p.rotation + inversion * 0.08);
+            c.globalAlpha =
+                p.alpha *
+                (0.1 + inversion * 0.06);
+            this.drawPaperButterflyDreamParticleShape(p, true);
+            c.restore();
+
+            drawn++;
+
+            if (drawn >= 22)
+                break;
+        }
+
+        c.restore();
+    }
+
+    private drawPaperButterflyDreamParticle(p: Particle) {
+        this.ctx.globalAlpha *= this.getPaperButterflyDreamCenterCalm(p);
+        this.drawPaperButterflyDreamParticleShape(p, false);
+    }
+
+    private drawPaperButterflyDreamParticleShape(
+        p: Particle,
+        reflection: boolean
+    ) {
+        if (p.kind === "butterfly") {
+            this.drawPaperButterflyDreamButterfly(p, reflection);
+            return;
+        }
+
+        if (p.kind === "paper-ash") {
+            this.drawPaperButterflyDreamPaperAsh(p);
+            return;
+        }
+
+        if (p.kind === "red-thread") {
+            this.drawPaperButterflyDreamRedThread(p);
+            return;
+        }
+
+        this.drawPaperButterflyDreamSpiritLight(p);
+    }
+
+    private drawPaperButterflyDreamButterfly(
+        p: Particle,
+        reflection: boolean
+    ) {
+        const dissolve =
+            this.getPaperButterflyDreamButterflyDissolve(p);
+        const sprite = this.getPaperButterflyDreamParticleSprite(p);
+        const logicalWidth =
+            sprite.width / this.paperButterflyDreamSpriteDpr;
+        const logicalHeight =
+            sprite.height / this.paperButterflyDreamSpriteDpr;
+        const wing =
+            0.24 +
+            Math.abs(Math.sin(p.flutter)) * 0.76;
+
+        this.ctx.save();
+        this.ctx.scale(wing, 1);
+        this.ctx.globalCompositeOperation = "screen";
+        this.ctx.drawImage(
+            sprite,
+            -logicalWidth * 0.5,
+            -logicalHeight * 0.5,
+            logicalWidth,
+            logicalHeight
+        );
+        this.ctx.restore();
+
+        if (reflection || dissolve <= 0.02)
+            return;
+
+        this.ctx.save();
+        this.ctx.globalCompositeOperation = "screen";
+        this.ctx.fillStyle = "rgba(202, 138, 4, 0.58)";
+        this.ctx.globalAlpha *= dissolve;
+
+        for (let fragment = 0; fragment < 4; fragment++) {
+            const offset = fragment + 1;
+            const x =
+                -p.size * (0.6 + offset * 0.42);
+            const y =
+                Math.sin(
+                    p.wobble + fragment * 1.7
+                ) * p.size * 0.42 +
+                offset * 1.8;
+
+            this.ctx.save();
+            this.ctx.translate(x, y);
+            this.ctx.rotate(
+                p.rotation + fragment * 0.7
+            );
+            this.ctx.fillRect(
+                -p.size * 0.16,
+                -p.size * 0.08,
+                p.size * 0.32,
+                p.size * 0.16
+            );
+            this.ctx.restore();
+        }
+
+        this.ctx.restore();
+    }
+
+    private drawPaperButterflyDreamPaperAsh(p: Particle) {
+        const c = this.ctx;
+        const color = this.getPaperButterflyDreamColor(
+            p.colorIndex ?? 0,
+            0.86
+        );
+
+        c.fillStyle = color;
+
+        if ((p.variant ?? 0) === 1) {
+            c.beginPath();
+            c.moveTo(0, -p.size);
+            c.lineTo(p.size * 0.82, p.size * 0.68);
+            c.lineTo(-p.size * 0.65, p.size * 0.42);
+            c.closePath();
+            c.fill();
+            return;
+        }
+
+        c.fillRect(
+            -p.size * 0.72,
+            -p.size * 0.42,
+            p.size * 1.44,
+            p.size * 0.84
+        );
+
+        if ((p.variant ?? 0) === 2 && p.size > 2) {
+            c.strokeStyle = "rgba(69, 26, 3, 0.46)";
+            c.lineWidth = 0.55;
+            c.beginPath();
+            c.moveTo(-p.size * 0.42, 0);
+            c.quadraticCurveTo(
+                0,
+                -p.size * 0.28,
+                p.size * 0.38,
+                p.size * 0.12
+            );
+            c.stroke();
+        }
+    }
+
+    private drawPaperButterflyDreamRedThread(p: Particle) {
+        const c = this.ctx;
+        const direction = (p.variant ?? 0) === 0 ? 1 : -1;
+
+        c.strokeStyle = "rgba(185, 28, 28, 0.58)";
+        c.lineWidth = p.size;
+        c.lineCap = "round";
+        c.beginPath();
+        c.moveTo(-p.length * 0.5, 0);
+        c.bezierCurveTo(
+            -p.length * 0.18,
+            Math.sin(p.wobble) * 12 * direction,
+            p.length * 0.16,
+            Math.sin(p.flutter) * 10 * -direction,
+            p.length * 0.5,
+            0
+        );
+        c.stroke();
+    }
+
+    private drawPaperButterflyDreamSpiritLight(p: Particle) {
+        const sprite = this.getPaperButterflyDreamParticleSprite(p);
+        const logicalWidth =
+            sprite.width / this.paperButterflyDreamSpriteDpr;
+        const logicalHeight =
+            sprite.height / this.paperButterflyDreamSpriteDpr;
+
+        this.ctx.globalCompositeOperation = "screen";
+        this.ctx.drawImage(
+            sprite,
+            -logicalWidth * 0.5,
+            -logicalHeight * 0.5,
+            logicalWidth,
+            logicalHeight
+        );
+    }
+
+    private getPaperButterflyDreamParticleSprite(p: Particle) {
+        const sizeBucket = Math.max(
+            2,
+            Math.round(p.size / 2) * 2
+        );
+        const colorIndex = p.colorIndex ?? 0;
+        const key =
+            `${p.kind ?? "paper-ash"}:` +
+            `${sizeBucket}:${colorIndex}:${p.variant ?? 0}`;
+        const cached = this.paperButterflyDreamParticleSprites.get(key);
+
+        if (cached)
+            return cached;
+
+        const sprite = this.createPaperButterflyDreamParticleSprite(
+            p.kind === "butterfly"
+                ? "butterfly"
+                : "spirit-light",
+            sizeBucket,
+            colorIndex,
+            p.variant ?? 0
+        );
+        this.paperButterflyDreamParticleSprites.set(key, sprite);
+
+        return sprite;
+    }
+
+    private createPaperButterflyDreamParticleSprite(
+        kind: "butterfly" | "spirit-light",
+        size: number,
+        colorIndex: number,
+        variant: number
+    ) {
+        const logicalSize =
+            kind === "butterfly"
+                ? size * 5 + 18
+                : size * 7 + 20;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(
+            1,
+            Math.ceil(logicalSize * this.paperButterflyDreamSpriteDpr)
+        );
+        canvas.height = canvas.width;
+
+        const c = canvas.getContext("2d");
+        if (!c)
+            return canvas;
+
+        c.setTransform(
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0,
+            this.paperButterflyDreamSpriteDpr,
+            0,
+            0
+        );
+        c.translate(logicalSize * 0.5, logicalSize * 0.5);
+
+        if (kind === "spirit-light") {
+            const glow = c.createRadialGradient(
+                0,
+                0,
+                0,
+                0,
+                0,
+                logicalSize * 0.44
+            );
+            glow.addColorStop(
+                0,
+                this.getPaperButterflyDreamColor(colorIndex, 0.86)
+            );
+            glow.addColorStop(
+                0.24,
+                this.getPaperButterflyDreamColor(colorIndex, 0.34)
+            );
+            glow.addColorStop(
+                1,
+                this.getPaperButterflyDreamColor(colorIndex, 0)
+            );
+            c.fillStyle = glow;
+            c.fillRect(
+                -logicalSize * 0.5,
+                -logicalSize * 0.5,
+                logicalSize,
+                logicalSize
+            );
+            c.fillStyle = "rgba(236, 254, 255, 0.74)";
+            c.beginPath();
+            c.arc(0, 0, Math.max(1, size * 0.2), 0, Math.PI * 2);
+            c.fill();
+            return canvas;
+        }
+
+        c.fillStyle = this.getPaperButterflyDreamColor(colorIndex, 0.82);
+        c.strokeStyle =
+            variant === 1
+                ? "rgba(254, 202, 202, 0.42)"
+                : "rgba(253, 230, 138, 0.34)";
+        c.lineWidth = Math.max(0.65, size * 0.07);
+        c.shadowColor = this.getPaperButterflyDreamColor(colorIndex, 0.28);
+        c.shadowBlur = 3 + size * 0.5;
+
+        c.beginPath();
+        c.moveTo(0, 0);
+        c.bezierCurveTo(
+            -size * 0.48,
+            -size * 0.86,
+            -size * 1.18,
+            -size * 0.65,
+            -size * 1.26,
+            size * 0.06
+        );
+        c.bezierCurveTo(
+            -size * 0.88,
+            size * 0.7,
+            -size * 0.34,
+            size * 0.54,
+            0,
+            size * 0.12
+        );
+        c.bezierCurveTo(
+            size * 0.34,
+            size * 0.54,
+            size * 0.88,
+            size * 0.7,
+            size * 1.26,
+            size * 0.06
+        );
+        c.bezierCurveTo(
+            size * 1.18,
+            -size * 0.65,
+            size * 0.48,
+            -size * 0.86,
+            0,
+            0
+        );
+        c.fill();
+        c.stroke();
+
+        c.fillStyle = "rgba(69, 10, 10, 0.72)";
+        c.fillRect(
+            -size * 0.08,
+            -size * 0.34,
+            size * 0.16,
+            size * 0.76
+        );
+
+        return canvas;
+    }
+
+    private getPaperButterflyDreamCenterCalm(p: Particle) {
+        const normalizedX =
+            Math.abs(p.x - this.width * 0.5) /
+            Math.max(this.width * 0.5, 1);
+        const normalizedY =
+            Math.abs(p.y - this.height * 0.48) /
+            Math.max(this.height * 0.5, 1);
+
+        return 0.58 +
+            this.clamp(
+                Math.max(normalizedX, normalizedY * 0.72),
+                0,
+                1
+            ) * 0.42;
+    }
+
+    private getPaperButterflyDreamColor(
+        colorIndex: number,
+        alpha: number
+    ) {
+        const [red, green, blue] =
+            paperButterflyDreamColors[
+                colorIndex % paperButterflyDreamColors.length
+            ];
+
+        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
     }
 
     private drawAmitabhaBackground() {
@@ -1221,8 +3915,12 @@ export class ParticleEngine {
         if (cached)
             return cached;
 
+        const kind: AmitabhaParticleKind =
+            p.kind === "glyph" || p.kind === "lotus"
+                ? p.kind
+                : "light";
         const sprite = this.createAmitabhaParticleSprite(
-            p.kind ?? "light",
+            kind,
             sizeBucket,
             tone,
             glyphIndex
