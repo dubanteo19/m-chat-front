@@ -66,6 +66,7 @@
 		role="button"
 		tabindex="0"
 		onmouseleave={handlePressEnd}
+		class:pb-5={message.reactions?.length > 0}
 		ontouchend={handlePressEnd}
 		class="flex flex-col gap-0.5 max-w-[85%] group relative {message.isMine
 			? 'self-end'

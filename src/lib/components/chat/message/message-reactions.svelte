@@ -28,7 +28,9 @@
 </script>
 
 {#if !message.isDeleted && message.reactions && groupedReactions().length > 0}
-	<div class="flex flex-wrap gap-1 mt-1 px-1 {message.isMine ? 'justify-end' : 'justify-start'}">
+	<div
+		class="absolute -bottom-3 left-0 flex gap-1 {message.isMine ? 'justify-end' : 'justify-start'}"
+	>
 		{#each groupedReactions() as reaction (reaction.type)}
 			<HoverCard.Root openDelay={150} closeDelay={100}>
 				<HoverCard.Trigger>
