@@ -5,7 +5,9 @@ export type RoomEffect =
     | "thunderstorm"
     | "radiance-of-amitabha"
     | "disco-fever"
-    | "paper-butterfly-dream";
+    | "paper-butterfly-dream"
+    | "bioluminescent-tide"
+    | "sticker-road-trip";
 
 const discoColors = [
     [236, 72, 153],
@@ -98,6 +100,119 @@ const amitabhaGlyphs = ["अ", "मि", "ता", "भ"];
 
 type AmitabhaParticleKind = "light" | "lotus" | "glyph";
 
+type BioluminescentTideSceneEvent = "luminous-high-tide";
+
+interface BioluminescentTideSceneState {
+    type: BioluminescentTideSceneEvent | null;
+    progress: number;
+    strength: number;
+    bloom: number;
+    tide: number;
+    push: number;
+    crest: number;
+    waterLevel: number;
+    amplitude: number;
+}
+
+interface BioluminescentTideRipple {
+    xRatio: number;
+    yRatio: number;
+    birthOffset: number;
+    duration: number;
+    radiusRatio: number;
+    phase: number;
+    strength: number;
+}
+
+interface StickerRoadTripWeather {
+    name: string;
+    skyTop: [number, number, number];
+    skyMid: [number, number, number];
+    skyBottom: [number, number, number];
+    cloudTint: [number, number, number];
+    groundTint: [number, number, number, number];
+    overlay: [number, number, number, number];
+    sunAlpha: number;
+    cloudAlpha: number;
+    rain: number;
+    fog: number;
+    night: number;
+    sunset: number;
+}
+
+interface StickerRoadTripSceneState {
+    cycleTime: number;
+    zoomProgress: number;
+    cameraZoom: number;
+    weatherFrom: number;
+    weatherTo: number;
+    weatherBlend: number;
+    travelFactor: number;
+}
+
+const stickerRoadTripWeatherStates: StickerRoadTripWeather[] = [
+    {
+        name: "Clear Day",
+        skyTop: [147, 197, 253],
+        skyMid: [219, 234, 254],
+        skyBottom: [240, 249, 255],
+        cloudTint: [255, 255, 255],
+        groundTint: [255, 255, 255, 0],
+        overlay: [255, 255, 255, 0],
+        sunAlpha: 0.85,
+        cloudAlpha: 0.72,
+        rain: 0,
+        fog: 0,
+        night: 0,
+        sunset: 0,
+    },
+    {
+        name: "Sunset Glow",
+        skyTop: [251, 146, 60],
+        skyMid: [253, 186, 116],
+        skyBottom: [255, 237, 213],
+        cloudTint: [255, 236, 220],
+        groundTint: [255, 180, 120, 0.08],
+        overlay: [255, 120, 80, 0.08],
+        sunAlpha: 0.62,
+        cloudAlpha: 0.54,
+        rain: 0,
+        fog: 0.04,
+        night: 0,
+        sunset: 1,
+    },
+    {
+        name: "Rainy Blue",
+        skyTop: [71, 85, 105],
+        skyMid: [148, 163, 184],
+        skyBottom: [226, 232, 240],
+        cloudTint: [226, 232, 240],
+        groundTint: [90, 140, 170, 0.08],
+        overlay: [110, 140, 180, 0.08],
+        sunAlpha: 0,
+        cloudAlpha: 0.88,
+        rain: 1,
+        fog: 0.08,
+        night: 0,
+        sunset: 0,
+    },
+    {
+        name: "Moonlit Night",
+        skyTop: [15, 23, 42],
+        skyMid: [30, 41, 59],
+        skyBottom: [51, 65, 85],
+        cloudTint: [210, 220, 255],
+        groundTint: [30, 40, 70, 0.18],
+        overlay: [30, 60, 120, 0.18],
+        sunAlpha: 0.35,
+        cloudAlpha: 0.22,
+        rain: 0,
+        fog: 0.12,
+        night: 1,
+        sunset: 0,
+    },
+];
+
 interface Particle {
     originX: number;
     originY: number;
@@ -120,6 +235,9 @@ interface Particle {
     variant?: number;
     colorIndex?: number;
     baseAlpha?: number;
+    energy?: number;
+    sensitivity?: number;
+    threshold?: number;
 }
 
 export class ParticleEngine {
@@ -173,6 +291,34 @@ export class ParticleEngine {
     private paperButterflyDreamInversionOffset = 0;
     private readonly paperButterflyDreamSpriteDpr = 1.35;
 
+
+    // Bioluminescent Tide: continuous layered water, local ripples and
+    // organic plankton bloom. No visible flow vectors or luminous wave streak.
+    private bioluminescentTideGlowSprite: HTMLCanvasElement | null = null;
+    private bioluminescentTideRipples: BioluminescentTideRipple[] = [];
+    private bioluminescentTideSceneEvent: BioluminescentTideSceneEvent | null = null;
+    private bioluminescentTideSceneElapsed = 0;
+    private bioluminescentTideNextSceneDelay = 0;
+    private bioluminescentTideSceneState: BioluminescentTideSceneState = {
+        type: null,
+        progress: 0,
+        strength: 0,
+        bloom: 0,
+        tide: 0,
+        push: 0,
+        crest: 0,
+        waterLevel: 0,
+        amplitude: 1,
+    };
+
+    // Sticker Road Trip: a continuous side-scrolling paper/sticker landscape.
+    // Every 15 seconds the camera pushes into the front quarter of the car;
+    // weather transitions during that zoom and remains until the next one.
+    private stickerRoadTripDistance = 0;
+    private readonly stickerRoadTripDriveDuration = 15;
+    private readonly stickerRoadTripZoomDuration = 2.8;
+    private readonly stickerRoadTripBaseSpeed = 230;
+
     constructor(
         canvas: HTMLCanvasElement,
         private effect: RoomEffect,
@@ -181,6 +327,12 @@ export class ParticleEngine {
         this.canvas = canvas;
         this.randomState = seed >>> 0 || 1;
         this.paperButterflyDreamInversionOffset = this.random() * 29;
+
+        if (this.effect === "bioluminescent-tide") {
+            this.bioluminescentTideNextSceneDelay =
+                34 + this.random() * 26;
+        }
+
         const ctx = canvas.getContext("2d");
 
         if (!ctx)
@@ -203,7 +355,8 @@ export class ParticleEngine {
         const isSoftGlowEffect =
             this.effect === "radiance-of-amitabha" ||
             this.effect === "disco-fever" ||
-            this.effect === "paper-butterfly-dream";
+            this.effect === "paper-butterfly-dream" ||
+            this.effect === "bioluminescent-tide";
         const isLargeSoftGlowCanvas =
             isSoftGlowEffect &&
             this.width * this.height > 1_400_000;
@@ -236,6 +389,15 @@ export class ParticleEngine {
             this.rebuildPaperButterflyDreamCaches();
         }
 
+        if (this.effect === "bioluminescent-tide") {
+            this.bioluminescentTideGlowSprite =
+                this.createBioluminescentTideGlowSprite();
+
+            if (!this.bioluminescentTideRipples.length) {
+                this.rebuildBioluminescentTideRipples();
+            }
+        }
+
         // Recreate particles so density stays balanced after resize.
         if (this.particles.length) {
             this.createParticles(true);
@@ -250,6 +412,12 @@ export class ParticleEngine {
         this.isStopping = false;
         this.transitionAlpha = 0;
         this.timer = Math.max(0, elapsedMs / 1000);
+
+        if (this.effect === "sticker-road-trip") {
+            this.stickerRoadTripDistance =
+                this.timer * this.stickerRoadTripBaseSpeed;
+        }
+
         this.lastFrameTime = performance.now();
 
         const loop = (frameTime: number) => {
@@ -299,6 +467,18 @@ export class ParticleEngine {
     }
 
     private update(deltaSeconds: number) {
+        if (this.effect === "bioluminescent-tide") {
+            this.updateBioluminescentTideScene(deltaSeconds);
+        }
+
+        if (this.effect === "sticker-road-trip") {
+            const scene = this.getStickerRoadTripSceneState();
+            this.stickerRoadTripDistance +=
+                this.stickerRoadTripBaseSpeed *
+                scene.travelFactor *
+                deltaSeconds;
+        }
+
         this.updateWind();
 
         for (const p of this.particles) {
@@ -334,11 +514,24 @@ export class ParticleEngine {
 
             if (this.effect === "paper-butterfly-dream") {
                 this.updatePaperButterflyDreamParticle(p, deltaSeconds);
+                continue;
+            }
+
+            if (this.effect === "bioluminescent-tide") {
+                this.updateBioluminescentTideParticle(p, deltaSeconds);
             }
         }
     }
 
     private updateWind() {
+        if (
+            this.effect === "bioluminescent-tide" ||
+            this.effect === "sticker-road-trip"
+        ) {
+            this.wind = 0;
+            return;
+        }
+
         if (this.effect === "thunderstorm") {
             // Layered sine waves create strong but continuous gale movement.
             this.wind =
@@ -419,6 +612,183 @@ export class ParticleEngine {
         this.wind =
             Math.sin(this.timer * 0.45) * 0.38 +
             Math.sin(this.timer * 0.17 + 1.2) * 0.18;
+    }
+
+
+    private updateBioluminescentTideScene(deltaSeconds: number) {
+        this.bioluminescentTideSceneElapsed += deltaSeconds;
+
+        if (!this.bioluminescentTideSceneEvent) {
+            if (
+                this.bioluminescentTideSceneElapsed >=
+                this.bioluminescentTideNextSceneDelay
+            ) {
+                this.bioluminescentTideSceneEvent =
+                    "luminous-high-tide";
+                this.bioluminescentTideSceneElapsed = 0;
+            }
+        } else if (this.bioluminescentTideSceneElapsed >= 18) {
+            this.bioluminescentTideSceneEvent = null;
+            this.bioluminescentTideSceneElapsed = 0;
+            this.bioluminescentTideNextSceneDelay =
+                58 + this.random() * 38;
+        }
+
+        this.bioluminescentTideSceneState =
+            this.calculateBioluminescentTideSceneState();
+    }
+
+    private calculateBioluminescentTideSceneState(): BioluminescentTideSceneState {
+        const type = this.bioluminescentTideSceneEvent;
+        const progress = type
+            ? this.clamp(
+                this.bioluminescentTideSceneElapsed / 18,
+                0,
+                1
+            )
+            : 0;
+
+        const strength = type
+            ? this.smoothStep(0.05, 0.32, progress) *
+                (1 - this.smoothStep(0.78, 1, progress))
+            : 0;
+
+        const bloom = type
+            ? this.smoothStep(0.28, 0.55, progress) *
+                (1 - this.smoothStep(0.78, 1, progress))
+            : 0;
+
+        const tide = Math.sin(this.timer * 0.16);
+        const eventBoost = strength * 0.36;
+        const push =
+            Math.cos(this.timer * 0.16) *
+            (0.008 + eventBoost * 0.012);
+        const crest = Math.pow(Math.max(0, tide), 2);
+        const waterLevel =
+            tide * this.height * (0.009 + strength * 0.005);
+        const amplitude =
+            1 + tide * 0.07 + strength * 0.14;
+
+        return {
+            type,
+            progress,
+            strength,
+            bloom,
+            tide,
+            push,
+            crest,
+            waterLevel,
+            amplitude,
+        };
+    }
+
+    private updateBioluminescentTideParticle(
+        p: Particle,
+        deltaSeconds: number
+    ) {
+        const scene = this.bioluminescentTideSceneState;
+        const depthResponse = 0.48 + p.depth * 0.52;
+        const normalizedX = p.x / Math.max(1, this.width);
+        const normalizedY = p.y / Math.max(1, this.height);
+
+        p.wobble += p.wobbleSpeed * deltaSeconds;
+        p.flutter += p.flutterSpeed * deltaSeconds;
+
+        const localDrift =
+            Math.sin(
+                this.timer * 0.18 +
+                p.wobble +
+                normalizedY * 5.4
+            ) * this.width * 0.00055;
+
+        p.vx +=
+            (
+                scene.push * this.width * 0.38 * depthResponse +
+                localDrift
+            ) * deltaSeconds;
+
+        p.vy +=
+            (
+                Math.sin(
+                    this.timer * 0.14 +
+                    p.flutter +
+                    normalizedX * 4.3
+                ) * this.height * 0.00042 +
+                scene.tide * this.height * 0.00018
+            ) * deltaSeconds;
+
+        const drag = Math.exp(-1.75 * deltaSeconds);
+        p.vx *= drag;
+        p.vy *= drag;
+
+        p.x += p.vx * deltaSeconds;
+        p.y += p.vy * deltaSeconds;
+
+        const cluster =
+            (
+                Math.sin(
+                    normalizedX * 12.3 +
+                    normalizedY * 8.1 +
+                    this.timer * 0.11
+                ) +
+                Math.sin(
+                    normalizedX * 5.6 -
+                    normalizedY * 10.4 -
+                    this.timer * 0.07 +
+                    1.7
+                )
+            ) * 0.5;
+        const cluster01 = 0.5 + cluster * 0.5;
+        const sensitivity = p.sensitivity ?? 0.8;
+        const threshold = p.threshold ?? 0.32;
+        const excitation =
+            scene.crest *
+            scene.bloom *
+            cluster01 *
+            sensitivity;
+
+        let energy = p.energy ?? 0;
+
+        if (excitation > threshold) {
+            energy +=
+                (excitation - threshold) *
+                deltaSeconds *
+                1.9;
+        }
+
+        const ambientPulse = Math.pow(
+            Math.max(
+                0,
+                Math.sin(this.timer * 0.35 + p.flutter)
+            ),
+            6
+        );
+
+        energy += ambientPulse * 0.018 * deltaSeconds;
+        energy *= Math.exp(-0.72 * deltaSeconds);
+        p.energy = this.clamp(energy, 0, 1.1);
+
+        const depthAlpha = 0.22 + p.depth * 0.68;
+        const pulse =
+            0.82 +
+            Math.sin(this.timer * 0.7 + p.flutter) * 0.18;
+
+        p.alpha =
+            ((p.baseAlpha ?? 0.12) + p.energy * 0.62) *
+            depthAlpha *
+            pulse;
+
+        const margin = 28;
+
+        if (p.x > this.width + margin)
+            p.x = -margin;
+        else if (p.x < -margin)
+            p.x = this.width + margin;
+
+        if (p.y > this.height + margin)
+            p.y = -margin;
+        else if (p.y < -margin)
+            p.y = this.height + margin;
     }
 
     private updateSnowParticle(
@@ -1003,6 +1373,24 @@ export class ParticleEngine {
         this.paperButterflyDreamLanterns = [];
         this.paperButterflyDreamShadows = [];
         this.paperButterflyDreamPatterns = [];
+
+        this.bioluminescentTideGlowSprite = null;
+        this.bioluminescentTideRipples = [];
+        this.bioluminescentTideSceneEvent = null;
+        this.bioluminescentTideSceneElapsed = 0;
+        this.bioluminescentTideSceneState = {
+            type: null,
+            progress: 0,
+            strength: 0,
+            bloom: 0,
+            tide: 0,
+            push: 0,
+            crest: 0,
+            waterLevel: 0,
+            amplitude: 1,
+        };
+
+        this.stickerRoadTripDistance = 0;
     }
 
     private createParticles(reset = false) {
@@ -1064,6 +1452,15 @@ export class ParticleEngine {
                         )
                     );
                     break;
+
+                case "bioluminescent-tide":
+                    this.particles.push(
+                        this.createBioluminescentTideParticle(depth)
+                    );
+                    break;
+
+                case "sticker-road-trip":
+                    break;
             }
         }
     }
@@ -1120,6 +1517,16 @@ export class ParticleEngine {
                     42,
                     86
                 );
+
+            case "bioluminescent-tide":
+                return this.clamp(
+                    Math.floor(area / 7200),
+                    96,
+                    164
+                );
+
+            case "sticker-road-trip":
+                return 0;
 
             default:
                 return Math.max(
@@ -1460,6 +1867,44 @@ export class ParticleEngine {
         };
     }
 
+
+    private createBioluminescentTideParticle(depth: number): Particle {
+        const x = this.random() * this.width;
+        const y =
+            this.height * 0.08 +
+            this.random() * this.height * 0.84;
+        const baseAlpha = 0.08 + this.random() * 0.18;
+
+        return {
+            originX: x,
+            originY: y,
+            x,
+            y,
+
+            vx: (this.random() - 0.5) * 1.2,
+            vy: (this.random() - 0.5) * 0.7,
+
+            size: 0.8 + depth * 2.2 + this.random() * 0.55,
+            length: 0,
+            alpha: baseAlpha,
+
+            rotation: 0,
+            rotationSpeed: 0,
+
+            wobble: this.random() * Math.PI * 2,
+            wobbleSpeed: 0.13 + this.random() * 0.12,
+
+            flutter: this.random() * Math.PI * 2,
+            flutterSpeed: 0.26 + this.random() * 0.24,
+
+            depth,
+            baseAlpha,
+            energy: this.random() * 0.12,
+            sensitivity: 0.55 + this.random() * 0.75,
+            threshold: 0.18 + this.random() * 0.42,
+        };
+    }
+
     private createDiscoParticle(depth: number): Particle {
         const x = this.random() * this.width;
         const y = this.random() * this.height;
@@ -1633,10 +2078,25 @@ export class ParticleEngine {
             this.drawPaperButterflyDreamMirror();
         }
 
+        if (this.effect === "bioluminescent-tide") {
+            this.drawBioluminescentTideBackground();
+            this.drawBioluminescentTideWaterLayers();
+            this.drawBioluminescentTideCaustics();
+            this.drawBioluminescentTideLocalRipples();
+        }
+
+        if (this.effect === "sticker-road-trip") {
+            this.drawStickerRoadTripScene();
+        }
+
         this.ctx.restore();
 
         if (this.effect === "radiance-of-amitabha") {
             this.drawAmitabhaParticlesOptimized();
+            return;
+        }
+
+        if (this.effect === "sticker-road-trip") {
             return;
         }
 
@@ -1672,6 +2132,10 @@ export class ParticleEngine {
                 case "paper-butterfly-dream":
                     this.drawPaperButterflyDreamParticle(p);
                     break;
+
+                case "bioluminescent-tide":
+                    this.drawBioluminescentTideParticle(p);
+                    break;
             }
 
             this.ctx.restore();
@@ -1697,6 +2161,1108 @@ export class ParticleEngine {
             this.drawPaperButterflyDreamReflections();
             this.ctx.restore();
         }
+
+        if (this.effect === "bioluminescent-tide") {
+            this.ctx.save();
+            this.ctx.globalAlpha = this.transitionAlpha;
+            this.drawBioluminescentTideSurfaceHaze();
+            this.ctx.restore();
+        }
+    }
+
+
+    private rebuildBioluminescentTideRipples() {
+        this.bioluminescentTideRipples = Array.from(
+            { length: 18 },
+            () => ({
+                xRatio: 0.05 + this.random() * 0.9,
+                yRatio: 0.16 + this.random() * 0.7,
+                birthOffset: this.random() * 10,
+                duration: 4.4 + this.random() * 3.2,
+                radiusRatio: 0.028 + this.random() * 0.035,
+                phase: this.random() * Math.PI * 2,
+                strength: 0.45 + this.random() * 0.55,
+            })
+        );
+    }
+
+    private createBioluminescentTideGlowSprite() {
+        const size = 96;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const c = canvas.getContext("2d");
+
+        if (!c)
+            return canvas;
+
+        const center = size * 0.5;
+        const glow = c.createRadialGradient(
+            center,
+            center,
+            0,
+            center,
+            center,
+            center
+        );
+
+        glow.addColorStop(0, "rgba(103, 232, 249, 0.82)");
+        glow.addColorStop(0.2, "rgba(34, 211, 238, 0.34)");
+        glow.addColorStop(0.55, "rgba(6, 182, 212, 0.1)");
+        glow.addColorStop(1, "rgba(6, 182, 212, 0)");
+
+        c.fillStyle = glow;
+        c.fillRect(0, 0, size, size);
+
+        return canvas;
+    }
+
+    private drawBioluminescentTideBackground() {
+        const c = this.ctx;
+        const scene = this.bioluminescentTideSceneState;
+        const background = c.createLinearGradient(
+            0,
+            0,
+            0,
+            this.height
+        );
+
+        background.addColorStop(0, "rgba(4, 23, 34, 0.98)");
+        background.addColorStop(0.38, "rgba(3, 19, 29, 0.98)");
+        background.addColorStop(1, "rgba(1, 7, 13, 0.99)");
+
+        c.fillStyle = background;
+        c.fillRect(0, 0, this.width, this.height);
+
+        const deepGlow = c.createRadialGradient(
+            this.width * 0.5,
+            this.height * 0.2 + scene.waterLevel,
+            0,
+            this.width * 0.5,
+            this.height * 0.2 + scene.waterLevel,
+            Math.max(this.width, this.height) * 0.9
+        );
+
+        deepGlow.addColorStop(
+            0,
+            `rgba(34, 211, 238, ${0.018 + scene.strength * 0.018})`
+        );
+        deepGlow.addColorStop(0.52, "rgba(8, 145, 178, 0.008)");
+        deepGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+        c.fillStyle = deepGlow;
+        c.fillRect(0, 0, this.width, this.height);
+    }
+
+    private drawBioluminescentTideWaterLayers() {
+        const c = this.ctx;
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+
+        this.drawBioluminescentTideWaterLayer(0.31, 0, 10, 0.15, 6.2);
+        this.drawBioluminescentTideWaterLayer(0.46, 0.42, 8.4, 0.13, 6.8);
+        this.drawBioluminescentTideWaterLayer(0.61, 0.78, 6.6, 0.11, 7.4);
+        this.drawBioluminescentTideWaterLayer(0.74, 1.08, 4.6, 0.09, 8.1);
+
+        c.restore();
+    }
+
+    private drawBioluminescentTideWaterLayer(
+        baseRatio: number,
+        phaseLag: number,
+        baseAmplitude: number,
+        alpha: number,
+        frequency: number
+    ) {
+        const c = this.ctx;
+        const scene = this.bioluminescentTideSceneState;
+        const points: Array<{ x: number; y: number }> = [];
+        const step = Math.max(18, this.width / 50);
+        const phase = this.timer * 0.16 - phaseLag;
+
+        for (
+            let x = -step;
+            x <= this.width + step;
+            x += step
+        ) {
+            const normalizedX = x / Math.max(1, this.width);
+            const macro =
+                Math.sin(normalizedX * frequency + phase) *
+                baseAmplitude *
+                scene.amplitude;
+            const meso =
+                Math.sin(
+                    normalizedX * (frequency * 1.92) -
+                    this.timer * 0.23 +
+                    phaseLag * 0.8
+                ) *
+                baseAmplitude *
+                0.34;
+            const micro =
+                Math.sin(
+                    normalizedX * (frequency * 3.8) +
+                    this.timer * 0.41 +
+                    phaseLag * 1.7
+                ) *
+                baseAmplitude *
+                0.11;
+            const localDeform =
+                1 +
+                Math.sin(
+                    normalizedX * 3.1 +
+                    this.timer * 0.09 +
+                    phaseLag
+                ) * 0.09;
+
+            points.push({
+                x,
+                y:
+                    this.height * baseRatio +
+                    scene.waterLevel * (1 - baseRatio * 0.45) +
+                    (macro + meso + micro) * localDeform,
+            });
+        }
+
+        const stroke = (lineWidth: number, opacity: number) => {
+            c.beginPath();
+            c.moveTo(points[0].x, points[0].y);
+
+            for (let i = 1; i < points.length - 1; i++) {
+                const middleX = (points[i].x + points[i + 1].x) * 0.5;
+                const middleY = (points[i].y + points[i + 1].y) * 0.5;
+
+                c.quadraticCurveTo(
+                    points[i].x,
+                    points[i].y,
+                    middleX,
+                    middleY
+                );
+            }
+
+            c.strokeStyle = `rgba(103, 232, 249, ${opacity})`;
+            c.lineWidth = lineWidth;
+            c.lineCap = "round";
+            c.stroke();
+        };
+
+        stroke(30, alpha * 0.1);
+        stroke(14, alpha * 0.18);
+        stroke(2.1, alpha * 0.48);
+    }
+
+    private drawBioluminescentTideLocalRipples() {
+        const c = this.ctx;
+        const scene = this.bioluminescentTideSceneState;
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+
+        for (const ripple of this.bioluminescentTideRipples) {
+            const age =
+                (this.timer + ripple.birthOffset) % ripple.duration;
+            const progress = age / ripple.duration;
+            const envelope = Math.sin(Math.PI * progress);
+
+            if (envelope <= 0.02)
+                continue;
+
+            const radius =
+                this.width *
+                ripple.radiusRatio *
+                (0.45 + progress * 1.75) *
+                (1 + scene.tide * 0.04);
+            const x =
+                ripple.xRatio * this.width +
+                Math.sin(this.timer * 0.11 + ripple.phase) * 8;
+            const y =
+                ripple.yRatio * this.height +
+                scene.waterLevel * 0.35 +
+                Math.cos(this.timer * 0.09 + ripple.phase) * 4;
+            const alpha =
+                envelope *
+                ripple.strength *
+                (0.018 + scene.strength * 0.006);
+
+            c.strokeStyle = `rgba(165, 243, 252, ${alpha})`;
+            c.lineWidth = 1.1;
+            c.beginPath();
+            c.ellipse(
+                x,
+                y,
+                radius,
+                radius * 0.26,
+                Math.sin(this.timer * 0.07 + ripple.phase) * 0.08,
+                0,
+                Math.PI * 2
+            );
+            c.stroke();
+        }
+
+        c.restore();
+    }
+
+    private drawBioluminescentTideCaustics() {
+        const c = this.ctx;
+        const scene = this.bioluminescentTideSceneState;
+        const scaleX = 1 + scene.tide * 0.035;
+        const scaleY = 1 - scene.tide * 0.018;
+
+        c.save();
+        c.globalCompositeOperation = "screen";
+        c.translate(this.width * 0.5, this.height * 0.5);
+        c.scale(scaleX, scaleY);
+        c.translate(-this.width * 0.5, -this.height * 0.5);
+
+        for (let layer = 0; layer < 2; layer++) {
+            const phase = layer === 0 ? 0.4 : 2.3;
+            const alpha =
+                (layer === 0 ? 0.027 : 0.018) *
+                (1 + scene.strength * 0.55);
+
+            c.strokeStyle = `rgba(165, 243, 252, ${alpha})`;
+            c.lineWidth = layer === 0 ? 1.15 : 1.55;
+            c.lineCap = "round";
+
+            for (let row = 0; row < 5; row++) {
+                c.beginPath();
+
+                for (let i = 0; i <= 26; i++) {
+                    const normalizedX = i / 26;
+                    const x = normalizedX * this.width;
+                    const y =
+                        this.height * (0.14 + row * 0.165) +
+                        Math.sin(
+                            normalizedX * 10.6 +
+                            this.timer * (layer === 0 ? 0.22 : -0.16) +
+                            phase +
+                            row * 0.62
+                        ) * 9 +
+                        Math.sin(
+                            normalizedX * 4.1 -
+                            this.timer * 0.12 +
+                            row
+                        ) * 5 +
+                        scene.waterLevel * 0.22;
+
+                    if (i === 0)
+                        c.moveTo(x, y);
+                    else
+                        c.lineTo(x, y);
+                }
+
+                c.stroke();
+            }
+        }
+
+        c.restore();
+    }
+
+    private drawBioluminescentTideParticle(p: Particle) {
+        const c = this.ctx;
+        const energy = this.clamp(p.energy ?? 0, 0, 1);
+        const radius = p.size * (1 + energy * 0.28);
+        const glowSprite = this.bioluminescentTideGlowSprite;
+
+        if (glowSprite && energy > 0.22) {
+            const glowSize = radius * (8.4 + energy * 4.8);
+
+            c.save();
+            c.globalAlpha *= 0.18 + energy * 0.24;
+            c.drawImage(
+                glowSprite,
+                -glowSize * 0.5,
+                -glowSize * 0.5,
+                glowSize,
+                glowSize
+            );
+            c.restore();
+        }
+
+        c.fillStyle = "rgba(103, 232, 249, 0.94)";
+        c.beginPath();
+        c.arc(0, 0, radius, 0, Math.PI * 2);
+        c.fill();
+    }
+
+    private drawBioluminescentTideSurfaceHaze() {
+        const c = this.ctx;
+        const scene = this.bioluminescentTideSceneState;
+        const haze = c.createLinearGradient(
+            0,
+            0,
+            0,
+            this.height * 0.31
+        );
+
+        haze.addColorStop(
+            0,
+            `rgba(165, 243, 252, ${0.018 + scene.strength * 0.01})`
+        );
+        haze.addColorStop(0.5, "rgba(34, 211, 238, 0.006)");
+        haze.addColorStop(1, "rgba(34, 211, 238, 0)");
+
+        c.fillStyle = haze;
+        c.fillRect(
+            0,
+            scene.waterLevel * 0.1,
+            this.width,
+            this.height * 0.32
+        );
+    }
+
+    private getStickerRoadTripSceneState(): StickerRoadTripSceneState {
+        const cycleDuration =
+            this.stickerRoadTripDriveDuration +
+            this.stickerRoadTripZoomDuration;
+        const cycleIndex = Math.floor(this.timer / cycleDuration);
+        const cycleTime = this.timer % cycleDuration;
+        const zoomTime = this.clamp(
+            cycleTime - this.stickerRoadTripDriveDuration,
+            0,
+            this.stickerRoadTripZoomDuration
+        );
+        const zoomT = zoomTime / this.stickerRoadTripZoomDuration;
+
+        let zoomProgress = 0;
+
+        if (cycleTime >= this.stickerRoadTripDriveDuration) {
+            if (zoomT < 0.38) {
+                zoomProgress = this.smoothStep(0, 1, zoomT / 0.38);
+            } else if (zoomT < 0.64) {
+                zoomProgress = 1;
+            } else {
+                zoomProgress =
+                    1 - this.smoothStep(0, 1, (zoomT - 0.64) / 0.36);
+            }
+        }
+
+        const weatherFrom =
+            cycleIndex % stickerRoadTripWeatherStates.length;
+        const weatherTo =
+            (weatherFrom + 1) % stickerRoadTripWeatherStates.length;
+        const weatherBlend =
+            cycleTime < this.stickerRoadTripDriveDuration
+                ? 0
+                : this.smoothStep(0, 1, zoomT);
+
+        return {
+            cycleTime,
+            zoomProgress,
+            cameraZoom: 1 + zoomProgress * 0.46,
+            weatherFrom,
+            weatherTo,
+            weatherBlend,
+            travelFactor:
+                cycleTime < this.stickerRoadTripDriveDuration
+                    ? 1
+                    : 1 - zoomProgress * 0.62,
+        };
+    }
+
+    private mixStickerRoadTripWeather(
+        fromIndex: number,
+        toIndex: number,
+        amount: number
+    ): StickerRoadTripWeather {
+        const from = stickerRoadTripWeatherStates[fromIndex];
+        const to = stickerRoadTripWeatherStates[toIndex];
+        const mix3 = (
+            a: [number, number, number],
+            b: [number, number, number]
+        ): [number, number, number] => [
+            this.lerp(a[0], b[0], amount),
+            this.lerp(a[1], b[1], amount),
+            this.lerp(a[2], b[2], amount),
+        ];
+        const mix4 = (
+            a: [number, number, number, number],
+            b: [number, number, number, number]
+        ): [number, number, number, number] => [
+            this.lerp(a[0], b[0], amount),
+            this.lerp(a[1], b[1], amount),
+            this.lerp(a[2], b[2], amount),
+            this.lerp(a[3], b[3], amount),
+        ];
+
+        return {
+            name: amount < 0.5 ? from.name : to.name,
+            skyTop: mix3(from.skyTop, to.skyTop),
+            skyMid: mix3(from.skyMid, to.skyMid),
+            skyBottom: mix3(from.skyBottom, to.skyBottom),
+            cloudTint: mix3(from.cloudTint, to.cloudTint),
+            groundTint: mix4(from.groundTint, to.groundTint),
+            overlay: mix4(from.overlay, to.overlay),
+            sunAlpha: this.lerp(from.sunAlpha, to.sunAlpha, amount),
+            cloudAlpha: this.lerp(from.cloudAlpha, to.cloudAlpha, amount),
+            rain: this.lerp(from.rain, to.rain, amount),
+            fog: this.lerp(from.fog, to.fog, amount),
+            night: this.lerp(from.night, to.night, amount),
+            sunset: this.lerp(from.sunset, to.sunset, amount),
+        };
+    }
+
+    private drawStickerRoadTripScene() {
+        const scene = this.getStickerRoadTripSceneState();
+        const weather = this.mixStickerRoadTripWeather(
+            scene.weatherFrom,
+            scene.weatherTo,
+            scene.weatherBlend
+        );
+        const c = this.ctx;
+        const focusX = this.width * 0.59;
+        const focusY = this.height * 0.765;
+
+        c.save();
+        c.translate(focusX, focusY);
+        c.scale(scene.cameraZoom, scene.cameraZoom);
+        c.translate(-focusX, -focusY);
+
+        this.drawStickerRoadTripSky(weather);
+        this.drawStickerRoadTripMountainLayer(
+            this.stickerRoadTripDistance,
+            0.08,
+            this.height * 0.57,
+            390,
+            92,
+            weather.night > 0.4 ? "#475569" : "#86efac",
+            weather.night > 0.4 ? "#334155" : "#22c55e"
+        );
+        this.drawStickerRoadTripMountainLayer(
+            this.stickerRoadTripDistance,
+            0.15,
+            this.height * 0.63,
+            330,
+            68,
+            weather.night > 0.4 ? "#64748b" : "#4ade80",
+            weather.night > 0.4 ? "#475569" : "#16a34a"
+        );
+        this.drawStickerRoadTripTreeLayer(
+            this.stickerRoadTripDistance,
+            0.3,
+            this.height * 0.665,
+            166,
+            1.02,
+            0.8,
+            0,
+            weather.night
+        );
+        this.drawStickerRoadTripTreeLayer(
+            this.stickerRoadTripDistance,
+            0.58,
+            this.height * 0.7,
+            128,
+            0.84,
+            0.92,
+            1,
+            weather.night
+        );
+        this.drawStickerRoadTripRoad(weather);
+        this.drawStickerRoadTripBushes(weather);
+        this.drawStickerRoadTripCar(weather);
+        this.drawStickerRoadTripFog(weather.fog);
+        this.drawStickerRoadTripRain(weather.rain);
+        this.drawStickerRoadTripWeatherOverlay(weather);
+
+        c.restore();
+    }
+
+    private drawStickerRoadTripSky(weather: StickerRoadTripWeather) {
+        const c = this.ctx;
+        const sky = c.createLinearGradient(0, 0, 0, this.height);
+        sky.addColorStop(0, this.rgb(weather.skyTop));
+        sky.addColorStop(0.56, this.rgb(weather.skyMid));
+        sky.addColorStop(1, this.rgb(weather.skyBottom));
+        c.fillStyle = sky;
+        c.fillRect(0, 0, this.width, this.height);
+
+        const sunX = this.width * 0.82;
+        const sunY = this.height * 0.16;
+        const radius = this.height * 0.18;
+        const sun = c.createRadialGradient(
+            sunX,
+            sunY,
+            0,
+            sunX,
+            sunY,
+            radius
+        );
+
+        if (weather.night > 0.5) {
+            sun.addColorStop(
+                0,
+                `rgba(241, 245, 249, ${weather.sunAlpha})`
+            );
+            sun.addColorStop(
+                0.32,
+                `rgba(226, 232, 240, ${weather.sunAlpha * 0.25})`
+            );
+            sun.addColorStop(1, "rgba(226, 232, 240, 0)");
+        } else if (weather.sunset > 0.4) {
+            sun.addColorStop(
+                0,
+                `rgba(255, 237, 213, ${weather.sunAlpha})`
+            );
+            sun.addColorStop(
+                0.28,
+                `rgba(251, 191, 36, ${weather.sunAlpha * 0.3})`
+            );
+            sun.addColorStop(1, "rgba(251, 191, 36, 0)");
+        } else {
+            sun.addColorStop(
+                0,
+                `rgba(254, 240, 138, ${weather.sunAlpha})`
+            );
+            sun.addColorStop(
+                0.35,
+                `rgba(253, 224, 71, ${weather.sunAlpha * 0.28})`
+            );
+            sun.addColorStop(1, "rgba(253, 224, 71, 0)");
+        }
+
+        c.fillStyle = sun;
+        c.fillRect(
+            sunX - radius,
+            sunY - radius,
+            radius * 2,
+            radius * 2
+        );
+
+        this.drawStickerRoadTripCloud(
+            this.width * 0.16,
+            this.height * 0.12,
+            0.86,
+            weather
+        );
+        this.drawStickerRoadTripCloud(
+            this.width * 0.52,
+            this.height * 0.16,
+            0.64,
+            weather
+        );
+        this.drawStickerRoadTripCloud(
+            this.width * 0.73,
+            this.height * 0.1,
+            0.54,
+            weather
+        );
+
+        if (weather.night > 0.25) {
+            c.save();
+            c.globalAlpha *= weather.night * 0.7;
+            c.fillStyle = "#f8fafc";
+
+            for (let i = 0; i < 28; i++) {
+                const x = (i * 137.13) % this.width;
+                const y =
+                    24 +
+                    ((i * 71.9) % Math.max(1, this.height * 0.32));
+                const starRadius = i % 4 === 0 ? 1.8 : 1.1;
+                c.beginPath();
+                c.arc(x, y, starRadius, 0, Math.PI * 2);
+                c.fill();
+            }
+
+            c.restore();
+        }
+    }
+
+    private drawStickerRoadTripCloud(
+        x: number,
+        y: number,
+        scale: number,
+        weather: StickerRoadTripWeather
+    ) {
+        const c = this.ctx;
+        const color = weather.cloudTint;
+
+        c.save();
+        c.translate(x, y);
+        c.scale(scale, scale);
+        c.fillStyle =
+            `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${weather.cloudAlpha})`;
+        c.beginPath();
+        c.arc(-34, 3, 21, 0, Math.PI * 2);
+        c.arc(-4, -8, 30, 0, Math.PI * 2);
+        c.arc(32, 1, 23, 0, Math.PI * 2);
+        c.arc(3, 8, 26, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+    }
+
+    private drawStickerRoadTripMountainLayer(
+        distance: number,
+        ratio: number,
+        baseY: number,
+        tileWidth: number,
+        amplitude: number,
+        fill: string,
+        stroke: string
+    ) {
+        const c = this.ctx;
+        const offset = (distance * ratio) % tileWidth;
+        const start = -tileWidth - offset;
+
+        c.save();
+        c.beginPath();
+        c.moveTo(start, baseY);
+
+        for (
+            let x = start;
+            x < this.width + tileWidth * 2;
+            x += tileWidth
+        ) {
+            c.quadraticCurveTo(
+                x + tileWidth * 0.22,
+                baseY - amplitude * 0.68,
+                x + tileWidth * 0.42,
+                baseY - amplitude
+            );
+            c.quadraticCurveTo(
+                x + tileWidth * 0.62,
+                baseY - amplitude * 0.28,
+                x + tileWidth,
+                baseY
+            );
+        }
+
+        c.lineTo(this.width + tileWidth * 2, this.height);
+        c.lineTo(start, this.height);
+        c.closePath();
+        c.fillStyle = fill;
+        c.fill();
+        c.strokeStyle = stroke;
+        c.lineWidth = 2.5;
+        c.stroke();
+        c.restore();
+    }
+
+    private drawStickerRoadTripTreeLayer(
+        distance: number,
+        ratio: number,
+        baseY: number,
+        gap: number,
+        scale: number,
+        alpha: number,
+        phase: number,
+        night: number
+    ) {
+        const offset = (distance * ratio) % gap;
+        const count = Math.ceil(this.width / gap) + 5;
+        const logicalOffset = Math.floor(distance * ratio / gap);
+
+        for (let i = -3; i < count; i++) {
+            const logical = i + logicalOffset;
+            const x = i * gap - offset;
+            const variant = ((logical + phase) % 3 + 3) % 3;
+            const wobble = Math.sin(logical * 1.73) * 4;
+
+            this.drawStickerRoadTripTree(
+                x,
+                baseY + wobble,
+                scale * (variant === 2 ? 0.9 : 1),
+                variant,
+                alpha,
+                night
+            );
+        }
+    }
+
+    private drawStickerRoadTripTree(
+        x: number,
+        baseY: number,
+        scale: number,
+        variant: number,
+        alpha: number,
+        night: number
+    ) {
+        const c = this.ctx;
+
+        c.save();
+        c.globalAlpha *= alpha;
+        c.translate(x, baseY);
+        c.scale(scale, scale);
+
+        c.fillStyle = night > 0.3 ? "#5b4633" : "#8b5a2b";
+        c.strokeStyle = "rgba(31, 41, 55, 0.18)";
+        c.lineWidth = 3;
+        c.beginPath();
+        c.moveTo(-8, 20);
+        c.lineTo(-6, -25);
+        c.lineTo(6, -25);
+        c.lineTo(8, 20);
+        c.closePath();
+        c.fill();
+        c.stroke();
+
+        const palette = night > 0.3
+            ? [
+                ["#3f6212", "#1a2e05"],
+                ["#4d7c0f", "#22340b"],
+                ["#166534", "#0b3128"],
+            ]
+            : [
+                ["#22c55e", "#166534"],
+                ["#4ade80", "#15803d"],
+                ["#84cc16", "#3f6212"],
+            ];
+        const colors = palette[variant % 3];
+        c.fillStyle = colors[0];
+        c.strokeStyle = colors[1];
+        c.lineWidth = 4;
+
+        if (variant % 3 === 0) {
+            this.drawStickerRoadTripTreeBlob(-22, -28, 26);
+            this.drawStickerRoadTripTreeBlob(8, -43, 31);
+            this.drawStickerRoadTripTreeBlob(31, -20, 23);
+            this.drawStickerRoadTripTreeBlob(-2, -12, 27);
+        } else if (variant % 3 === 1) {
+            c.beginPath();
+            c.moveTo(0, -90);
+            c.quadraticCurveTo(-40, -35, -28, -7);
+            c.quadraticCurveTo(0, -18, 28, -7);
+            c.quadraticCurveTo(40, -35, 0, -90);
+            c.fill();
+            c.stroke();
+        } else {
+            this.drawStickerRoadTripTreeBlob(0, -38, 32);
+            this.drawStickerRoadTripTreeBlob(-27, -27, 20);
+            this.drawStickerRoadTripTreeBlob(26, -26, 22);
+            this.drawStickerRoadTripTreeBlob(-10, -56, 21);
+            this.drawStickerRoadTripTreeBlob(18, -58, 20);
+        }
+
+        c.restore();
+    }
+
+    private drawStickerRoadTripTreeBlob(
+        x: number,
+        y: number,
+        radius: number
+    ) {
+        const c = this.ctx;
+        c.beginPath();
+        c.arc(x, y, radius, 0, Math.PI * 2);
+        c.fill();
+        c.stroke();
+    }
+
+    private drawStickerRoadTripRoad(weather: StickerRoadTripWeather) {
+        const c = this.ctx;
+        const roadTop = this.height * 0.71;
+        const roadBottom = this.height * 0.94;
+
+        c.fillStyle = weather.night > 0.4 ? "#334155" : "#475569";
+        c.fillRect(0, roadTop, this.width, roadBottom - roadTop);
+        c.fillStyle = weather.night > 0.4 ? "#1e293b" : "#334155";
+        c.fillRect(0, roadBottom, this.width, this.height - roadBottom);
+        c.fillStyle = weather.night > 0.4 ? "#4d7c0f" : "#65a30d";
+        c.fillRect(0, roadTop - 18, this.width, 18);
+
+        const unit = 160;
+        const offset = (this.stickerRoadTripDistance * 1.5) % unit;
+
+        for (
+            let x = -unit;
+            x < this.width + unit;
+            x += unit
+        ) {
+            c.fillStyle = weather.night > 0.4
+                ? "rgba(255, 255, 255, 0.68)"
+                : "#f8fafc";
+            this.roundRectPath(
+                c,
+                x - offset,
+                roadTop + 58,
+                92,
+                11,
+                6
+            );
+            c.fill();
+        }
+
+        c.strokeStyle = "rgba(255, 255, 255, 0.45)";
+        c.lineWidth = 4;
+        c.beginPath();
+        c.moveTo(0, roadTop + 6);
+        c.lineTo(this.width, roadTop + 6);
+        c.moveTo(0, roadBottom - 12);
+        c.lineTo(this.width, roadBottom - 12);
+        c.stroke();
+    }
+
+    private drawStickerRoadTripBushes(weather: StickerRoadTripWeather) {
+        const c = this.ctx;
+        const gap = 96;
+        const offset = (this.stickerRoadTripDistance * 1.22) % gap;
+
+        for (
+            let i = -2;
+            i < Math.ceil(this.width / gap) + 3;
+            i++
+        ) {
+            const x = i * gap - offset;
+            const y = this.height * 0.713;
+            c.fillStyle = weather.night > 0.4 ? "#65a30d" : "#84cc16";
+            c.beginPath();
+            c.arc(x, y, 17, 0, Math.PI * 2);
+            c.arc(x + 18, y + 4, 13, 0, Math.PI * 2);
+            c.fill();
+        }
+    }
+
+    private drawStickerRoadTripCar(weather: StickerRoadTripWeather) {
+        const c = this.ctx;
+        const x = this.width * 0.47;
+        const y =
+            this.height * 0.785 +
+            Math.sin(this.timer * 4.1) * 1.1;
+        const spin = this.stickerRoadTripDistance * 0.038;
+
+        c.save();
+        c.translate(x, y);
+
+        c.fillStyle = "rgba(15, 23, 42, 0.2)";
+        c.beginPath();
+        c.ellipse(0, 34, 128, 15, 0, 0, Math.PI * 2);
+        c.fill();
+
+        // Side profile faces RIGHT. Rear is left; hood/headlight/grille are right.
+        c.fillStyle = weather.night > 0.45 ? "#dc2626" : "#ef4444";
+        c.strokeStyle = "#7f1d1d";
+        c.lineWidth = 4;
+        c.beginPath();
+        c.moveTo(-146, 17);
+        c.lineTo(-146, -4);
+        c.quadraticCurveTo(-142, -18, -122, -20);
+        c.lineTo(-86, -24);
+        c.quadraticCurveTo(-58, -62, -10, -66);
+        c.lineTo(34, -66);
+        c.quadraticCurveTo(58, -63, 82, -34);
+        c.lineTo(96, -18);
+        c.lineTo(143, -18);
+        c.quadraticCurveTo(166, -16, 174, -4);
+        c.lineTo(174, 15);
+        c.quadraticCurveTo(174, 26, 160, 28);
+        c.lineTo(-126, 28);
+        c.quadraticCurveTo(-146, 26, -146, 17);
+        c.closePath();
+        c.fill();
+        c.stroke();
+
+        c.fillStyle = weather.night > 0.45 ? "#93c5fd" : "#bfdbfe";
+        c.strokeStyle = "#1e293b";
+        c.lineWidth = 3;
+
+        c.beginPath();
+        c.moveTo(-72, -24);
+        c.quadraticCurveTo(-50, -52, -12, -54);
+        c.lineTo(5, -54);
+        c.lineTo(4, -24);
+        c.closePath();
+        c.fill();
+        c.stroke();
+
+        c.beginPath();
+        c.moveTo(10, -54);
+        c.lineTo(34, -54);
+        c.quadraticCurveTo(53, -51, 72, -29);
+        c.lineTo(82, -18);
+        c.lineTo(10, -18);
+        c.closePath();
+        c.fill();
+        c.stroke();
+
+        c.strokeStyle = "rgba(127, 29, 29, 0.75)";
+        c.lineWidth = 2;
+        c.beginPath();
+        c.moveTo(88, -15);
+        c.lineTo(150, -15);
+        c.moveTo(5, -16);
+        c.lineTo(5, 18);
+        c.stroke();
+
+        c.fillStyle = "#fde68a";
+        this.roundRectPath(c, 155, -10, 18, 11, 5);
+        c.fill();
+
+        c.strokeStyle = "#334155";
+        c.lineWidth = 2;
+        for (let yLine = 5; yLine <= 17; yLine += 4) {
+            c.beginPath();
+            c.moveTo(162, yLine);
+            c.lineTo(174, yLine);
+            c.stroke();
+        }
+
+        c.fillStyle = "#991b1b";
+        this.roundRectPath(c, -146, -4, 10, 13, 3);
+        c.fill();
+
+        this.drawStickerRoadTripWheel(-88, 28, spin, weather);
+        this.drawStickerRoadTripWheel(103, 28, spin, weather);
+
+        if (weather.night > 0.4) {
+            const beam = c.createLinearGradient(170, -4, 250, -22);
+            beam.addColorStop(0, "rgba(254, 240, 138, 0.18)");
+            beam.addColorStop(1, "rgba(254, 240, 138, 0)");
+            c.fillStyle = beam;
+            c.beginPath();
+            c.moveTo(172, -2);
+            c.lineTo(255, -22);
+            c.lineTo(255, 18);
+            c.lineTo(172, 8);
+            c.closePath();
+            c.fill();
+        }
+
+        c.restore();
+    }
+
+    private drawStickerRoadTripWheel(
+        x: number,
+        y: number,
+        spin: number,
+        weather: StickerRoadTripWeather
+    ) {
+        const c = this.ctx;
+
+        c.save();
+        c.translate(x, y);
+        c.fillStyle = "#0f172a";
+        c.beginPath();
+        c.arc(0, 0, 27, 0, Math.PI * 2);
+        c.fill();
+        c.fillStyle = weather.night > 0.4 ? "#94a3b8" : "#64748b";
+        c.beginPath();
+        c.arc(0, 0, 14, 0, Math.PI * 2);
+        c.fill();
+        c.strokeStyle = "#e2e8f0";
+        c.lineWidth = 2;
+        c.rotate(spin);
+
+        for (let i = 0; i < 6; i++) {
+            c.beginPath();
+            c.moveTo(0, 0);
+            c.lineTo(0, -11);
+            c.stroke();
+            c.rotate(Math.PI / 3);
+        }
+
+        c.restore();
+    }
+
+    private drawStickerRoadTripFog(amount: number) {
+        if (amount <= 0.01)
+            return;
+
+        const c = this.ctx;
+        c.save();
+        c.globalAlpha *= amount;
+
+        for (let i = 0; i < 3; i++) {
+            const y =
+                this.height * (0.62 + i * 0.08) +
+                Math.sin(this.timer * 0.17 + i) * 8;
+            const fog = c.createLinearGradient(0, y, 0, y + 60);
+            fog.addColorStop(0, "rgba(255, 255, 255, 0)");
+            fog.addColorStop(0.45, "rgba(255, 255, 255, 0.22)");
+            fog.addColorStop(1, "rgba(255, 255, 255, 0)");
+            c.fillStyle = fog;
+            c.fillRect(0, y - 20, this.width, 90);
+        }
+
+        c.restore();
+    }
+
+    private drawStickerRoadTripRain(amount: number) {
+        if (amount <= 0.01)
+            return;
+
+        const c = this.ctx;
+        c.save();
+        c.globalAlpha *= 0.22 * amount;
+        c.strokeStyle = "#e0f2fe";
+        c.lineWidth = 1.5;
+
+        for (let i = 0; i < 90; i++) {
+            const xSeed = this.hash01(i * 13.7 + 1.1);
+            const ySeed = this.hash01(i * 7.3 + 4.8);
+            const speed = 1.2 + this.hash01(i * 5.9 + 8.2) * 1.8;
+            const length =
+                0.03 + this.hash01(i * 9.1 + 2.6) * 0.045;
+            const x =
+                xSeed * this.width +
+                ((this.timer * 120 * speed) % 40);
+            const y =
+                (
+                    ySeed * this.height +
+                    this.timer * 360 * speed
+                ) % (this.height + 80) - 40;
+
+            c.beginPath();
+            c.moveTo(x, y);
+            c.lineTo(x - 9, y + length * this.height);
+            c.stroke();
+        }
+
+        c.restore();
+    }
+
+    private drawStickerRoadTripWeatherOverlay(
+        weather: StickerRoadTripWeather
+    ) {
+        const c = this.ctx;
+
+        if (weather.overlay[3] > 0.001) {
+            c.fillStyle = this.rgba(weather.overlay);
+            c.fillRect(0, 0, this.width, this.height);
+        }
+
+        if (weather.groundTint[3] > 0.001) {
+            c.fillStyle = this.rgba(weather.groundTint);
+            c.fillRect(
+                0,
+                this.height * 0.58,
+                this.width,
+                this.height * 0.42
+            );
+        }
+    }
+
+    private rgb(color: [number, number, number]) {
+        return `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+    }
+
+    private rgba(color: [number, number, number, number]) {
+        return `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${color[3]})`;
+    }
+
+    private roundRectPath(
+        c: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        radius: number
+    ) {
+        const r = Math.min(radius, width * 0.5, height * 0.5);
+        c.beginPath();
+        c.moveTo(x + r, y);
+        c.lineTo(x + width - r, y);
+        c.quadraticCurveTo(x + width, y, x + width, y + r);
+        c.lineTo(x + width, y + height - r);
+        c.quadraticCurveTo(
+            x + width,
+            y + height,
+            x + width - r,
+            y + height
+        );
+        c.lineTo(x + r, y + height);
+        c.quadraticCurveTo(x, y + height, x, y + height - r);
+        c.lineTo(x, y + r);
+        c.quadraticCurveTo(x, y, x + r, y);
+        c.closePath();
     }
 
     private rebuildDiscoCaches() {
@@ -4751,6 +6317,30 @@ export class ParticleEngine {
         c.moveTo(0, size * 0.66);
         c.lineTo(0, -size * 0.46);
         c.stroke();
+    }
+
+
+    private smoothStep(
+        start: number,
+        end: number,
+        value: number
+    ) {
+        const normalized = this.clamp(
+            (value - start) / Math.max(0.000001, end - start),
+            0,
+            1
+        );
+
+        return normalized * normalized * (3 - 2 * normalized);
+    }
+
+    private lerp(start: number, end: number, amount: number) {
+        return start + (end - start) * amount;
+    }
+
+    private hash01(value: number) {
+        const sine = Math.sin(value * 12.9898 + 78.233) * 43758.5453;
+        return sine - Math.floor(sine);
     }
 
     private random() {

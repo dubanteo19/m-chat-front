@@ -45,7 +45,9 @@
 		{ type: 'thunderstorm', icon: '🌩️', label: 'Thunderstorm' },
 		{ type: 'radiance-of-amitabha', icon: '☸️', label: 'Radiance of Amitabha' },
 		{ type: 'disco-fever', icon: '🎆', label: 'Disco Fever' },
-		{ type: 'paper-butterfly-dream', icon: '🦋', label: 'Paper Butterfly Dream' }
+		{ type: 'paper-butterfly-dream', icon: '🦋', label: 'Paper Butterfly Dream' },
+		{ type: 'bioluminescent-tide', icon: '🌊', label: 'Bioluminescent Tide' },
+		{ type: 'sticker-road-trip', icon: '🚗', label: 'Sticker Road Trip' }
 	];
 	const onRoomEffectSelect = (roomEffect: string) => {
 		sendRaw({

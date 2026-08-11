@@ -33,6 +33,12 @@
 	let mentionQuery = $state('');
 	let mentionPosition = $state({ top: 0, left: 0 });
 
+	$effect(() => {
+		if (repliedToMessage && textareaRef) {
+			textareaRef.focus();
+		}
+	});
+
 	function handleTextAreaInput(e: Event) {
 		const textarea = e.currentTarget as HTMLTextAreaElement;
 		textarea.style.height = 'auto';
