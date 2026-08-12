@@ -20,6 +20,9 @@ export const roomService = {
 	getRoomMembers: async (roomId: string): Promise<RoomMemberInfo[]> => {
 		return apiClient.get(`/rooms/${roomId}/members`);
 	},
+	getRoomInfo: async (roomId: string): Promise<RoomInfo> => {
+		return apiClient.get(`/rooms/${roomId}`);
+	},
 	deleteMessage: async (roomId: string, messageId: number): Promise<void> => {
 		return apiClient.delete(`/rooms/${roomId}/messages/${messageId}`);
 	},

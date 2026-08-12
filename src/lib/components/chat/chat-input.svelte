@@ -5,8 +5,10 @@
 	import { Button } from '../ui/button';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
 	import StickerPicker from './chat-input/sticker-picker.svelte';
+	import type { RoomMemberInfo } from '$lib/types/user';
 	interface ChatInputProps {
 		roomId: string | number;
+		roomMembers: RoomMemberInfo[];
 		onSendMessage: (payload: MessagePayload) => void;
 		onTypingStateChange: (isTyping: boolean) => void;
 		onFileUploadRequested: (file: File) => void;
@@ -15,6 +17,7 @@
 
 	let {
 		roomId,
+		roomMembers,
 		onSendMessage,
 		onTypingStateChange,
 		onFileUploadRequested,
@@ -28,10 +31,13 @@
 	let typingTimeout: NodeJS.Timeout;
 	let amITyping = false;
 
+	let filteredMembers = $derived(
+		roomMembers.filter((m) => m.user.username.toLowerCase().includes(mentionQuery.toLowerCase()))
+	);
 	//mention
 	let showMentionMenu = $state(false);
 	let mentionQuery = $state('');
-	let mentionPosition = $state({ top: 0, left: 0 });
+	let selectedMentionIndex = $state(0);
 
 	$effect(() => {
 		if (repliedToMessage && textareaRef) {
@@ -56,16 +62,39 @@
 		}, 2000);
 		checkMentionTrigger(textarea);
 	}
+	function selectMention(username: string) {
+		if (!textareaRef) return;
+
+		const cursorPosition = textareaRef.selectionStart;
+		const textBeforeCursor = inputMessage.slice(0, cursorPosition);
+		const textAfterCursor = inputMessage.slice(cursorPosition);
+
+		// Replace the typed @query with @username + space
+		const updatedTextBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_-]*)$/, `@${username} `);
+
+		inputMessage = updatedTextBefore + textAfterCursor;
+		showMentionMenu = false;
+
+		// Re-focus and set cursor after inserted mention
+		setTimeout(() => {
+			if (textareaRef) {
+				textareaRef.focus();
+				const newCursorPos = updatedTextBefore.length;
+				textareaRef.setSelectionRange(newCursorPos, newCursorPos);
+			}
+		}, 0);
+	}
 	function checkMentionTrigger(textarea: HTMLTextAreaElement) {
+		console.log('Checking mention trigger...');
 		const cursorPosition = textarea.selectionStart;
 		const textBeforeCursor = textarea.value.slice(0, cursorPosition);
 
-		// Match @ followed by letters/numbers right up to cursor position
 		const match = textBeforeCursor.match(/@([a-zA-Z0-9_-]*)$/);
 
 		if (match) {
 			mentionQuery = match[1];
 			showMentionMenu = true;
+			selectedMentionIndex = 0; // Reset focus to top item
 		} else {
 			showMentionMenu = false;
 		}
@@ -86,6 +115,7 @@
 
 		inputMessage = '';
 		repliedToMessage = null;
+		showMentionMenu = false;
 		if (textareaRef) {
 			textareaRef.style.height = '46px';
 		}
@@ -98,6 +128,29 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
+		if (showMentionMenu && filteredMembers.length > 0) {
+			if (e.key === 'ArrowDown') {
+				e.preventDefault();
+				selectedMentionIndex = (selectedMentionIndex + 1) % filteredMembers.length;
+				return;
+			}
+			if (e.key === 'ArrowUp') {
+				e.preventDefault();
+				selectedMentionIndex =
+					(selectedMentionIndex - 1 + filteredMembers.length) % filteredMembers.length;
+				return;
+			}
+			if (e.key === 'Enter' || e.key === 'Tab') {
+				e.preventDefault();
+				selectMention(filteredMembers[selectedMentionIndex].user.username);
+				return;
+			}
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				showMentionMenu = false;
+				return;
+			}
+		}
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			handleSubmit(e as unknown as SubmitEvent);
@@ -163,26 +216,26 @@
 		</div>
 
 		<div
-			class="flex-1 flex flex-col bg-background border-secondary/20 border rounded-2xl transition-colors overflow-hidden"
+			class="relative flex-1 flex flex-col bg-background border-secondary/20 border rounded-2xl transition-colors "
 		>
 			{#if repliedToMessage}
 				<ReplyPreview {repliedToMessage} onCancelReply={() => (repliedToMessage = null)} />
 			{/if}
-			<!-- {#if showMentionMenu && filteredMembers.length > 0}
+			{#if showMentionMenu && filteredMembers.length > 0}
 				<div
 					class="absolute bottom-full mb-2 left-0 z-50 max-h-48 w-64 overflow-y-auto rounded-lg border bg-white shadow-lg"
 				>
-					{#each filteredMembers as member (member.username)}
+					{#each filteredMembers as member (member.user.username)}
 						<button
 							type="button"
 							class="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-blue-50"
-							on:click={() => selectMention(member.username)}
+							onclick={() => selectMention(member.user.username)}
 						>
-							<span class="font-medium text-gray-800">@{member.username}</span>
+							<span class="font-medium text-gray-800">@{member.user.username}</span>
 						</button>
 					{/each}
 				</div>
-			{/if} -->
+			{/if}
 			<textarea
 				bind:this={textareaRef}
 				bind:value={inputMessage}

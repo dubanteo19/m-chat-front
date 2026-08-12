@@ -2,12 +2,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import { downloadService } from '$lib/services/download-service.svelte';
 	import { MessageType, type Message } from '$lib/types/message';
+	import type { RoomMemberInfo } from '$lib/types/user';
 	import { renderMessage } from '$lib/utils/message-renderer';
 	let imgElement = $state<HTMLImageElement>();
-	let { message, onImageLoad, onOpenLightbox } = $props<{
+	let { message, onImageLoad, onOpenLightbox, roomMembers } = $props<{
 		message: Message;
 		onImageLoad?: () => void;
 		onOpenLightbox?: (selectedMsg: Message, imgElement: HTMLImageElement | undefined) => void;
+		roomMembers: RoomMemberInfo[];
 	}>();
 </script>
 
@@ -28,7 +30,7 @@
 			: ' bg-secondary  text-black rounded-bl-none'}"
 	>
 		<p class="whitespace-pre-wrap leading-relaxed" style="overflow-wrap: anywhere;">
-			{@html renderMessage(message.content)}
+			{@html renderMessage(message.content, roomMembers)}
 		</p>
 	</div>
 {:else if message.type === MessageType.IMAGE}

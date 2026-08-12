@@ -7,35 +7,24 @@
 	import type { RoomEffect } from '../room-effects/effects/particles';
 	import { Button } from '../ui/button';
 
-	import { roomService } from '$lib/api/room';
 	import { roomMemberService } from '$lib/api/room-member';
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { useUser } from '$lib/stores/auth.svelte';
-	import type { RoomMemberInfo } from '$lib/types/user';
-	import { CornerUpLeft, Users, XIcon } from '@lucide/svelte';
-	import AddUserPopover from './room-header/add-user-popover.svelte';
-	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
 	import type { RoomInfo } from '$lib/types/room';
-	let { sidebarOpen = $bindable(), roomId, onlineUsers, sendRaw, selectedRoomEffect } = $props();
+	import { CornerUpLeft, Users, XIcon } from '@lucide/svelte';
+	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
+	import AddUserPopover from './room-header/add-user-popover.svelte';
+	let {
+		sidebarOpen = $bindable(),
+		roomMembers = $bindable(),
+		roomId,
+		onlineUsers,
+		sendRaw,
+		selectedRoomEffect
+	} = $props();
 	let selectedRoom = $state<RoomInfo | null>(null);
-	let roomMembers: RoomMemberInfo[] = $state([]);
 	let isSubmitting = $state(false);
 	let memberToKick: string | null = $state(null);
-
-	$effect(() => {
-		const fetchRoomMembers = async () => {
-			try {
-				isSubmitting = true;
-				roomMembers = await roomService.getRoomMembers(roomId);
-			} catch (error) {
-				console.error('Error fetching room members:', error);
-			} finally {
-				isSubmitting = false;
-			}
-		};
-
-		fetchRoomMembers();
-	});
 
 	const currentUser = useUser();
 	const roomEffects: { type: RoomEffect; icon: string; label: string }[] = [

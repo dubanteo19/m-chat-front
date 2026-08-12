@@ -5,6 +5,7 @@
 	import UserAvatar from '../common/user-avatar.svelte';
 	import UserBadge from '../common/user-badge.svelte';
 	import { MessageContent, MessageReactions, MessageReply, MessageToolbar } from './message';
+	import type { RoomMemberInfo } from '$lib/types/user';
 
 	let {
 		message,
@@ -14,7 +15,8 @@
 		sendReact,
 		openReactionId,
 		setOpenReactionId,
-		onOpenLightbox
+		onOpenLightbox,
+		roomMembers
 	} = $props<{
 		message: Message;
 		onImageLoad?: () => void;
@@ -24,6 +26,7 @@
 		openReactionId: number | null;
 		setOpenReactionId: (id: number | null) => void;
 		onOpenLightbox?: (message: Message, imgElement?: HTMLImageElement) => void;
+		roomMembers: RoomMemberInfo[];
 	}>();
 
 	const isSystem = $derived(message.type === 'SYSTEM');
@@ -93,7 +96,7 @@
 				<span class="text-slate-400 font-normal ml-1">({formatDate(message.sentAt)})</span>
 			</div>
 		{:else}
-			<MessageContent {message} {onImageLoad} {onOpenLightbox} />
+			<MessageContent {roomMembers} {message} {onImageLoad} {onOpenLightbox} />
 			<MessageReactions {message} {sendReact} />
 			<MessageToolbar
 				{message}
