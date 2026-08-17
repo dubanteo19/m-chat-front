@@ -7,7 +7,7 @@
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import type { UserInfo } from '$lib/types/user';
 	import { PlusIcon } from '@lucide/svelte';
-	let { roomId } = $props();
+	let { roomId, onAddMember } = $props();
 	let query = $state('');
 	let users = $state<UserInfo[]>([]);
 	let loading = $state(false);
@@ -41,7 +41,8 @@
 	});
 	const handleAddUser = async (user: UserInfo) => {
 		try {
-			await roomMemberService.addMember(roomId, user.username);
+			const newMember = await roomMemberService.addMember(roomId, user.username);
+			onAddMember(newMember);
 			alert(`User ${user.displayName} added to the room successfully.`);
 		} catch (error) {
 			console.error('Error adding user to room:', error);

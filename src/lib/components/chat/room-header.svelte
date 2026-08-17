@@ -14,18 +14,13 @@
 	import { CornerUpLeft, Users, XIcon } from '@lucide/svelte';
 	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
 	import AddUserPopover from './room-header/add-user-popover.svelte';
-	let {
-		sidebarOpen = $bindable(),
-		roomMembers = $bindable(),
-		roomId,
-		onlineUsers,
-		sendRaw,
-		selectedRoomEffect
-	} = $props();
+	import { getContext } from 'svelte';
+	import { ROOM_MEMBERS_KEY, type RoomState } from '../room/room-state.svelte';
+	let { sidebarOpen = $bindable(), roomId, onlineUsers, sendRaw, selectedRoomEffect } = $props();
 	let selectedRoom = $state<RoomInfo | null>(null);
 	let isSubmitting = $state(false);
 	let memberToKick: string | null = $state(null);
-
+	const roomState = getContext<RoomState>(ROOM_MEMBERS_KEY);
 	const currentUser = useUser();
 	const roomEffects: { type: RoomEffect; icon: string; label: string }[] = [
 		{ type: 'snow', icon: '❄️', label: 'Snow' },
@@ -53,8 +48,8 @@
 		try {
 			await roomMemberService.kickMember(roomId, memberToKick);
 			alert(`User ${memberToKick} has been kicked from the room.`);
+			roomState.removeMember(memberToKick);
 			memberToKick = null;
-			roomMembers = roomMembers.filter((member) => member.user.username !== memberToKick);
 		} catch (error) {
 			console.error('Error kicking user from room:', error);
 			alert('Failed to kick user from the room.');
@@ -102,13 +97,13 @@
 				<Popover.Trigger>
 					<div class="flex-center gap-1">
 						<Users size={18} />
-						<span>{roomMembers.length}</span>
+						<span>{roomState.members.length}</span>
 					</div>
 				</Popover.Trigger>
 				<Popover.Content side="bottom" sideOffset={2} class="w-fit px-4">
 					<div class="flex flex-col gap-1 min-w-54 max-h-64 overflow-y-auto">
-						<span>Room members ({roomMembers.length})</span>
-						{#each roomMembers as member (member.user.username)}
+						<span>Room members ({roomState.members.length})</span>
+						{#each roomState.members as member (member.user.username)}
 							<div
 								class="group relative flex justify-between items-center gap-2 px-2 py-1 hover:bg-secondary rounded"
 							>
@@ -143,7 +138,7 @@
 						{/each}
 
 						<div class="border-t border-bg-gray-500 my-2"></div>
-						<AddUserPopover {roomId} />
+						<AddUserPopover {roomId} onAddMember={roomState.addMember} />
 
 						<Button variant="ghost" size="sm">
 							<CornerUpLeft />

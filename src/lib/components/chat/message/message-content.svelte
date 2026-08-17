@@ -1,15 +1,17 @@
 <script lang="ts">
+	import { ROOM_MEMBERS_KEY, type RoomState } from '$lib/components/room/room-state.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { downloadService } from '$lib/services/download-service.svelte';
 	import { MessageType, type Message } from '$lib/types/message';
-	import type { RoomMemberInfo } from '$lib/types/user';
 	import { renderMessage } from '$lib/utils/message-renderer';
+	import { getContext } from 'svelte';
 	let imgElement = $state<HTMLImageElement>();
+
+	const roomState = getContext<RoomState>(ROOM_MEMBERS_KEY);
 	let { message, onImageLoad, onOpenLightbox, roomMembers } = $props<{
 		message: Message;
 		onImageLoad?: () => void;
 		onOpenLightbox?: (selectedMsg: Message, imgElement: HTMLImageElement | undefined) => void;
-		roomMembers: RoomMemberInfo[];
 	}>();
 </script>
 
@@ -30,7 +32,7 @@
 			: ' bg-secondary  text-black rounded-bl-none'}"
 	>
 		<p class="whitespace-pre-wrap leading-relaxed" style="overflow-wrap: anywhere;">
-			{@html renderMessage(message.content, roomMembers)}
+			{@html renderMessage(message.content, roomState.members)}
 		</p>
 	</div>
 {:else if message.type === MessageType.IMAGE}

@@ -1,6 +1,5 @@
 import type { Message } from '$lib/types/message';
-import type { RoomInfo } from '$lib/types/room';
-import type { RoomMemberInfo } from '$lib/types/user';
+import type { RoomInfo, RoomMemberInfo } from '$lib/types/room';
 import { apiClient } from './client';
 
 export interface RoomMessage {

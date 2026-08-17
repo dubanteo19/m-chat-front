@@ -1,4 +1,4 @@
-import type { RoomMemberInfo } from "$lib/types/user";
+import type { RoomMemberInfo } from "$lib/types/room";
 import { truncateText } from "./text";
 
 const MENTION_REGEX = /@([a-zA-Z0-9_-]+)/g;

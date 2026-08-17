@@ -8,6 +8,7 @@
 	import TypingIndicator from '$lib/components/chat/typing-indicator.svelte';
 	import type { RoomEffect } from '$lib/components/room-effects/effects/particles';
 	import RoomEffects from '$lib/components/room-effects/room-effects.svelte';
+	import { ROOM_MEMBERS_KEY, RoomState } from '$lib/components/room/room-state.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { notificationService } from '$lib/services/notification-service.svelte';
 	import { scrollService } from '$lib/services/scroll-service.svelte';
@@ -19,7 +20,7 @@
 		type ReactionInfo,
 		type RepliedMessageInfo
 	} from '$lib/types/message';
-	import type { RoomMemberInfo, UserInfo } from '$lib/types/user';
+	import type { UserInfo } from '$lib/types/user';
 	import {
 		createMessagePayload,
 		createRoomEffectMessage,
@@ -32,11 +33,11 @@
 	} from '$lib/utils/upload';
 	import { ArrowDown } from '@lucide/svelte';
 	import PhotoSwipe from 'photoswipe';
-	import { onMount, untrack } from 'svelte';
+	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
-	let roomMembers: RoomMemberInfo[] = $state([]);
+	const roomState = new RoomState(() => roomId);
 	const currentUser = useUser();
 	let openReactionId: number | null = $state(null);
 	let roomEffect = $state<RoomEffect | null>(null);
@@ -44,6 +45,7 @@
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
+	setContext(ROOM_MEMBERS_KEY, roomState);
 	export function updateMessageReactions(
 		currentMessages: Message[],
 		payload: {
@@ -127,32 +129,18 @@
 		}
 	};
 
-	const fetchRoomMembers = async (targetRoom: string) => {
-		try {
-			const members = await roomService.getRoomMembers(targetRoom);
-
-			roomMembers = [...members];
-		} catch (error) {
-			console.error('Error fetching room members:', error);
-		}
-	};
-
 	onMount(() => {
 		notificationService.init();
 	});
 
 	$effect(() => {
-		// 1. Explicitly track ONLY roomId
 		const currentRoomId = roomId;
-		if (!currentRoomId) return;
+		if (!currentRoomId || currentRoomId === 'hall') return;
 
 		// 2. Wrap state initialization & API calls in untrack to prevent infinite loops
 		untrack(() => {
 			messages = [];
-			roomMembers = [];
-
 			loadChatHistory(currentRoomId);
-			fetchRoomMembers(currentRoomId);
 			websocketService.connect(currentRoomId, currentUser, {
 				onMessage(raw) {
 					const message = processIncomingMessage(raw, currentUser.username);
@@ -324,7 +312,6 @@
 
 				<RoomHeader
 					sendRaw={websocketService.sendRaw}
-					bind:roomMembers
 					selectedRoomEffect={roomEffect}
 					{roomId}
 					bind:sidebarOpen
@@ -335,34 +322,28 @@
 					use:scrollService.use
 					class="flex flex-1 flex-col gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
 				>
-					{#if roomMembers.length > 0}
-						{#each messages as message (message.sentAt)}
-							<MessageItem
-								{roomMembers}
-								{message}
-								onImageLoad={scrollService.scrollToBottom}
-								{openReactionId}
-								setOpenReactionId={(id) => (openReactionId = id)}
-								handleReply={(msg) => (repliedToMessage = msg)}
-								{handleDelete}
-								sendReact={websocketService.sendReaction}
-								{onOpenLightbox}
-							/>
-						{/each}
-						<TypingIndicator typingUsers={websocketService.typingUsers} />
-					{/if}
+					{#each messages as message (message.sentAt)}
+						<MessageItem
+							{message}
+							onImageLoad={scrollService.scrollToBottom}
+							{openReactionId}
+							setOpenReactionId={(id) => (openReactionId = id)}
+							handleReply={(msg) => (repliedToMessage = msg)}
+							{handleDelete}
+							sendReact={websocketService.sendReaction}
+							{onOpenLightbox}
+						/>
+					{/each}
+					<TypingIndicator typingUsers={websocketService.typingUsers} />
 				</div>
 
-				{#if roomMembers.length > 0}
-					<ChatInput
-						{roomId}
-						bind:repliedToMessage
-						{roomMembers}
-						onSendMessage={websocketService.sendMessage}
-						onTypingStateChange={websocketService.sendTyping}
-						onFileUploadRequested={processFile}
-					/>
-				{/if}
+				<ChatInput
+					{roomId}
+					bind:repliedToMessage
+					onSendMessage={websocketService.sendMessage}
+					onTypingStateChange={websocketService.sendTyping}
+					onFileUploadRequested={processFile}
+				/>
 			</div>
 		</main>
 	{/if}

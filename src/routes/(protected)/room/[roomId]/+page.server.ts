@@ -4,6 +4,15 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
 	const { roomId } = params;
+	if (roomId === "hall") {
+		return {
+			room: {
+				id: "hall",
+				name: "Hall",
+				description: "Welcome to the Hall! This is a public room where everyone can chat."
+			}
+		}
+	}
 
 	const response = await fetch(`/api/rooms/${roomId}`);
 	if (response.status === 401) {

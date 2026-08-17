@@ -18,6 +18,9 @@ export default defineConfig(({ mode }) => {
 				}
 			}
 		},
+		ssr: {
+			noExternal: ['@tanstack/svelte-query']
+		},
 		plugins: [
 			tailwindcss(),
 			sveltekit({

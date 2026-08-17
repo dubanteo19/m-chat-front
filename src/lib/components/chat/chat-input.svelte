@@ -5,10 +5,10 @@
 	import { Button } from '../ui/button';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
 	import StickerPicker from './chat-input/sticker-picker.svelte';
-	import type { RoomMemberInfo } from '$lib/types/user';
+	import { getContext } from 'svelte';
+	import { ROOM_MEMBERS_KEY, type RoomState } from '../room/room-state.svelte';
 	interface ChatInputProps {
 		roomId: string | number;
-		roomMembers: RoomMemberInfo[];
 		onSendMessage: (payload: MessagePayload) => void;
 		onTypingStateChange: (isTyping: boolean) => void;
 		onFileUploadRequested: (file: File) => void;
@@ -17,7 +17,6 @@
 
 	let {
 		roomId,
-		roomMembers,
 		onSendMessage,
 		onTypingStateChange,
 		onFileUploadRequested,
@@ -30,9 +29,12 @@
 	let fileInputRef = $state<HTMLInputElement | null>(null);
 	let typingTimeout: NodeJS.Timeout;
 	let amITyping = false;
+	const roomState = getContext<RoomState>(ROOM_MEMBERS_KEY);
 
 	let filteredMembers = $derived(
-		roomMembers.filter((m) => m.user.username.toLowerCase().includes(mentionQuery.toLowerCase()))
+		roomState.members.filter((m) =>
+			m.user.username.toLowerCase().includes(mentionQuery.toLowerCase())
+		)
 	);
 	//mention
 	let showMentionMenu = $state(false);
@@ -216,7 +218,7 @@
 		</div>
 
 		<div
-			class="relative flex-1 flex flex-col bg-background border-secondary/20 border rounded-2xl transition-colors "
+			class="relative flex-1 flex flex-col bg-background border-secondary/20 border rounded-2xl transition-colors"
 		>
 			{#if repliedToMessage}
 				<ReplyPreview {repliedToMessage} onCancelReply={() => (repliedToMessage = null)} />
