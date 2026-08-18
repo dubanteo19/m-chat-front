@@ -13,7 +13,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const { username } = useUser();
+	const { currentUser } = useUser();
 	let profile = $state(data.profile);
 
 	const DEFAULT_STYLE = {
@@ -397,7 +397,7 @@
 					{/if}
 					<div class="flex justify-between pt-2">
 						<Button size="sm" variant="outline" onclick={() => history.back()}>Go back</Button>
-						{#if username === profile.username}
+						{#if currentUser.username === profile.username}
 							<Button
 								type="submit"
 								disabled={isSaving || isUploading || !badgeForm.displayName.trim()}

@@ -1,38 +1,29 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import * as HoverCard from '$lib/components/ui/hover-card/index.js';
+	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { EventType } from '$lib/services/websocket-service.svelte';
 	import UserAvatar from '../common/user-avatar.svelte';
 	import UserBadge from '../common/user-badge.svelte';
-	import type { RoomEffect } from '../room-effects/effects/particles';
 	import { Button } from '../ui/button';
 
 	import { roomMemberService } from '$lib/api/room-member';
-	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { useUser } from '$lib/stores/auth.svelte';
 	import type { RoomInfo } from '$lib/types/room';
 	import { CornerUpLeft, Users, XIcon } from '@lucide/svelte';
+	import { roomEffectsLabels } from '../room-effects/effects/particles';
 	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
+	import { useRoom } from '../room/room-state.svelte';
 	import AddUserPopover from './room-header/add-user-popover.svelte';
-	import { getContext } from 'svelte';
-	import { ROOM_MEMBERS_KEY, type RoomState } from '../room/room-state.svelte';
 	let { sidebarOpen = $bindable(), roomId, onlineUsers, sendRaw, selectedRoomEffect } = $props();
 	let selectedRoom = $state<RoomInfo | null>(null);
 	let isSubmitting = $state(false);
 	let memberToKick: string | null = $state(null);
-	const roomState = getContext<RoomState>(ROOM_MEMBERS_KEY);
-	const currentUser = useUser();
-	const roomEffects: { type: RoomEffect; icon: string; label: string }[] = [
-		{ type: 'snow', icon: '❄️', label: 'Snow' },
-		{ type: 'sakura', icon: '🌸', label: 'Sakura' },
-		{ type: 'aurora', icon: '🌌', label: 'Aurora' },
-		{ type: 'thunderstorm', icon: '🌩️', label: 'Thunderstorm' },
-		{ type: 'radiance-of-amitabha', icon: '☸️', label: 'Radiance of Amitabha' },
-		{ type: 'disco-fever', icon: '🎆', label: 'Disco Fever' },
-		{ type: 'paper-butterfly-dream', icon: '🦋', label: 'Paper Butterfly Dream' },
-		{ type: 'bioluminescent-tide', icon: '🌊', label: 'Bioluminescent Tide' },
-		{ type: 'sticker-road-trip', icon: '🚗', label: 'Sticker Road Trip' }
-	];
+	const roomState = useRoom();
+	const { currentUser } = useUser();
+	const isRoomMaster = $derived(
+		roomState.members.find((m) => m.user.username === currentUser?.username)?.role === 'MASTER'
+	);
 	const onRoomEffectSelect = (roomEffect: string) => {
 		sendRaw({
 			eventType: EventType.ROOM_EFFECT,
@@ -124,7 +115,7 @@
 										</span>
 									</div>
 								</div>
-								{#if member.user.username !== currentUser.username}
+								{#if member.user.username !== currentUser.username && isRoomMaster}
 									<Button
 										variant="ghost"
 										size="icon"
@@ -138,7 +129,10 @@
 						{/each}
 
 						<div class="border-t border-bg-gray-500 my-2"></div>
-						<AddUserPopover {roomId} onAddMember={roomState.addMember} />
+
+						{#if isRoomMaster}
+							<AddUserPopover {roomId} onAddMember={roomState.addMember} />
+						{/if}
 
 						<Button variant="ghost" size="sm">
 							<CornerUpLeft />
@@ -147,19 +141,6 @@
 					</div>
 				</Popover.Content>
 			</Popover.Root>
-			{#snippet effectButtons()}
-				{#each roomEffects as effect (effect.type)}
-					<Button
-						variant={selectedRoomEffect === effect.type ? 'default' : 'ghost'}
-						size="icon"
-						title={effect.label}
-						aria-label={effect.label}
-						onclick={() => onRoomEffectSelect(effect.type)}
-					>
-						{effect.icon}
-					</Button>
-				{/each}
-			{/snippet}
 			<!--  Desktop View -->
 			<div class="hidden md:flex gap-1 px-2 py-1 border items-center rounded-full border-secondary">
 				{@render effectButtons()}
@@ -169,7 +150,7 @@
 				<Popover.Root>
 					<Popover.Trigger>
 						<Button variant="outline" size="icon" aria-label="Room Effects">
-							{roomEffects.find((e) => e.type === selectedRoomEffect)?.icon ?? '✨'}
+							{roomEffectsLabels.find((e) => e.type === selectedRoomEffect)?.icon ?? '✨'}
 						</Button>
 					</Popover.Trigger>
 					<Popover.Content class="w-auto p-2">
@@ -209,3 +190,17 @@
 	</Dialog.Root>
 	<RoomDetailDiaglog open={selectedRoom !== null} />
 </header>
+
+{#snippet effectButtons()}
+	{#each roomEffectsLabels as effect (effect.type)}
+		<Button
+			variant={selectedRoomEffect === effect.type ? 'default' : 'ghost'}
+			size="icon"
+			title={effect.label}
+			aria-label={effect.label}
+			onclick={() => onRoomEffectSelect(effect.type)}
+		>
+			{effect.icon}
+		</Button>
+	{/each}
+{/snippet}

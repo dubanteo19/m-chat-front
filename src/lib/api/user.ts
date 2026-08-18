@@ -1,5 +1,5 @@
 import type { RoomInfo } from '$lib/types/room';
-import type { TitleStyle, UserInfo } from '$lib/types/user';
+import type { CurrentUserInfo, TitleStyle, UserInfo } from '$lib/types/user';
 import { apiClient } from './client';
 export interface PushSubscriptionRequest {
 	endpoint: string;
@@ -15,7 +15,9 @@ export interface UpdateUserProfileRequest {
 	avatarUrl: string | null;
 	titleStyle: TitleStyle;
 }
-
+export interface ToggleNotificationsRequest {
+	allowNotify: boolean;
+}
 export const userService = {
 	getRooms: async (): Promise<RoomInfo[]> => {
 		return apiClient.get(`/users/rooms`);
@@ -27,6 +29,11 @@ export const userService = {
 		body: UpdateUserProfileRequest
 	): Promise<UserInfo> => {
 		return apiClient.put(`/users/profile`, body);
+	},
+	updateNotificationSettings: async (
+		body: ToggleNotificationsRequest
+	): Promise<CurrentUserInfo> => {
+		return apiClient.patch(`/users/profile/notifications`, body);
 	},
 	savePushSubscription: async (
 		subscription: PushSubscriptionRequest

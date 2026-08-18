@@ -1,3 +1,16 @@
+export const roomEffectsLabels: { type: RoomEffect; icon: string; label: string }[] = [
+    { type: 'snow', icon: '❄️', label: 'Snow' },
+    { type: 'sakura', icon: '🌸', label: 'Sakura' },
+    { type: 'aurora', icon: '🌌', label: 'Aurora' },
+    { type: 'thunderstorm', icon: '🌩️', label: 'Thunderstorm' },
+    { type: 'radiance-of-amitabha', icon: '☸️', label: 'Radiance of Amitabha' },
+    { type: 'disco-fever', icon: '🎆', label: 'Disco Fever' },
+    { type: 'paper-butterfly-dream', icon: '🦋', label: 'Paper Butterfly Dream' },
+    { type: 'bioluminescent-tide', icon: '🌊', label: 'Bioluminescent Tide' },
+    { type: 'sticker-road-trip', icon: '🚗', label: 'Sticker Road Trip' },
+    { type: 'vietnamese-mid-autumn', icon: '🌕', label: 'Vietnamese Mid-Autumn' }
+];
+
 export type RoomEffect =
     | "snow"
     | "sakura"
@@ -7,7 +20,8 @@ export type RoomEffect =
     | "disco-fever"
     | "paper-butterfly-dream"
     | "bioluminescent-tide"
-    | "sticker-road-trip";
+    | "sticker-road-trip"
+    | "vietnamese-mid-autumn";
 
 const discoColors = [
     [236, 72, 153],
@@ -213,6 +227,91 @@ const stickerRoadTripWeatherStates: StickerRoadTripWeather[] = [
     },
 ];
 
+type MidAutumnParticleKind =
+    | "firefly"
+    | "lantern-dust"
+    | "paper-fragment"
+    | "tiny-star";
+
+type MidAutumnLobbyEvent =
+    | "moon-radiance"
+    | "lantern-ripple"
+    | "firefly-bloom"
+    | "golden-breeze"
+    | "moon-cloud-reveal"
+    | "paper-wish"
+    | "lantern-gathering";
+
+type MidAutumnLobbyPhase = "event" | "settle";
+
+interface MidAutumnLantern {
+    xRatio: number;
+    yRatio: number;
+    scale: number;
+    tone: number;
+    phase: number;
+    baseDuration: number;
+    index: number;
+}
+
+interface MidAutumnLobbyState {
+    activeEvent: MidAutumnLobbyEvent | null;
+    previousEvent: MidAutumnLobbyEvent | null;
+    phase: MidAutumnLobbyPhase;
+    eventElapsed: number;
+    eventDuration: number;
+    settleElapsed: number;
+    settleDuration: number;
+    idleElapsed: number;
+    nextEventDelay: number;
+    direction: -1 | 1;
+}
+
+interface MidAutumnRenderState {
+    moonGlow: number;
+    moonBrightness: number;
+    moonScale: number;
+    dustBoost: number;
+    fireflyBoost: number;
+    breeze: number;
+    lanternSwayBoost: number;
+    gatheringGlow: number;
+    paperGlow: number;
+}
+
+const midAutumnPaperColors = [
+    "#b91c1c",
+    "#d84d2e",
+    "#e5a629",
+    "#d6c34a",
+    "#39734f",
+] as const;
+
+const midAutumnLobbyEventWeights: ReadonlyArray<
+    readonly [MidAutumnLobbyEvent, number]
+> = [
+    ["firefly-bloom", 22],
+    ["lantern-ripple", 20],
+    ["golden-breeze", 18],
+    ["moon-radiance", 16],
+    ["paper-wish", 10],
+    ["moon-cloud-reveal", 9],
+    ["lantern-gathering", 5],
+];
+
+const midAutumnLobbyEventDurations: Record<
+    MidAutumnLobbyEvent,
+    readonly [number, number]
+> = {
+    "moon-radiance": [6, 7.5],
+    "lantern-ripple": [5.8, 7],
+    "firefly-bloom": [7.5, 9.5],
+    "golden-breeze": [5.8, 7.2],
+    "moon-cloud-reveal": [8.5, 10.5],
+    "paper-wish": [7.5, 9.5],
+    "lantern-gathering": [6.8, 8.4],
+};
+
 interface Particle {
     originX: number;
     originY: number;
@@ -230,7 +329,7 @@ interface Particle {
     depth: number;
     flutter: number;
     flutterSpeed: number;
-    kind?: AmitabhaParticleKind | PaperButterflyDreamParticleKind;
+    kind?: AmitabhaParticleKind | PaperButterflyDreamParticleKind | MidAutumnParticleKind;
     glyphIndex?: number;
     variant?: number;
     colorIndex?: number;
@@ -238,6 +337,10 @@ interface Particle {
     energy?: number;
     sensitivity?: number;
     threshold?: number;
+    age?: number;
+    life?: number;
+    temporary?: boolean;
+    attraction?: number;
 }
 
 export class ParticleEngine {
@@ -255,6 +358,48 @@ export class ParticleEngine {
     private isStopping = false;
     private transitionAlpha = 0;
     private randomState: number;
+
+
+    // Vietnamese Mid-Autumn: ambient particles plus occasional lobby events.
+    // Events only modify temporary render targets; they never reset the
+    // ambient scene, so transitions return smoothly without visible jumps.
+    private midAutumnLanterns: MidAutumnLantern[] = [];
+    private midAutumnTemporaryParticles: Particle[] = [];
+    private midAutumnReducedMotion = false;
+    private midAutumnLobbyState: MidAutumnLobbyState = {
+        activeEvent: null,
+        previousEvent: null,
+        phase: "event",
+        eventElapsed: 0,
+        eventDuration: 0,
+        settleElapsed: 0,
+        settleDuration: 1.35,
+        idleElapsed: 0,
+        nextEventDelay: 30,
+        direction: 1,
+    };
+    private midAutumnRenderState: MidAutumnRenderState = {
+        moonGlow: 0,
+        moonBrightness: 0,
+        moonScale: 0,
+        dustBoost: 0,
+        fireflyBoost: 0,
+        breeze: 0,
+        lanternSwayBoost: 0,
+        gatheringGlow: 0,
+        paperGlow: 0,
+    };
+    private midAutumnTargetState: MidAutumnRenderState = {
+        moonGlow: 0,
+        moonBrightness: 0,
+        moonScale: 0,
+        dustBoost: 0,
+        fireflyBoost: 0,
+        breeze: 0,
+        lanternSwayBoost: 0,
+        gatheringGlow: 0,
+        paperGlow: 0,
+    };
 
     // Cached layers for the Amitabha effect. The expensive gradients,
     // shadows, vector paths and glyph rendering are rasterized once.
@@ -328,6 +473,16 @@ export class ParticleEngine {
         this.randomState = seed >>> 0 || 1;
         this.paperButterflyDreamInversionOffset = this.random() * 29;
 
+
+        this.midAutumnReducedMotion =
+            typeof window.matchMedia === "function" &&
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        if (this.effect === "vietnamese-mid-autumn") {
+            this.midAutumnLobbyState.nextEventDelay =
+                this.randomMidAutumnEventDelay();
+        }
+
         if (this.effect === "bioluminescent-tide") {
             this.bioluminescentTideNextSceneDelay =
                 34 + this.random() * 26;
@@ -396,6 +551,11 @@ export class ParticleEngine {
             if (!this.bioluminescentTideRipples.length) {
                 this.rebuildBioluminescentTideRipples();
             }
+        }
+
+
+        if (this.effect === "vietnamese-mid-autumn") {
+            this.rebuildMidAutumnLanterns();
         }
 
         // Recreate particles so density stays balanced after resize.
@@ -479,6 +639,10 @@ export class ParticleEngine {
                 deltaSeconds;
         }
 
+        if (this.effect === "vietnamese-mid-autumn") {
+            this.updateMidAutumnScene(deltaSeconds);
+        }
+
         this.updateWind();
 
         for (const p of this.particles) {
@@ -519,7 +683,16 @@ export class ParticleEngine {
 
             if (this.effect === "bioluminescent-tide") {
                 this.updateBioluminescentTideParticle(p, deltaSeconds);
+                continue;
             }
+
+            if (this.effect === "vietnamese-mid-autumn") {
+                this.updateMidAutumnParticle(p, deltaSeconds);
+            }
+        }
+
+        if (this.effect === "vietnamese-mid-autumn") {
+            this.updateMidAutumnTemporaryParticles(deltaSeconds);
         }
     }
 
@@ -529,6 +702,15 @@ export class ParticleEngine {
             this.effect === "sticker-road-trip"
         ) {
             this.wind = 0;
+            return;
+        }
+
+        if (this.effect === "vietnamese-mid-autumn") {
+            this.wind =
+                Math.sin(this.timer * 0.18) * 0.32 +
+                Math.sin(this.timer * 0.071 + 1.4) * 0.17 +
+                Math.sin(this.timer * 0.39 + 0.6) * 0.045 +
+                this.midAutumnRenderState.breeze * 0.42;
             return;
         }
 
@@ -1391,6 +1573,23 @@ export class ParticleEngine {
         };
 
         this.stickerRoadTripDistance = 0;
+
+
+        this.midAutumnLanterns = [];
+        this.midAutumnTemporaryParticles = [];
+        this.midAutumnLobbyState = {
+            activeEvent: null,
+            previousEvent: null,
+            phase: "event",
+            eventElapsed: 0,
+            eventDuration: 0,
+            settleElapsed: 0,
+            settleDuration: 1.35,
+            idleElapsed: 0,
+            nextEventDelay: 30,
+            direction: 1,
+        };
+        this.resetMidAutumnRenderStates();
     }
 
     private createParticles(reset = false) {
@@ -1461,6 +1660,16 @@ export class ParticleEngine {
 
                 case "sticker-road-trip":
                     break;
+
+                case "vietnamese-mid-autumn":
+                    this.particles.push(
+                        this.createMidAutumnParticle(
+                            depth,
+                            i,
+                            count
+                        )
+                    );
+                    break;
             }
         }
     }
@@ -1527,6 +1736,18 @@ export class ParticleEngine {
 
             case "sticker-road-trip":
                 return 0;
+
+            case "vietnamese-mid-autumn": {
+                const baseCount = this.clamp(
+                    Math.floor(area / 18000),
+                    42,
+                    78
+                );
+
+                return this.midAutumnReducedMotion
+                    ? Math.max(16, Math.floor(baseCount * 0.35))
+                    : baseCount;
+            }
 
             default:
                 return Math.max(
@@ -2089,6 +2310,10 @@ export class ParticleEngine {
             this.drawStickerRoadTripScene();
         }
 
+        if (this.effect === "vietnamese-mid-autumn") {
+            this.drawMidAutumnBackground();
+        }
+
         this.ctx.restore();
 
         if (this.effect === "radiance-of-amitabha") {
@@ -2136,8 +2361,21 @@ export class ParticleEngine {
                 case "bioluminescent-tide":
                     this.drawBioluminescentTideParticle(p);
                     break;
+
+                case "vietnamese-mid-autumn":
+                    this.drawMidAutumnParticle(p);
+                    break;
             }
 
+            this.ctx.restore();
+        }
+
+        if (this.effect === "vietnamese-mid-autumn") {
+            this.ctx.save();
+            this.ctx.globalAlpha = this.transitionAlpha;
+            this.drawMidAutumnLanterns();
+            this.drawMidAutumnTemporaryParticles();
+            this.drawMidAutumnVignette();
             this.ctx.restore();
         }
 
@@ -6319,6 +6557,1115 @@ export class ParticleEngine {
         c.stroke();
     }
 
+
+
+    private resetMidAutumnRenderStates() {
+        const keys: Array<keyof MidAutumnRenderState> = [
+            "moonGlow",
+            "moonBrightness",
+            "moonScale",
+            "dustBoost",
+            "fireflyBoost",
+            "breeze",
+            "lanternSwayBoost",
+            "gatheringGlow",
+            "paperGlow",
+        ];
+
+        for (const key of keys) {
+            this.midAutumnRenderState[key] = 0;
+            this.midAutumnTargetState[key] = 0;
+        }
+    }
+
+    private randomMidAutumnEventDelay() {
+        const baseInterval = 30;
+        return baseInterval * (0.85 + this.random() * 0.3);
+    }
+
+    private rebuildMidAutumnLanterns() {
+        const presets = this.width < 650
+            ? [
+                [0.08, 0.29, 0.82, 0],
+                [0.91, 0.72, 0.66, 1],
+            ]
+            : [
+                [0.07, 0.24, 0.90, 0],
+                [0.92, 0.28, 0.72, 1],
+                [0.14, 0.74, 0.63, 2],
+                [0.86, 0.73, 0.82, 0],
+            ];
+
+        this.midAutumnLanterns = presets.map(
+            ([xRatio, yRatio, scale, tone], index) => ({
+                xRatio,
+                yRatio,
+                scale,
+                tone,
+                index,
+                phase: this.random() * Math.PI * 2,
+                baseDuration: 5.3 + this.random() * 2.3,
+            })
+        );
+    }
+
+    private createMidAutumnParticle(
+        depth: number,
+        index: number,
+        total: number,
+        forcedKind?: MidAutumnParticleKind,
+        temporary = false
+    ): Particle {
+        const normalized = index / Math.max(1, total);
+        const kind: MidAutumnParticleKind = forcedKind ??
+            (normalized < 0.39
+                ? "firefly"
+                : normalized < 0.73
+                    ? "lantern-dust"
+                    : normalized < 0.87
+                        ? "paper-fragment"
+                        : "tiny-star");
+
+        const x = this.random() * this.width;
+        const y = kind === "tiny-star"
+            ? 12 + this.random() * this.height * 0.57
+            : kind === "firefly"
+                ? this.height * 0.25 + this.random() * this.height * 0.63
+                : this.random() * this.height;
+
+        const base: Particle = {
+            originX: x,
+            originY: y,
+            x,
+            y,
+            vx: 0,
+            vy: 0,
+            size: 1,
+            length: 0,
+            alpha: 0.3,
+            rotation: this.random() * Math.PI * 2,
+            rotationSpeed: 0,
+            wobble: this.random() * Math.PI * 2,
+            wobbleSpeed: 0.4 + this.random() * 0.5,
+            flutter: this.random() * Math.PI * 2,
+            flutterSpeed: 0.4 + this.random() * 0.6,
+            depth,
+            kind,
+            baseAlpha: 0.3,
+            temporary,
+            age: 0,
+            life: temporary ? 7 + this.random() * 3.5 : undefined,
+            attraction: temporary ? 0.15 + this.random() * 0.35 : 0,
+        };
+
+        if (kind === "firefly") {
+            const baseAlpha = 0.24 + this.random() * 0.4;
+            return {
+                ...base,
+                vx: (this.random() - 0.5) * 8.4,
+                vy: (this.random() - 0.5) * 4.8,
+                size: (0.85 + this.random() * 1.1) * (0.8 + depth * 0.3),
+                alpha: baseAlpha,
+                baseAlpha,
+            };
+        }
+
+        if (kind === "lantern-dust") {
+            const baseAlpha = 0.13 + this.random() * 0.23;
+            return {
+                ...base,
+                vx: (this.random() - 0.5) * 3.2,
+                vy: -(2 + this.random() * 3.2),
+                size: 0.5 + this.random() * 0.9,
+                alpha: baseAlpha,
+                baseAlpha,
+            };
+        }
+
+        if (kind === "paper-fragment") {
+            const baseAlpha = 0.24 + this.random() * 0.24;
+            return {
+                ...base,
+                vx: 6 + this.random() * 7,
+                vy: 1.4 + this.random() * 3.1,
+                size: 2.7 + this.random() * 2.7,
+                alpha: baseAlpha,
+                baseAlpha,
+                rotationSpeed: (this.random() - 0.5) * 0.64,
+                colorIndex: Math.floor(
+                    this.random() * midAutumnPaperColors.length
+                ),
+            };
+        }
+
+        const baseAlpha = 0.16 + this.random() * 0.4;
+        return {
+            ...base,
+            size: 0.45 + this.random() * 0.8,
+            alpha: baseAlpha,
+            baseAlpha,
+            wobbleSpeed: 0.25 + this.random() * 0.45,
+        };
+    }
+
+    private updateMidAutumnScene(deltaSeconds: number) {
+        this.updateMidAutumnLobbyEvent(deltaSeconds);
+        this.calculateMidAutumnTargetState();
+        this.smoothMidAutumnRenderState(deltaSeconds);
+    }
+
+    private updateMidAutumnLobbyEvent(deltaSeconds: number) {
+        const state = this.midAutumnLobbyState;
+
+        if (this.midAutumnReducedMotion) {
+            state.activeEvent = null;
+            return;
+        }
+
+        if (!state.activeEvent) {
+            state.idleElapsed += deltaSeconds;
+
+            if (state.idleElapsed >= state.nextEventDelay) {
+                this.startMidAutumnLobbyEvent();
+            }
+
+            return;
+        }
+
+        if (state.phase === "event") {
+            state.eventElapsed += deltaSeconds;
+
+            if (state.eventElapsed >= state.eventDuration) {
+                state.phase = "settle";
+                state.settleElapsed = 0;
+            }
+
+            return;
+        }
+
+        state.settleElapsed += deltaSeconds;
+
+        const settled = Object.values(this.midAutumnRenderState)
+            .every(value => Math.abs(value) < 0.012);
+
+        if (state.settleElapsed >= state.settleDuration && settled) {
+            state.activeEvent = null;
+            state.phase = "event";
+            state.eventElapsed = 0;
+            state.idleElapsed = 0;
+            state.nextEventDelay = this.randomMidAutumnEventDelay();
+        }
+    }
+
+    private startMidAutumnLobbyEvent() {
+        const state = this.midAutumnLobbyState;
+        const candidates = midAutumnLobbyEventWeights.filter(
+            ([event]) => event !== state.previousEvent
+        );
+        const totalWeight = candidates.reduce(
+            (sum, [, weight]) => sum + weight,
+            0
+        );
+        let cursor = this.random() * totalWeight;
+        let selected = candidates[0][0];
+
+        for (const [event, weight] of candidates) {
+            cursor -= weight;
+            if (cursor <= 0) {
+                selected = event;
+                break;
+            }
+        }
+
+        const [minDuration, maxDuration] =
+            midAutumnLobbyEventDurations[selected];
+
+        state.activeEvent = selected;
+        state.previousEvent = selected;
+        state.phase = "event";
+        state.eventElapsed = 0;
+        state.eventDuration =
+            minDuration + this.random() * (maxDuration - minDuration);
+        state.settleElapsed = 0;
+        state.direction = this.random() < 0.5 ? -1 : 1;
+
+        this.spawnMidAutumnEventParticles(selected);
+    }
+
+    private spawnMidAutumnEventParticles(event: MidAutumnLobbyEvent) {
+        if (event === "firefly-bloom") {
+            const count = this.width < 650 ? 8 : 18;
+            for (let i = 0; i < count; i++) {
+                const p = this.createMidAutumnParticle(
+                    this.random(),
+                    i,
+                    count,
+                    "firefly",
+                    true
+                );
+                p.size *= 1.08 + this.random() * 0.28;
+                p.life = 7.2 + this.random() * 3.3;
+                this.midAutumnTemporaryParticles.push(p);
+            }
+            return;
+        }
+
+        if (event === "golden-breeze") {
+            const count = this.width < 650 ? 18 : 34;
+            for (let i = 0; i < count; i++) {
+                const p = this.createMidAutumnParticle(
+                    this.random(),
+                    i,
+                    count,
+                    "lantern-dust",
+                    true
+                );
+                p.x = this.midAutumnLobbyState.direction > 0
+                    ? -10 - this.random() * 90
+                    : this.width + 10 + this.random() * 90;
+                p.life = 5.5 + this.random() * 2.7;
+                p.size *= 1 + this.random() * 0.35;
+                this.midAutumnTemporaryParticles.push(p);
+            }
+            return;
+        }
+
+        if (event === "paper-wish") {
+            const count = this.width < 650 ? 6 : 11;
+            for (let i = 0; i < count; i++) {
+                const p = this.createMidAutumnParticle(
+                    this.random(),
+                    i,
+                    count,
+                    "paper-fragment",
+                    true
+                );
+                const fromLeft = this.midAutumnLobbyState.direction > 0;
+                p.x = fromLeft
+                    ? -15 - this.random() * 65
+                    : this.width + 15 + this.random() * 65;
+                p.vx = fromLeft
+                    ? 10 + this.random() * 8
+                    : -(10 + this.random() * 8);
+                p.life = 7.4 + this.random() * 3.4;
+                this.midAutumnTemporaryParticles.push(p);
+            }
+            return;
+        }
+
+        if (event === "lantern-gathering") {
+            const count = this.width < 650 ? 10 : 18;
+            for (let i = 0; i < count; i++) {
+                const p = this.createMidAutumnParticle(
+                    this.random(),
+                    i,
+                    count,
+                    "lantern-dust",
+                    true
+                );
+                p.life = 6.5 + this.random() * 2.3;
+                p.size *= 1 + this.random() * 0.28;
+                this.midAutumnTemporaryParticles.push(p);
+            }
+        }
+    }
+
+    private calculateMidAutumnTargetState() {
+        const target = this.midAutumnTargetState;
+        const keys = Object.keys(target) as Array<keyof MidAutumnRenderState>;
+        for (const key of keys)
+            target[key] = 0;
+
+        const state = this.midAutumnLobbyState;
+        if (!state.activeEvent || state.phase !== "event")
+            return;
+
+        const progress = this.clamp(
+            state.eventElapsed / Math.max(0.001, state.eventDuration),
+            0,
+            1
+        );
+        const pulse = (start: number, peak: number, end: number) => {
+            if (progress <= start || progress >= end)
+                return 0;
+            if (progress < peak)
+                return this.smoothStep(start, peak, progress);
+            return 1 - this.smoothStep(peak, end, progress);
+        };
+
+        switch (state.activeEvent) {
+            case "moon-radiance": {
+                const strength = pulse(0.02, 0.42, 0.96);
+                target.moonGlow = strength;
+                target.moonBrightness = strength;
+                target.moonScale = strength;
+                target.dustBoost = strength * 0.8;
+                break;
+            }
+            case "lantern-ripple":
+                target.lanternSwayBoost = pulse(0.02, 0.5, 0.96) * 0.75;
+                break;
+            case "firefly-bloom": {
+                const strength = pulse(0.02, 0.48, 0.98);
+                target.fireflyBoost = strength;
+                target.dustBoost = strength * 0.24;
+                break;
+            }
+            case "golden-breeze": {
+                const strength = pulse(0.02, 0.44, 0.96);
+                target.breeze = strength * state.direction;
+                target.dustBoost = strength * 0.65;
+                target.lanternSwayBoost = strength * 0.72;
+                break;
+            }
+            case "paper-wish": {
+                const strength = pulse(0.02, 0.5, 0.97);
+                target.paperGlow = strength;
+                target.breeze = strength * state.direction * 0.34;
+                break;
+            }
+            case "lantern-gathering": {
+                const strength = pulse(0.02, 0.52, 0.98);
+                target.gatheringGlow = strength;
+                target.dustBoost = strength * 0.52;
+                target.lanternSwayBoost = strength * 0.28;
+                break;
+            }
+            case "moon-cloud-reveal": {
+                const strength = pulse(0.05, 0.72, 0.98);
+                target.moonGlow = strength * 0.36;
+                target.moonBrightness = strength * 0.22;
+                break;
+            }
+        }
+    }
+
+    private smoothMidAutumnRenderState(deltaSeconds: number) {
+        const smoothing = 1 - Math.exp(-4 * deltaSeconds);
+        const keys = Object.keys(this.midAutumnRenderState) as Array<
+            keyof MidAutumnRenderState
+        >;
+
+        for (const key of keys) {
+            this.midAutumnRenderState[key] = this.lerp(
+                this.midAutumnRenderState[key],
+                this.midAutumnTargetState[key],
+                smoothing
+            );
+
+            if (
+                Math.abs(this.midAutumnRenderState[key]) < 0.0005 &&
+                Math.abs(this.midAutumnTargetState[key]) < 0.0005
+            ) {
+                this.midAutumnRenderState[key] = 0;
+            }
+        }
+    }
+
+    private updateMidAutumnParticle(p: Particle, deltaSeconds: number) {
+        const eventWind = this.midAutumnRenderState.breeze * 11.5;
+        const totalWind = this.wind + eventWind;
+
+        if (p.kind === "firefly") {
+            const slow =
+                0.38 +
+                0.62 *
+                    (0.5 + 0.5 * Math.sin(this.timer * 0.42 + p.wobble));
+            let attractionX = 0;
+            let attractionY = 0;
+
+            if (
+                p.temporary &&
+                this.midAutumnLobbyState.activeEvent === "firefly-bloom"
+            ) {
+                const targetX = this.width * 0.72;
+                const targetY = this.height * 0.28;
+                attractionX =
+                    (targetX - p.x) * 0.0016 * (p.attraction ?? 0.25);
+                attractionY =
+                    (targetY - p.y) * 0.0014 * (p.attraction ?? 0.25);
+            }
+
+            p.x +=
+                (
+                    p.vx +
+                    Math.sin(this.timer * p.wobbleSpeed + p.wobble) * 2.8 +
+                    totalWind * 0.11 +
+                    attractionX
+                ) * deltaSeconds * slow;
+            p.y +=
+                (
+                    p.vy +
+                    Math.cos(this.timer * 0.56 + p.flutter) * 1.8 +
+                    attractionY
+                ) * deltaSeconds * slow;
+        } else if (p.kind === "lantern-dust") {
+            p.x +=
+                (
+                    p.vx +
+                    Math.sin(this.timer * 0.5 + p.wobble) * 1.9 +
+                    totalWind * 0.07
+                ) * deltaSeconds;
+            p.y += p.vy * deltaSeconds;
+        } else if (p.kind === "paper-fragment") {
+            p.x +=
+                (
+                    p.vx +
+                    Math.sin(this.timer * 0.47 + p.wobble) * 4.3 +
+                    totalWind * 0.42
+                ) * deltaSeconds;
+            p.y +=
+                (
+                    p.vy +
+                    Math.sin(this.timer * 0.32 + p.flutter) * 1.1
+                ) * deltaSeconds;
+            p.rotation += p.rotationSpeed * deltaSeconds;
+        }
+
+        const margin = 72;
+        if (p.x < -margin) p.x = this.width + margin;
+        if (p.x > this.width + margin) p.x = -margin;
+        if (p.y < -margin) p.y = this.height + margin;
+        if (p.y > this.height + margin) p.y = -margin;
+    }
+
+    private updateMidAutumnTemporaryParticles(deltaSeconds: number) {
+        for (let i = this.midAutumnTemporaryParticles.length - 1; i >= 0; i--) {
+            const p = this.midAutumnTemporaryParticles[i];
+            p.age = (p.age ?? 0) + deltaSeconds;
+            this.updateMidAutumnParticle(p, deltaSeconds);
+
+            if (p.life !== undefined && p.age >= p.life) {
+                this.midAutumnTemporaryParticles.splice(i, 1);
+            }
+        }
+    }
+
+    private getMidAutumnParticleLifeAlpha(p: Particle) {
+        if (!p.temporary || p.life === undefined)
+            return 1;
+
+        const age = p.age ?? 0;
+        const fadeIn = this.smoothStep(0, 0.9, age);
+        const fadeOut = 1 - this.smoothStep(
+            Math.max(0, p.life - 1.7),
+            p.life,
+            age
+        );
+        return fadeIn * fadeOut;
+    }
+
+    private drawMidAutumnBackground() {
+        const c = this.ctx;
+        const sky = c.createLinearGradient(0, 0, 0, this.height);
+        sky.addColorStop(0, "#061226");
+        sky.addColorStop(0.44, "#0b1e39");
+        sky.addColorStop(0.74, "#142b46");
+        sky.addColorStop(1, "#182c3e");
+        c.fillStyle = sky;
+        c.fillRect(0, 0, this.width, this.height);
+
+        const moonX = this.width * 0.72;
+        const moonY = this.height * 0.22;
+        const moonR = this.clamp(
+            Math.min(this.width, this.height) * 0.108,
+            62,
+            118
+        );
+        const ambient = c.createRadialGradient(
+            moonX,
+            moonY,
+            0,
+            moonX,
+            moonY,
+            Math.max(this.width, this.height) * 0.46
+        );
+        ambient.addColorStop(0, "rgba(255,220,145,0.10)");
+        ambient.addColorStop(0.4, "rgba(255,207,120,0.037)");
+        ambient.addColorStop(1, "rgba(255,200,100,0)");
+        c.fillStyle = ambient;
+        c.fillRect(0, 0, this.width, this.height);
+
+        this.drawMidAutumnAmbientStars();
+        this.drawMidAutumnMoonHalo(moonX, moonY, moonR);
+        this.drawMidAutumnCloudLayer("back");
+        this.drawMidAutumnMoon(moonX, moonY, moonR);
+        this.drawMidAutumnCloudLayer("front");
+        this.drawMidAutumnMoonCloudReveal(moonX, moonY, moonR);
+    }
+
+    private drawMidAutumnAmbientStars() {
+        const c = this.ctx;
+        const count = this.width < 700 ? 24 : 38;
+
+        for (let i = 0; i < count; i++) {
+            const x = this.hash01(i * 7.13 + 1.2) * this.width;
+            const y =
+                12 +
+                this.hash01(i * 11.77 + 4.6) *
+                    this.height * 0.57;
+            const radius = 0.45 + this.hash01(i * 5.91 + 2.4) * 0.8;
+            const baseAlpha = 0.14 + this.hash01(i * 3.27 + 8.1) * 0.38;
+            const pulse = this.midAutumnReducedMotion
+                ? 1
+                : 0.82 +
+                    Math.sin(
+                        this.timer * (0.25 + this.hash01(i * 9.3) * 0.43) +
+                        i
+                    ) * 0.18;
+
+            c.fillStyle = `rgba(235,242,255,${baseAlpha * pulse})`;
+            c.beginPath();
+            c.arc(x, y, radius, 0, Math.PI * 2);
+            c.fill();
+        }
+    }
+
+    private drawMidAutumnMoonHalo(x: number, y: number, radius: number) {
+        const breathe = this.midAutumnReducedMotion
+            ? 1
+            : 1 + Math.sin(this.timer * 0.62) * 0.025;
+        const eventScale = 1 + this.midAutumnRenderState.moonGlow * 0.24;
+        const haloRadius = radius * 3.4 * breathe * eventScale;
+        const halo = this.ctx.createRadialGradient(
+            x,
+            y,
+            radius * 0.28,
+            x,
+            y,
+            haloRadius
+        );
+        halo.addColorStop(
+            0,
+            `rgba(255,241,194,${0.16 + this.midAutumnRenderState.moonGlow * 0.075})`
+        );
+        halo.addColorStop(
+            0.38,
+            `rgba(255,213,136,${0.066 + this.midAutumnRenderState.moonGlow * 0.035})`
+        );
+        halo.addColorStop(1, "rgba(255,205,120,0)");
+        this.ctx.fillStyle = halo;
+        this.ctx.fillRect(
+            x - haloRadius,
+            y - haloRadius,
+            haloRadius * 2,
+            haloRadius * 2
+        );
+    }
+
+    private drawMidAutumnMoon(x: number, y: number, radius: number) {
+        const c = this.ctx;
+        const breathe = this.midAutumnReducedMotion
+            ? 1
+            : 1 + Math.sin(this.timer * 0.67 + 0.8) * 0.007;
+        const scale = breathe + this.midAutumnRenderState.moonScale * 0.018;
+        const boost = this.midAutumnRenderState.moonBrightness;
+
+        c.save();
+        c.translate(x, y);
+        c.scale(scale, scale);
+        const moon = c.createRadialGradient(
+            -radius * 0.22,
+            -radius * 0.22,
+            radius * 0.04,
+            0,
+            0,
+            radius
+        );
+        moon.addColorStop(0, `rgb(255,${249 + Math.round(boost * 5)},${223 + Math.round(boost * 11)})`);
+        moon.addColorStop(0.55, `rgb(255,${232 + Math.round(boost * 5)},${166 + Math.round(boost * 12)})`);
+        moon.addColorStop(1, `rgb(239,${202 + Math.round(boost * 6)},${114 + Math.round(boost * 10)})`);
+        c.fillStyle = moon;
+        c.beginPath();
+        c.arc(0, 0, radius, 0, Math.PI * 2);
+        c.fill();
+
+        c.globalAlpha = 0.105;
+        const craters = [
+            [-0.28, -0.2, 0.16],
+            [0.18, -0.12, 0.11],
+            [0.13, 0.25, 0.18],
+            [-0.2, 0.28, 0.08],
+            [0.32, 0.13, 0.07],
+        ];
+        for (const [cx, cy, cr] of craters) {
+            const crater = c.createRadialGradient(
+                cx * radius,
+                cy * radius,
+                0,
+                cx * radius,
+                cy * radius,
+                cr * radius
+            );
+            crater.addColorStop(0, "rgba(100,90,70,.35)");
+            crater.addColorStop(1, "rgba(100,90,70,0)");
+            c.fillStyle = crater;
+            c.beginPath();
+            c.arc(cx * radius, cy * radius, cr * radius, 0, Math.PI * 2);
+            c.fill();
+        }
+        c.restore();
+    }
+
+    private drawMidAutumnCloudLayer(layer: "back" | "front") {
+        const definitions = [
+            { y: 0.19, speed: 7, scale: 1.04, alpha: 0.105, phase: 0.12, layer: "front" },
+            { y: 0.32, speed: 4.8, scale: 0.8, alpha: 0.078, phase: 0.55, layer: "back" },
+            { y: 0.13, speed: 3.2, scale: 0.62, alpha: 0.056, phase: 0.82, layer: "back" },
+        ] as const;
+        const span = this.width + 560;
+
+        for (const cloud of definitions) {
+            if (cloud.layer !== layer)
+                continue;
+            const x =
+                (this.timer * cloud.speed + cloud.phase * span) % span - 280;
+            this.drawMidAutumnCloud(
+                x,
+                this.height * cloud.y,
+                cloud.scale,
+                cloud.alpha
+            );
+        }
+    }
+
+    private drawMidAutumnCloud(
+        x: number,
+        y: number,
+        scale: number,
+        alpha: number
+    ) {
+        const c = this.ctx;
+        c.save();
+        c.translate(x, y);
+        c.scale(scale, scale);
+        c.filter = "blur(8px)";
+        const gradient = c.createLinearGradient(0, -54, 0, 58);
+        gradient.addColorStop(0, `rgba(215,226,237,${alpha * 0.2})`);
+        gradient.addColorStop(0.5, `rgba(180,199,216,${alpha})`);
+        gradient.addColorStop(1, "rgba(140,165,190,0)");
+        c.fillStyle = gradient;
+        const lobes = [
+            [-110, 4, 74, 22],
+            [-50, -9, 86, 30],
+            [16, -4, 104, 33],
+            [82, 5, 80, 25],
+            [134, 1, 60, 20],
+        ];
+        for (const [lx, ly, rx, ry] of lobes) {
+            c.beginPath();
+            c.ellipse(lx, ly, rx, ry, 0, 0, Math.PI * 2);
+            c.fill();
+        }
+        c.filter = "none";
+        c.restore();
+    }
+
+    private drawMidAutumnMoonCloudReveal(
+        moonX: number,
+        moonY: number,
+        moonR: number
+    ) {
+        const state = this.midAutumnLobbyState;
+        if (
+            state.activeEvent !== "moon-cloud-reveal" ||
+            state.phase !== "event"
+        ) {
+            return;
+        }
+
+        const progress = this.clamp(
+            state.eventElapsed / Math.max(0.001, state.eventDuration),
+            0,
+            1
+        );
+        const visibility = progress < 0.48
+            ? this.smoothStep(0.03, 0.48, progress)
+            : 1 - this.smoothStep(0.48, 0.97, progress);
+        if (visibility <= 0.001)
+            return;
+
+        const eased = progress < 0.5
+            ? 4 * progress * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        const startX = state.direction > 0
+            ? moonX - this.width * 0.56
+            : moonX + this.width * 0.56;
+        const endX = state.direction > 0
+            ? moonX + this.width * 0.56
+            : moonX - this.width * 0.56;
+        const x = this.lerp(startX, endX, eased);
+        this.drawMidAutumnCloud(
+            x,
+            moonY + moonR * 0.05,
+            0.88,
+            0.11 * visibility
+        );
+
+        const distance = Math.abs(x - moonX);
+        const nearMoon = 1 - this.clamp(distance / (moonR * 2.6), 0, 1);
+        if (nearMoon <= 0)
+            return;
+
+        const c = this.ctx;
+        c.save();
+        c.globalCompositeOperation = "screen";
+        const rim = c.createRadialGradient(
+            moonX,
+            moonY,
+            moonR * 0.62,
+            moonX,
+            moonY,
+            moonR * 1.45
+        );
+        rim.addColorStop(0, `rgba(255,246,210,${nearMoon * 0.035})`);
+        rim.addColorStop(1, "rgba(255,246,210,0)");
+        c.fillStyle = rim;
+        c.fillRect(
+            moonX - moonR * 1.5,
+            moonY - moonR * 1.5,
+            moonR * 3,
+            moonR * 3
+        );
+        c.restore();
+    }
+
+    private drawMidAutumnParticle(p: Particle) {
+        const c = this.ctx;
+
+        if (p.kind === "tiny-star") {
+            const pulse = this.midAutumnReducedMotion
+                ? 1
+                : 0.82 + Math.sin(this.timer * p.wobbleSpeed + p.wobble) * 0.18;
+            c.fillStyle = `rgba(237,244,255,${(p.baseAlpha ?? p.alpha) * pulse})`;
+            c.beginPath();
+            c.arc(0, 0, p.size, 0, Math.PI * 2);
+            c.fill();
+            return;
+        }
+
+        if (p.kind === "firefly") {
+            const pulse =
+                0.32 +
+                Math.pow(
+                    Math.max(0, Math.sin(this.timer * 1.16 + p.flutter)),
+                    4
+                ) * 0.68;
+            const boost = 1 + this.midAutumnRenderState.fireflyBoost * 0.1;
+            const alpha = (p.baseAlpha ?? p.alpha) * pulse * boost;
+            const glow = c.createRadialGradient(0, 0, 0, 0, 0, p.size * 6.5);
+            glow.addColorStop(0, `rgba(255,242,166,${Math.min(0.95, alpha * 1.12)})`);
+            glow.addColorStop(0.3, `rgba(255,211,90,${alpha * 0.42})`);
+            glow.addColorStop(1, "rgba(255,211,90,0)");
+            c.fillStyle = glow;
+            c.beginPath();
+            c.arc(0, 0, p.size * 6.5, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = `rgba(255,248,195,${Math.min(1, alpha * 1.25)})`;
+            c.beginPath();
+            c.arc(0, 0, p.size, 0, Math.PI * 2);
+            c.fill();
+            return;
+        }
+
+        if (p.kind === "lantern-dust") {
+            const pulse = 0.72 + Math.sin(this.timer * 0.55 + p.wobble) * 0.28;
+            const boost = 1 + this.midAutumnRenderState.dustBoost * 0.34;
+            const alpha = (p.baseAlpha ?? p.alpha) * pulse * boost;
+            c.fillStyle = `rgba(255,205,112,${Math.min(0.78, alpha)})`;
+            c.beginPath();
+            c.arc(0, 0, p.size, 0, Math.PI * 2);
+            c.fill();
+            return;
+        }
+
+        if (p.kind === "paper-fragment") {
+            const color = midAutumnPaperColors[
+                (p.colorIndex ?? 0) % midAutumnPaperColors.length
+            ];
+            c.fillStyle = color;
+            c.beginPath();
+            c.moveTo(-p.size, -p.size * 0.45);
+            c.lineTo(p.size * 0.9, -p.size * 0.28);
+            c.lineTo(p.size * 0.62, p.size * 0.64);
+            c.lineTo(-p.size * 0.8, p.size * 0.46);
+            c.closePath();
+            c.fill();
+        }
+    }
+
+    private drawMidAutumnTemporaryParticles() {
+        const c = this.ctx;
+        const moonX = this.width * 0.72;
+        const moonY = this.height * 0.22;
+        const moonR = this.clamp(
+            Math.min(this.width, this.height) * 0.108,
+            62,
+            118
+        );
+
+        for (const p of this.midAutumnTemporaryParticles) {
+            const lifeAlpha = this.getMidAutumnParticleLifeAlpha(p);
+            if (lifeAlpha <= 0.001)
+                continue;
+
+            c.save();
+            c.translate(p.x, p.y);
+            c.rotate(p.rotation);
+            c.globalAlpha = lifeAlpha;
+
+            if (p.kind === "firefly") {
+                const pulse =
+                    0.32 +
+                    Math.pow(
+                        Math.max(0, Math.sin(this.timer * 1.16 + p.flutter)),
+                        4
+                    ) * 0.68;
+                const alpha =
+                    (p.baseAlpha ?? p.alpha) *
+                    pulse *
+                    (1 + this.midAutumnRenderState.fireflyBoost * 0.48);
+                const glow = c.createRadialGradient(0, 0, 0, 0, 0, p.size * 7);
+                glow.addColorStop(0, `rgba(255,242,166,${Math.min(0.98, alpha * 1.2)})`);
+                glow.addColorStop(0.3, `rgba(255,211,90,${alpha * 0.46})`);
+                glow.addColorStop(1, "rgba(255,211,90,0)");
+                c.fillStyle = glow;
+                c.beginPath();
+                c.arc(0, 0, p.size * 7, 0, Math.PI * 2);
+                c.fill();
+            } else if (p.kind === "lantern-dust") {
+                const pulse = 0.72 + Math.sin(this.timer * 0.55 + p.wobble) * 0.28;
+                const alpha =
+                    (p.baseAlpha ?? p.alpha) *
+                    pulse *
+                    (1 + this.midAutumnRenderState.dustBoost * 0.85);
+                c.fillStyle = `rgba(255,205,112,${Math.min(0.82, alpha)})`;
+                c.beginPath();
+                c.arc(0, 0, p.size, 0, Math.PI * 2);
+                c.fill();
+            } else if (p.kind === "paper-fragment") {
+                const color = midAutumnPaperColors[
+                    (p.colorIndex ?? 0) % midAutumnPaperColors.length
+                ];
+                const distance = Math.hypot(p.x - moonX, p.y - moonY);
+                const moonCatch =
+                    1 -
+                    this.clamp(
+                        (distance - moonR * 0.8) / (moonR * 2.8),
+                        0,
+                        1
+                    );
+                c.globalAlpha *=
+                    1 + this.midAutumnRenderState.paperGlow * moonCatch * 0.65;
+                c.fillStyle = color;
+                c.beginPath();
+                c.moveTo(-p.size, -p.size * 0.45);
+                c.lineTo(p.size * 0.9, -p.size * 0.28);
+                c.lineTo(p.size * 0.62, p.size * 0.64);
+                c.lineTo(-p.size * 0.8, p.size * 0.46);
+                c.closePath();
+                c.fill();
+            }
+
+            c.restore();
+        }
+    }
+
+    private drawMidAutumnLanterns() {
+        const state = this.midAutumnLobbyState;
+        const rippleProgress =
+            state.activeEvent === "lantern-ripple" && state.phase === "event"
+                ? this.clamp(state.eventElapsed / Math.max(0.001, state.eventDuration), 0, 1)
+                : -1;
+        const gatheringProgress =
+            state.activeEvent === "lantern-gathering" && state.phase === "event"
+                ? this.clamp(state.eventElapsed / Math.max(0.001, state.eventDuration), 0, 1)
+                : -1;
+
+        for (const lantern of this.midAutumnLanterns) {
+            let localGlow = 0;
+            let responseSway = 0;
+
+            if (rippleProgress >= 0) {
+                const center =
+                    0.14 +
+                    lantern.index /
+                        Math.max(1, this.midAutumnLanterns.length - 1) *
+                        0.62;
+                localGlow = Math.max(
+                    0,
+                    1 - Math.abs(rippleProgress - center) / 0.16
+                );
+                responseSway = localGlow * 0.028;
+            }
+
+            if (gatheringProgress >= 0) {
+                const sequenceCenter = 0.18 + lantern.index * 0.12;
+                const reply = Math.max(
+                    0,
+                    1 - Math.abs(gatheringProgress - sequenceCenter) / 0.13
+                );
+                const collective =
+                    this.midAutumnRenderState.gatheringGlow *
+                    (
+                        0.35 +
+                        0.65 *
+                            (
+                                0.5 +
+                                0.5 * Math.sin(this.timer * 2.1 - lantern.index * 0.85)
+                            )
+                    );
+                localGlow = Math.max(localGlow, reply * 0.95, collective * 0.6);
+            }
+
+            const ambientSway = this.midAutumnReducedMotion
+                ? 0
+                : Math.sin(
+                    this.timer * (Math.PI * 2 / lantern.baseDuration) +
+                    lantern.phase
+                ) * 0.027;
+            const sway =
+                ambientSway +
+                responseSway +
+                this.midAutumnRenderState.lanternSwayBoost *
+                    Math.sin(this.timer * 1.65 + lantern.phase) *
+                    0.022;
+            const size = this.clamp(
+                Math.min(this.width, this.height) * 0.092 * lantern.scale,
+                34,
+                82
+            );
+
+            this.drawMidAutumnLantern(
+                this.width * lantern.xRatio,
+                this.height * lantern.yRatio,
+                size,
+                sway,
+                lantern.tone,
+                localGlow
+            );
+        }
+    }
+
+    private drawMidAutumnLantern(
+        x: number,
+        y: number,
+        size: number,
+        sway: number,
+        tone: number,
+        eventGlow: number
+    ) {
+        const c = this.ctx;
+        c.save();
+        c.translate(x, y);
+        c.rotate(sway);
+        c.strokeStyle = "rgba(107,71,43,.44)";
+        c.lineWidth = Math.max(1, size * 0.018);
+        c.beginPath();
+        c.moveTo(0, -size * 1.7);
+        c.lineTo(0, -size * 0.74);
+        c.stroke();
+
+        const glowStrength =
+            0.29 +
+            eventGlow * 0.2 +
+            this.midAutumnRenderState.gatheringGlow * 0.035;
+        const outerGlow = c.createRadialGradient(0, 0, 0, 0, 0, size * 1.45);
+        outerGlow.addColorStop(0, `rgba(255,199,96,${glowStrength})`);
+        outerGlow.addColorStop(0.42, `rgba(255,126,48,${glowStrength * 0.35})`);
+        outerGlow.addColorStop(1, "rgba(255,110,30,0)");
+        c.fillStyle = outerGlow;
+        c.fillRect(-size * 1.55, -size * 1.55, size * 3.1, size * 3.1);
+
+        const palettes = [
+            ["#a52424", "rgba(214,58,47,.74)"],
+            ["#a44c20", "rgba(224,111,40,.70)"],
+            ["#89661b", "rgba(211,163,53,.68)"],
+        ] as const;
+        const palette = palettes[tone % palettes.length];
+        const points: Array<[number, number]> = [];
+        for (let i = 0; i < 10; i++) {
+            const radius = i % 2 === 0 ? size : size * 0.44;
+            const angle = -Math.PI / 2 + i * Math.PI / 5;
+            points.push([
+                Math.cos(angle) * radius,
+                Math.sin(angle) * radius,
+            ]);
+        }
+
+        c.fillStyle = palette[1];
+        c.strokeStyle = palette[0];
+        c.lineWidth = Math.max(2, size * 0.042);
+        c.beginPath();
+        c.moveTo(points[0][0], points[0][1]);
+        for (let i = 1; i < points.length; i++)
+            c.lineTo(points[i][0], points[i][1]);
+        c.closePath();
+        c.fill();
+        c.stroke();
+
+        c.strokeStyle = "rgba(248,203,111,.68)";
+        c.lineWidth = Math.max(1, size * 0.018);
+        for (let i = 0; i < 5; i++) {
+            const angle = -Math.PI / 2 + i * Math.PI * 2 / 5;
+            c.beginPath();
+            c.moveTo(0, 0);
+            c.lineTo(
+                Math.cos(angle) * size * 0.9,
+                Math.sin(angle) * size * 0.9
+            );
+            c.stroke();
+        }
+
+        const centerGlow = c.createRadialGradient(0, 0, 0, 0, 0, size * 0.62);
+        centerGlow.addColorStop(0, `rgba(255,227,132,${0.8 + eventGlow * 0.16})`);
+        centerGlow.addColorStop(0.38, "rgba(255,175,65,.36)");
+        centerGlow.addColorStop(1, "rgba(255,135,43,0)");
+        c.fillStyle = centerGlow;
+        c.beginPath();
+        c.arc(0, 0, size * 0.62, 0, Math.PI * 2);
+        c.fill();
+
+        c.strokeStyle = "rgba(181,48,40,.72)";
+        c.beginPath();
+        c.moveTo(0, size * 0.65);
+        c.lineTo(0, size * 1.18);
+        c.stroke();
+        for (let i = -2; i <= 2; i++) {
+            c.beginPath();
+            c.moveTo(0, size * 1.04);
+            c.lineTo(i * size * 0.055, size * 1.28);
+            c.stroke();
+        }
+        c.restore();
+    }
+
+    private drawMidAutumnVignette() {
+        const c = this.ctx;
+        const bottom = c.createLinearGradient(
+            0,
+            this.height * 0.52,
+            0,
+            this.height
+        );
+        bottom.addColorStop(0, "rgba(4,9,15,0)");
+        bottom.addColorStop(1, "rgba(3,8,13,.27)");
+        c.fillStyle = bottom;
+        c.fillRect(0, this.height * 0.5, this.width, this.height * 0.5);
+
+        const edge = c.createRadialGradient(
+            this.width * 0.5,
+            this.height * 0.46,
+            Math.min(this.width, this.height) * 0.18,
+            this.width * 0.5,
+            this.height * 0.46,
+            Math.max(this.width, this.height) * 0.72
+        );
+        edge.addColorStop(0.52, "rgba(0,0,0,0)");
+        edge.addColorStop(1, "rgba(0,0,0,.22)");
+        c.fillStyle = edge;
+        c.fillRect(0, 0, this.width, this.height);
+    }
 
     private smoothStep(
         start: number,

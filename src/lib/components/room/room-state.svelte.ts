@@ -1,8 +1,7 @@
 import { roomService } from "$lib/api/room";
-import { PROTECTED_USER_KEY } from "$lib/stores/auth.svelte";
 import type { RoomMemberInfo } from "$lib/types/room";
 import { createQuery, useQueryClient, type CreateQueryResult } from "@tanstack/svelte-query";
-import { getContext, setContext } from "svelte";
+import { getContext } from "svelte";
 
 export const ROOM_MEMBERS_KEY = Symbol('ROOM_MEMBERS');
 
@@ -46,16 +45,12 @@ export class RoomState {
 
 
 
-// Call in (protected)/+layout.svelte
-export function setRoomId(roomId: string) {
-	setContext(ROOM_MEMBERS_KEY, roomId);
-}
 
 // Call in ANY component or page inside (protected)/
 export function useRoom(): RoomState {
-	const roomState = getContext<RoomState>(ROOM_MEMBERS_KEY);
-	if (!roomState) {
-		throw new Error('useRoom() must be called within a protected route.');
-	}
-	return roomState;
+    const roomState = getContext<RoomState>(ROOM_MEMBERS_KEY);
+    if (!roomState) {
+        throw new Error('useRoom() must be called within a protected route.');
+    }
+    return roomState;
 }

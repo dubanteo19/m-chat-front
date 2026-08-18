@@ -1,4 +1,4 @@
-import type { TitleStyle } from "$lib/types/message";
+import type { TitleStyle } from "$lib/types/user";
 
 export interface BadgeAnimation {
 	value: string;

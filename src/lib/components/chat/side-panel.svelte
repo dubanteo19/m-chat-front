@@ -1,40 +1,43 @@
 <script lang="ts">
-	import { notificationService } from '$lib/services/notification-service.svelte';
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import CreateRoomDialog from '../room/create-room-dialog.svelte';
-	import { Button } from '$lib/components/ui/button';
+	import { authService } from '$lib/api/auth';
 	import { roomService, type CreateRoomRequest } from '$lib/api/room';
 	import { userService } from '$lib/api/user';
-	import type { RoomInfo } from '$lib/types/room';
-	import { PlusIcon } from '@lucide/svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { useUserRoomsQuery } from '$lib/queries/use-user-room';
+	import { notificationService } from '$lib/services/notification-service.svelte';
 	import { useUser } from '$lib/stores/auth.svelte';
-	import { authService } from '$lib/api/auth';
+	import { Bell, BellOff, PlusIcon } from '@lucide/svelte';
+	import CreateRoomDialog from '../room/create-room-dialog.svelte';
+	import Spinner from '../ui/spinner/spinner.svelte';
 
 	let { sidebarOpen = $bindable(), roomId } = $props();
-	let rooms = $state<RoomInfo[]>([]);
 	let isOpenRoomDialog = $state(false);
 
-	const { username } = useUser();
+	const { currentUser, setUser } = useUser();
+	const { query } = useUserRoomsQuery();
+	let { data: rooms = [], isLoading } = $derived(query);
 	async function handleLogout() {
 		await authService.logout();
 		await goto(resolve('/login'));
 	}
 
-	const loadRooms = async () => {
-		if (username) {
-			rooms = await userService.getRooms();
+	async function handleCreateRoom(data: CreateRoomRequest) {
+		await roomService.createRoom(data);
+	}
+	const toggleUpdateNotifications = async () => {
+		try {
+			const updatedUser = await userService.updateNotificationSettings({
+				allowNotify: !currentUser.allowNotify
+			});
+			console.log('Notification settings updated:', updatedUser);
+			setUser(updatedUser);
+		} catch (error) {
+			console.error('Error toggling notifications:', error);
+			alert('Failed to toggle notifications.');
 		}
 	};
-	$effect(() => {
-		loadRooms();
-	});
-	async function handleCreateRoom(data: CreateRoomRequest) {
-		const response = await roomService.createRoom(data);
-		if (response.id) {
-			loadRooms();
-		}
-	}
 </script>
 
 <aside
@@ -54,6 +57,18 @@
 		{/if}
 		<div class="p-4 border-b flex items-center justify-between">
 			<span class="text-xl font-bold tracking-wider text-primary">m-chat</span>
+			<Button
+				variant="default"
+				size="icon"
+				title="Toggle Notifications"
+				onclick={toggleUpdateNotifications}
+			>
+				{#if currentUser.allowNotify}
+					<Bell />
+				{:else}
+					<BellOff />
+				{/if}
+			</Button>
 			<Button onclick={() => (sidebarOpen = false)} class="md:hidden ">✕</Button>
 		</div>
 		<nav class="p-4 space-y-2">
@@ -63,27 +78,31 @@
 					<PlusIcon />
 				</Button>
 			</div>
-			{#each rooms as room (room.id)}
-				<a
-					href={resolve(`/room/${room.id}`)}
-					onclick={() => (sidebarOpen = false)}
-					class="flex items-center px-3 py-2 rounded-md text-sm transition-colors {room.id ===
-					roomId
-						? 'bg-primary'
-						: ' hover:bg-slate-700/50 hover:text-slate-200'}"
-				>
-					# {room.name}
-				</a>
-			{/each}
+			{#if isLoading}
+				<Spinner />
+			{:else}
+				{#each rooms as room (room.id)}
+					<a
+						href={resolve(`/room/${room.id}`)}
+						onclick={() => (sidebarOpen = false)}
+						class="flex items-center px-3 py-2 rounded-md text-sm transition-colors {room.id ===
+						roomId
+							? 'bg-primary'
+							: ' hover:bg-slate-700/50 hover:text-slate-200'}"
+					>
+						# {room.name}
+					</a>
+				{/each}
+			{/if}
 		</nav>
 	</div>
 
 	<div class="p-4 border-t flex items-center justify-between">
 		<div class="truncate mr-2">
 			<p class="text-xs">Logged in as</p>
-			{#if username}
-				<a href={resolve(`/profile/${username}`)} class="text-sm text-primary">
-					{username}
+			{#if currentUser.username}
+				<a href={resolve(`/profile/${currentUser.username}`)} class="text-sm text-primary">
+					{currentUser.username}
 				</a>
 			{:else}
 				<span class="text-sm">Connecting...</span>

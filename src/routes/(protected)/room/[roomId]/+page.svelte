@@ -38,13 +38,14 @@
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
-	const currentUser = useUser();
+	const { currentUser } = useUser();
 	let openReactionId: number | null = $state(null);
 	let roomEffect = $state<RoomEffect | null>(null);
 	let repliedToMessage = $state<RepliedMessageInfo | null>(null);
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
+
 	setContext(ROOM_MEMBERS_KEY, roomState);
 	export function updateMessageReactions(
 		currentMessages: Message[],
@@ -145,7 +146,8 @@
 				onMessage(raw) {
 					const message = processIncomingMessage(raw, currentUser.username);
 					messages = [...messages, message];
-					notificationService.triggerPush(message, currentRoomId);
+					if (message.sender.username !== currentUser.username && currentUser.allowNotify)
+						notificationService.triggerPush(message, currentRoomId);
 					scrollService.onIncomingMessage();
 				},
 				onReaction(payload) {

@@ -1,12 +1,14 @@
 <script lang="ts">
+	import { useUser } from '$lib/stores/auth.svelte';
 	import { MessageType, type MessagePayload } from '$lib/types/message';
+	import type { RoomMemberInfo } from '$lib/types/room';
 	import { createMessagePayload } from '$lib/utils/message';
+	import { renderMessage } from '$lib/utils/message-renderer';
 	import { Send } from '@lucide/svelte';
+	import { useRoom } from '../room/room-state.svelte';
 	import { Button } from '../ui/button';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
 	import StickerPicker from './chat-input/sticker-picker.svelte';
-	import { getContext } from 'svelte';
-	import { ROOM_MEMBERS_KEY, type RoomState } from '../room/room-state.svelte';
 	interface ChatInputProps {
 		roomId: string | number;
 		onSendMessage: (payload: MessagePayload) => void;
@@ -29,12 +31,16 @@
 	let fileInputRef = $state<HTMLInputElement | null>(null);
 	let typingTimeout: NodeJS.Timeout;
 	let amITyping = false;
-	const roomState = getContext<RoomState>(ROOM_MEMBERS_KEY);
+	const { currentUser } = useUser();
+	const roomState = useRoom();
 
 	let filteredMembers = $derived(
-		roomState.members.filter((m) =>
-			m.user.username.toLowerCase().includes(mentionQuery.toLowerCase())
-		)
+		roomState.members
+			.filter((m) => m.user.id !== currentUser?.id)
+			.filter((m) => {
+				const name = m.user.displayName || m.user.username;
+				return name.toLowerCase().includes(mentionQuery.toLowerCase());
+			})
 	);
 	//mention
 	let showMentionMenu = $state(false);
@@ -64,20 +70,24 @@
 		}, 2000);
 		checkMentionTrigger(textarea);
 	}
-	function selectMention(username: string) {
+
+	function selectMention(member: RoomMemberInfo) {
 		if (!textareaRef) return;
 
 		const cursorPosition = textareaRef.selectionStart;
 		const textBeforeCursor = inputMessage.slice(0, cursorPosition);
 		const textAfterCursor = inputMessage.slice(cursorPosition);
 
-		// Replace the typed @query with @username + space
-		const updatedTextBefore = textBeforeCursor.replace(/@([a-zA-Z0-9_-]*)$/, `@${username} `);
+		const userId = member.user.id || member.user.username;
+
+		const updatedTextBefore = textBeforeCursor.replace(/(?:^|\s)@([a-zA-Z0-9_\-\s]*)$/, (match) => {
+			const hasLeadingSpace = /^\s/.test(match);
+			return `${hasLeadingSpace ? ' ' : ''}<@${userId}> `;
+		});
 
 		inputMessage = updatedTextBefore + textAfterCursor;
 		showMentionMenu = false;
 
-		// Re-focus and set cursor after inserted mention
 		setTimeout(() => {
 			if (textareaRef) {
 				textareaRef.focus();
@@ -86,21 +96,25 @@
 			}
 		}, 0);
 	}
+
 	function checkMentionTrigger(textarea: HTMLTextAreaElement) {
-		console.log('Checking mention trigger...');
 		const cursorPosition = textarea.selectionStart;
 		const textBeforeCursor = textarea.value.slice(0, cursorPosition);
-
-		const match = textBeforeCursor.match(/@([a-zA-Z0-9_-]*)$/);
+		if (/<@[a-zA-Z0-9_-]*$/.test(textBeforeCursor)) {
+			showMentionMenu = false;
+			return;
+		}
+		const match = textBeforeCursor.match(/(?:^|\s)@([a-zA-Z0-9_\-\s]*)$/);
 
 		if (match) {
 			mentionQuery = match[1];
 			showMentionMenu = true;
-			selectedMentionIndex = 0; // Reset focus to top item
+			selectedMentionIndex = 0;
 		} else {
 			showMentionMenu = false;
 		}
 	}
+
 	function handleSubmit(e: SubmitEvent) {
 		e.preventDefault();
 
@@ -144,7 +158,7 @@
 			}
 			if (e.key === 'Enter' || e.key === 'Tab') {
 				e.preventDefault();
-				selectMention(filteredMembers[selectedMentionIndex].user.username);
+				selectMention(filteredMembers[selectedMentionIndex]);
 				return;
 			}
 			if (e.key === 'Escape') {
@@ -191,13 +205,13 @@
 		/>
 
 		<div class="relative flex gap-1 shrink-0">
-			<Button onclick={() => fileInputRef?.click()} class="p-3  h-[46px]" title="Upload Asset">
+			<Button onclick={() => fileInputRef?.click()} class="p-3  h-11.5" title="Upload Asset">
 				📎
 			</Button>
 
 			<Button
 				onclick={() => (showStickerPicker = !showStickerPicker)}
-				class="p-3 h-[46px] "
+				class="p-3 h-11"
 				title="Send a Sticker"
 			>
 				🎭
@@ -218,26 +232,44 @@
 		</div>
 
 		<div
-			class="relative flex-1 flex flex-col bg-background border-secondary/20 border rounded-2xl transition-colors"
+			class="relative flex-1 bg-background border-secondary/20 border rounded-2xl transition-colors min-h-11 max-h-36"
 		>
 			{#if repliedToMessage}
 				<ReplyPreview {repliedToMessage} onCancelReply={() => (repliedToMessage = null)} />
 			{/if}
+
+			<!-- Mention Autocomplete Menu -->
 			{#if showMentionMenu && filteredMembers.length > 0}
 				<div
-					class="absolute bottom-full mb-2 left-0 z-50 max-h-48 w-64 overflow-y-auto rounded-lg border bg-white shadow-lg"
+					class="absolute bottom-full mb-2 left-0 z-50 max-h-48 w-64 overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 shadow-xl"
 				>
-					{#each filteredMembers as member (member.user.username)}
+					{#each filteredMembers as member, index (member.user.id)}
+						{@const displayName = member.user.displayName || member.user.username}
 						<button
 							type="button"
-							class="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-blue-50"
-							onclick={() => selectMention(member.user.username)}
+							data-mention-index={index}
+							class="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors {index ===
+							selectedMentionIndex
+								? 'bg-blue-600 text-white'
+								: 'text-slate-200 hover:bg-slate-800'}"
+							onclick={() => selectMention(member)}
+							onmouseenter={() => (selectedMentionIndex = index)}
 						>
-							<span class="font-medium text-gray-800">@{member.user.username}</span>
+							<span class="font-medium">@{displayName}</span>
 						</button>
 					{/each}
 				</div>
 			{/if}
+
+			<!-- Backdrop Layer (Renders styled mentions under transparent text) -->
+			<div
+				aria-hidden="true"
+				class="pointer-events-none absolute inset-0 w-full h-full px-3 py-3 text-white leading-normal whitespace-pre-wrap wrap-break-words resize-none max-h-36 overflow-y-auto [&::-webkit-scrollbar]:hidden border-none outline-none"
+			>
+				{@html renderMessage(inputMessage, roomState.members)}
+			</div>
+
+			<!-- Interactive Textarea Layer -->
 			<textarea
 				bind:this={textareaRef}
 				bind:value={inputMessage}
@@ -245,7 +277,7 @@
 				onkeydown={handleKeyDown}
 				rows="1"
 				placeholder="Message #{roomId}..."
-				class="w-full bg-transparent px-3 py-3 text-white placeholder-slate-400 resize-none max-h-36 overflow-y-auto min-h-[46px] leading-normal [&::-webkit-scrollbar]:hidden outline-none border-none ring-0 focus:outline-none focus:ring-0"
+				class="relative z-10 w-full bg-transparent px-3 py-3 text-transparent caret-white placeholder-slate-400 resize-none max-h-36 overflow-y-auto min-h-11 leading-normal [&::-webkit-scrollbar]:hidden outline-none border-none ring-0 focus:outline-none focus:ring-0"
 			></textarea>
 		</div>
 

@@ -8,7 +8,7 @@
 	let imgElement = $state<HTMLImageElement>();
 
 	const roomState = getContext<RoomState>(ROOM_MEMBERS_KEY);
-	let { message, onImageLoad, onOpenLightbox, roomMembers } = $props<{
+	let { message, onImageLoad, onOpenLightbox } = $props<{
 		message: Message;
 		onImageLoad?: () => void;
 		onOpenLightbox?: (selectedMsg: Message, imgElement: HTMLImageElement | undefined) => void;
@@ -37,7 +37,7 @@
 	</div>
 {:else if message.type === MessageType.IMAGE}
 	<button
-		onclick={(e) => onOpenLightbox?.(message, imgElement)}
+		onclick={() => onOpenLightbox?.(message, imgElement)}
 		class="overflow-hidden rounded-xl border border-slate-200 shadow-sm cursor-pointer block hover:opacity-95 transition-opacity focus:outline-none bg-slate-50"
 	>
 		<img

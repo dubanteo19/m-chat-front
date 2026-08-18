@@ -14,8 +14,7 @@
 		sendReact,
 		openReactionId,
 		setOpenReactionId,
-		onOpenLightbox,
-		roomMembers
+		onOpenLightbox
 	} = $props<{
 		message: Message;
 		onImageLoad?: () => void;
@@ -94,7 +93,7 @@
 				<span class="text-slate-400 font-normal ml-1">({formatDate(message.sentAt)})</span>
 			</div>
 		{:else}
-			<MessageContent {roomMembers} {message} {onImageLoad} {onOpenLightbox} />
+			<MessageContent {message} {onImageLoad} {onOpenLightbox} />
 			<MessageReactions {message} {sendReact} />
 			<MessageToolbar
 				{message}

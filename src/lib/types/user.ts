@@ -9,9 +9,14 @@ export type TitleStyle = {
 };
 
 export type UserInfo = {
+    id: number;
     username: string;
     displayName: string;
     avatarUrl: string | null;
     title: string | null;
     titleStyle: TitleStyle;
 };
+
+export interface CurrentUserInfo extends UserInfo {
+    allowNotify: boolean;
+}

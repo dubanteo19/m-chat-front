@@ -1,47 +1,60 @@
 import type { RoomMemberInfo } from "$lib/types/room";
+import { parseMessage } from "./message-parser";
 import { truncateText } from "./text";
 
-const MENTION_REGEX = /@([a-zA-Z0-9_-]+)/g;
+const MENTION_REGEX = /@([a-zA-Z0-9_\-\s]+?)(?=\s|$)/g;
 const URL_REGEX = /\b(https?:\/\/[^\s<]+|www\.[^\s<]+)\b/gi;
 
 
-function escapeHtml(text: string): string {
-    return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+export function escapeHtml(str: string): string {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
-function renderMentions(text: string, members: RoomMemberInfo[] = []): string {
-    return text.replace(MENTION_REGEX, (match, username) => {
-        const matchedMember = members.find(
-            (m) => m.user.username.toLowerCase() === username.toLowerCase()
-        );
+/**
+ * Renders structured message content (<@userId> tags and URLs) to safe HTML.
+ */
+export function renderMessage(text: string, members: RoomMemberInfo[] = []): string {
+    if (!text) return "";
 
-        if (!matchedMember) {
-            return match; // If not a valid room member, leave as plain text
-        }
+    const tokens = parseMessage(text);
 
-        // Escape values going into attributes and innerHTML
-        const safeId = escapeHtml(String(matchedMember.user.username));
-        const safeUsername = escapeHtml(matchedMember.user.username);
+    return tokens
+        .map((token) => {
+            if (token.type === 'text') {
+                const safeText = escapeHtml(token.value);
+                return renderLinks(safeText);
+            }
 
-        return `<span
-			class="mention-chip"
-			data-user-id="${safeId}"
-			style="
-				background-color: #dbeafe;
-				color: #1e40af;
-				font-weight: 600;
-				padding: 2px 6px;
-				border-radius: 4px;
-				cursor: pointer;
-				display: inline-block;
-			"
-		>@${safeUsername}</span>`;
-    });
+            if (token.type === 'mention') {
+                const matchedMember = members.find( (m) => String(m.user.id) === token.userId);
+
+                const displayName = matchedMember
+                    ? matchedMember.user.displayName || matchedMember.user.username
+                    : token.userId;
+
+                const safeId = escapeHtml(token.userId);
+
+                return `<span
+                    class="mention-chip"
+                    data-user-id="${safeId}"
+                    style="
+                        color: #60a5fa;
+                        font-weight: 600;
+                        padding: 1px 4px;
+                        border-radius: 4px;
+                        display: inline-block;
+                    "
+                >@${escapeHtml(displayName)}</span>`;
+            }
+
+            return '';
+        })
+        .join('');
 }
 
 function renderLinks(text: string): string {
@@ -59,22 +72,4 @@ function renderLinks(text: string): string {
 			"
 		>${truncateText(url)}</a>`;
     });
-}
-
-/**
- * Renders raw text to safe HTML with mentions and auto-linked URLs.
- */
-export function renderMessage(text: string, members: RoomMemberInfo[] = []): string {
-    if (!text) return "";
-
-    // 1. First escape raw user input to prevent XSS
-    let html = escapeHtml(text);
-
-    // 2. Transform URLs into <a> tags
-    html = renderLinks(html);
-
-    // 3. Transform @mentions into styled <span> tags
-    html = renderMentions(html, members);
-
-    return html;
 }

@@ -1,4 +1,4 @@
-import type { UserInfo } from "$lib/api/types";
+import type { UserInfo } from "./user";
 
 export const MessageType = {
 	TEXT: 'TEXT',
