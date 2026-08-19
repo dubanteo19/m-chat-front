@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { useUser } from '$lib/stores/auth.svelte';
 	import { MessageType, type MessagePayload } from '$lib/types/message';
-	import type { RoomMemberInfo } from '$lib/types/room';
 	import { createMessagePayload } from '$lib/utils/message';
-	import { renderMessage } from '$lib/utils/message-renderer';
 	import { Send } from '@lucide/svelte';
 	import { useRoom } from '../room/room-state.svelte';
 	import { Button } from '../ui/button';
+	import ChatEditor from './chat-input/chat-editor.svelte';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
 	import StickerPicker from './chat-input/sticker-picker.svelte';
 	interface ChatInputProps {
@@ -18,7 +17,6 @@
 	}
 
 	let {
-		roomId,
 		onSendMessage,
 		onTypingStateChange,
 		onFileUploadRequested,
@@ -27,92 +25,26 @@
 
 	let inputMessage = $state('');
 	let showStickerPicker = $state(false);
-	let textareaRef = $state<HTMLTextAreaElement | null>(null);
+	let chatEditorRef = $state<ChatEditor | null>(null);
 	let fileInputRef = $state<HTMLInputElement | null>(null);
 	let typingTimeout: NodeJS.Timeout;
 	let amITyping = false;
-	const { currentUser } = useUser();
 	const roomState = useRoom();
 
-	let filteredMembers = $derived(
-		roomState.members
-			.filter((m) => m.user.id !== currentUser?.id)
-			.filter((m) => {
-				const name = m.user.displayName || m.user.username;
-				return name.toLowerCase().includes(mentionQuery.toLowerCase());
-			})
-	);
-	//mention
-	let showMentionMenu = $state(false);
-	let mentionQuery = $state('');
-	let selectedMentionIndex = $state(0);
+	function handleEditorInput(value: string) {
+		inputMessage = value;
 
-	$effect(() => {
-		if (repliedToMessage && textareaRef) {
-			textareaRef.focus();
-		}
-	});
-
-	function handleTextAreaInput(e: Event) {
-		const textarea = e.currentTarget as HTMLTextAreaElement;
-		textarea.style.height = 'auto';
-		textarea.style.height = `${Math.min(textarea.scrollHeight, 144)}px`;
-
-		// Handle typing indicator
 		if (!amITyping) {
 			amITyping = true;
 			onTypingStateChange?.(true);
 		}
+
 		clearTimeout(typingTimeout);
+
 		typingTimeout = setTimeout(() => {
 			amITyping = false;
 			onTypingStateChange?.(false);
 		}, 2000);
-		checkMentionTrigger(textarea);
-	}
-
-	function selectMention(member: RoomMemberInfo) {
-		if (!textareaRef) return;
-
-		const cursorPosition = textareaRef.selectionStart;
-		const textBeforeCursor = inputMessage.slice(0, cursorPosition);
-		const textAfterCursor = inputMessage.slice(cursorPosition);
-
-		const userId = member.user.id || member.user.username;
-
-		const updatedTextBefore = textBeforeCursor.replace(/(?:^|\s)@([a-zA-Z0-9_\-\s]*)$/, (match) => {
-			const hasLeadingSpace = /^\s/.test(match);
-			return `${hasLeadingSpace ? ' ' : ''}<@${userId}> `;
-		});
-
-		inputMessage = updatedTextBefore + textAfterCursor;
-		showMentionMenu = false;
-
-		setTimeout(() => {
-			if (textareaRef) {
-				textareaRef.focus();
-				const newCursorPos = updatedTextBefore.length;
-				textareaRef.setSelectionRange(newCursorPos, newCursorPos);
-			}
-		}, 0);
-	}
-
-	function checkMentionTrigger(textarea: HTMLTextAreaElement) {
-		const cursorPosition = textarea.selectionStart;
-		const textBeforeCursor = textarea.value.slice(0, cursorPosition);
-		if (/<@[a-zA-Z0-9_-]*$/.test(textBeforeCursor)) {
-			showMentionMenu = false;
-			return;
-		}
-		const match = textBeforeCursor.match(/(?:^|\s)@([a-zA-Z0-9_\-\s]*)$/);
-
-		if (match) {
-			mentionQuery = match[1];
-			showMentionMenu = true;
-			selectedMentionIndex = 0;
-		} else {
-			showMentionMenu = false;
-		}
 	}
 
 	function handleSubmit(e: SubmitEvent) {
@@ -131,11 +63,7 @@
 
 		inputMessage = '';
 		repliedToMessage = null;
-		showMentionMenu = false;
-		if (textareaRef) {
-			textareaRef.style.height = '46px';
-		}
-
+		chatEditorRef?.clear();
 		if (amITyping) {
 			clearTimeout(typingTimeout);
 			amITyping = false;
@@ -144,33 +72,13 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
-		if (showMentionMenu && filteredMembers.length > 0) {
-			if (e.key === 'ArrowDown') {
-				e.preventDefault();
-				selectedMentionIndex = (selectedMentionIndex + 1) % filteredMembers.length;
-				return;
-			}
-			if (e.key === 'ArrowUp') {
-				e.preventDefault();
-				selectedMentionIndex =
-					(selectedMentionIndex - 1 + filteredMembers.length) % filteredMembers.length;
-				return;
-			}
-			if (e.key === 'Enter' || e.key === 'Tab') {
-				e.preventDefault();
-				selectMention(filteredMembers[selectedMentionIndex]);
-				return;
-			}
-			if (e.key === 'Escape') {
-				e.preventDefault();
-				showMentionMenu = false;
-				return;
-			}
-		}
 		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			handleSubmit(e as unknown as SubmitEvent);
+			return true;
 		}
+
+		return false;
 	}
 
 	function handleFileUpload(file: File) {
@@ -238,47 +146,13 @@
 				<ReplyPreview {repliedToMessage} onCancelReply={() => (repliedToMessage = null)} />
 			{/if}
 
-			<!-- Mention Autocomplete Menu -->
-			{#if showMentionMenu && filteredMembers.length > 0}
-				<div
-					class="absolute bottom-full mb-2 left-0 z-50 max-h-48 w-64 overflow-y-auto rounded-lg border border-slate-700 bg-slate-900 shadow-xl"
-				>
-					{#each filteredMembers as member, index (member.user.id)}
-						{@const displayName = member.user.displayName || member.user.username}
-						<button
-							type="button"
-							data-mention-index={index}
-							class="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors {index ===
-							selectedMentionIndex
-								? 'bg-blue-600 text-white'
-								: 'text-slate-200 hover:bg-slate-800'}"
-							onclick={() => selectMention(member)}
-							onmouseenter={() => (selectedMentionIndex = index)}
-						>
-							<span class="font-medium">@{displayName}</span>
-						</button>
-					{/each}
-				</div>
-			{/if}
-
-			<!-- Backdrop Layer (Renders styled mentions under transparent text) -->
-			<div
-				aria-hidden="true"
-				class="pointer-events-none absolute inset-0 w-full h-full px-3 py-3 text-white leading-normal whitespace-pre-wrap wrap-break-words resize-none max-h-36 overflow-y-auto [&::-webkit-scrollbar]:hidden border-none outline-none"
-			>
-				{@html renderMessage(inputMessage, roomState.members)}
-			</div>
-
-			<!-- Interactive Textarea Layer -->
-			<textarea
-				bind:this={textareaRef}
-				bind:value={inputMessage}
-				oninput={handleTextAreaInput}
+			<ChatEditor
+				bind:this={chatEditorRef}
+				value={inputMessage}
 				onkeydown={handleKeyDown}
-				rows="1"
-				placeholder="Message #{roomId}..."
-				class="relative z-10 w-full bg-transparent px-3 py-3 text-transparent caret-white placeholder-slate-400 resize-none max-h-36 overflow-y-auto min-h-11 leading-normal [&::-webkit-scrollbar]:hidden outline-none border-none ring-0 focus:outline-none focus:ring-0"
-			></textarea>
+				oninput={handleEditorInput}
+				members={roomState.members}
+			/>
 		</div>
 
 		<Button type="submit" class=" h-11  font-medium rounded-lg   whitespace-nowrap">

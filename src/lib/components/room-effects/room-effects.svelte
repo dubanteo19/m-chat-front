@@ -16,5 +16,5 @@
 </script>
 
 <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
-	<canvas bind:this={canvas} class="absolute inset-0 h-full w-full pointer-events-none" />
+	<canvas bind:this={canvas} class="absolute inset-0 h-full w-full pointer-events-none"></canvas>
 </div>

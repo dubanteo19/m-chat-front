@@ -15,7 +15,7 @@
 	let { sidebarOpen = $bindable(), roomId } = $props();
 	let isOpenRoomDialog = $state(false);
 
-	const { currentUser, setUser } = useUser();
+	const { currentUser, setUser } = $derived(useUser());
 	const { query } = useUserRoomsQuery();
 	let { data: rooms = [], isLoading } = $derived(query);
 	async function handleLogout() {
@@ -31,7 +31,6 @@
 			const updatedUser = await userService.updateNotificationSettings({
 				allowNotify: !currentUser.allowNotify
 			});
-			console.log('Notification settings updated:', updatedUser);
 			setUser(updatedUser);
 		} catch (error) {
 			console.error('Error toggling notifications:', error);

@@ -9,8 +9,10 @@
 
 	import { roomMemberService } from '$lib/api/room-member';
 	import { useUser } from '$lib/stores/auth.svelte';
-	import type { RoomInfo } from '$lib/types/room';
+	import type { RoomInfo, RoomMemberInfo } from '$lib/types/room';
+	import type { UserInfo } from '$lib/types/user';
 	import { CornerUpLeft, Users, XIcon } from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
 	import { roomEffectsLabels } from '../room-effects/effects/particles';
 	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
 	import { useRoom } from '../room/room-state.svelte';
@@ -20,7 +22,7 @@
 	let isSubmitting = $state(false);
 	let memberToKick: string | null = $state(null);
 	const roomState = useRoom();
-	const { currentUser } = useUser();
+	const { currentUser } = $derived(useUser());
 	const isRoomMaster = $derived(
 		roomState.members.find((m) => m.user.username === currentUser?.username)?.role === 'MASTER'
 	);
@@ -33,17 +35,27 @@
 			}
 		});
 	};
-	const handleKickUser = async () => {
+	const handleKickMember = async () => {
 		if (!memberToKick) return;
 
 		try {
 			await roomMemberService.kickMember(roomId, memberToKick);
-			alert(`User ${memberToKick} has been kicked from the room.`);
+			toast.info(`User ${memberToKick} has been kicked from the room.`);
 			roomState.removeMember(memberToKick);
 			memberToKick = null;
 		} catch (error) {
 			console.error('Error kicking user from room:', error);
 			alert('Failed to kick user from the room.');
+		}
+	};
+
+	const handleInviteUser = async (user: UserInfo) => {
+		try {
+			const newMember = await roomMemberService.addMember(roomId, user.username);
+			roomState.addMember(newMember);
+			toast.success(`User ${user.displayName} added to the room successfully.`);
+		} catch (error) {
+			console.error('Error adding user to room:', error);
 		}
 	};
 </script>
@@ -67,7 +79,7 @@
 	</h2>
 	<div class="flex-1 flex items-center justify-between gap-2">
 		<div class="flex gap-4">
-			{#each onlineUsers as user (user.username)}
+			{#each onlineUsers as user (user.id)}
 				<HoverCard.Root openDelay={200} closeDelay={50}>
 					<HoverCard.Trigger>
 						<div class="relative">
@@ -92,52 +104,25 @@
 					</div>
 				</Popover.Trigger>
 				<Popover.Content side="bottom" sideOffset={2} class="w-fit px-4">
-					<div class="flex flex-col gap-1 min-w-54 max-h-64 overflow-y-auto">
+					<div class="flex flex-col min-w-54 h-full min-h-0">
 						<span>Room members ({roomState.members.length})</span>
-						{#each roomState.members as member (member.user.username)}
-							<div
-								class="group relative flex justify-between items-center gap-2 px-2 py-1 hover:bg-secondary rounded"
-							>
-								<div class="flex items-center gap-2">
-									<UserAvatar user={member.user} />
-									<div class="flex flex-col items-start">
-										<span
-											>{member.user.displayName}
-											{#if member.user.username === currentUser.username}
-												<span class="text-xs text-muted-foreground">(You)</span>
-											{/if}
-										</span>
-										<span
-											class="text-xs font-semibold"
-											class:text-red-600={member.role === 'MASTER'}
-										>
-											{member.role.charAt(0).toUpperCase() + member.role.slice(1).toLowerCase()}
-										</span>
-									</div>
-								</div>
-								{#if member.user.username !== currentUser.username && isRoomMaster}
-									<Button
-										variant="ghost"
-										size="icon"
-										class="invisible group-hover:visible"
-										onclick={() => (memberToKick = member.user.username)}
-									>
-										<XIcon size={16} />
-									</Button>
-								{/if}
-							</div>
-						{/each}
-
+						<!-- List of members -->
+						<div class="flex-1 max-h-54 overflow-y-auto">
+							{#each roomState.members as member (member.user.username)}
+								{@render memberItem(member)}
+							{/each}
+						</div>
 						<div class="border-t border-bg-gray-500 my-2"></div>
 
-						{#if isRoomMaster}
-							<AddUserPopover {roomId} onAddMember={roomState.addMember} />
-						{/if}
-
-						<Button variant="ghost" size="sm">
-							<CornerUpLeft />
-							<span> Leave Room </span>
-						</Button>
+						<div class="shrink-0 flex flex-col gap-2">
+							{#if isRoomMaster}
+								<AddUserPopover {handleInviteUser} />
+							{/if}
+							<Button variant="ghost" size="sm" class="w-full justify-start">
+								<CornerUpLeft />
+								<span> Leave Room </span>
+							</Button>
+						</div>
 					</div>
 				</Popover.Content>
 			</Popover.Root>
@@ -182,7 +167,7 @@
 				<Dialog.Close>
 					<Button type="button" variant="destructive">Cancel</Button>
 				</Dialog.Close>
-				<Button onclick={handleKickUser} disabled={isSubmitting}>
+				<Button onclick={handleKickMember} disabled={isSubmitting}>
 					{isSubmitting ? 'Kicking...' : 'Kick User'}
 				</Button>
 			</Dialog.Footer>
@@ -203,4 +188,35 @@
 			{effect.icon}
 		</Button>
 	{/each}
+{/snippet}
+
+{#snippet memberItem(member: RoomMemberInfo)}
+	<div
+		class="group relatiee flex justify-between items-center gap-2 px-2 py-1 hover:bg-secondary rounded"
+	>
+		<div class="flex items-center gap-2">
+			<UserAvatar user={member.user} />
+			<div class="flex flex-col items-start">
+				<span
+					>{member.user.displayName}
+					{#if member.user.username === currentUser.username}
+						<span class="text-xs text-muted-foreground">(You)</span>
+					{/if}
+				</span>
+				<span class="text-xs font-semibold" class:text-red-600={member.role === 'MASTER'}>
+					{member.role.charAt(0).toUpperCase() + member.role.slice(1).toLowerCase()}
+				</span>
+			</div>
+		</div>
+		{#if member.user.username !== currentUser.username && isRoomMaster}
+			<Button
+				variant="ghost"
+				size="icon"
+				class="invisible group-hover:visible"
+				onclick={() => (memberToKick = member.user.username)}
+			>
+				<XIcon size={16} />
+			</Button>
+		{/if}
+	</div>
 {/snippet}

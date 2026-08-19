@@ -2,6 +2,7 @@
 	import '$lib/styles/layout.css';
 	import { browser } from '$app/environment';
 	import { QueryClient, QueryClientProvider } from '@tanstack/svelte-query';
+	import { Toaster } from '$lib/components/ui/sonner';
 	const queryClient = new QueryClient({
 		defaultOptions: {
 			queries: {
@@ -14,5 +15,6 @@
 </script>
 
 <QueryClientProvider client={queryClient}>
+	<Toaster />
 	{@render children()}
 </QueryClientProvider>

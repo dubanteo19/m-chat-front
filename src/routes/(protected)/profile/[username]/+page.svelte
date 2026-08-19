@@ -13,7 +13,7 @@
 
 	let { data }: { data: PageData } = $props();
 
-	const { currentUser } = useUser();
+	const { currentUser } = $derived(useUser());
 	let profile = $state(data.profile);
 
 	const DEFAULT_STYLE = {

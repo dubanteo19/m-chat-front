@@ -38,7 +38,7 @@
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
-	const { currentUser } = useUser();
+	const { currentUser } = $derived(useUser());
 	let openReactionId: number | null = $state(null);
 	let roomEffect = $state<RoomEffect | null>(null);
 	let repliedToMessage = $state<RepliedMessageInfo | null>(null);
@@ -47,7 +47,8 @@
 	let sidebarOpen = $state(false);
 
 	setContext(ROOM_MEMBERS_KEY, roomState);
-	export function updateMessageReactions(
+
+	function updateMessageReactions(
 		currentMessages: Message[],
 		payload: {
 			messageId: string | number;

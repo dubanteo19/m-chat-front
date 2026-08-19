@@ -1,60 +1,33 @@
 <script lang="ts">
-	import { roomMemberService } from '$lib/api/room-member';
-	import { userService } from '$lib/api/user';
 	import UserAvatar from '$lib/components/common/user-avatar.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Popover from '$lib/components/ui/popover/index.js';
+	import { useUsersQuery } from '$lib/queries/use-user-query';
 	import type { UserInfo } from '$lib/types/user';
 	import { PlusIcon } from '@lucide/svelte';
-	let { roomId, onAddMember } = $props();
+	let { handleInviteUser }: { handleInviteUser: (user: UserInfo) => void } = $props();
 	let query = $state('');
-	let users = $state<UserInfo[]>([]);
-	let loading = $state(false);
+	let debouncedQuery = $state('');
 	let debounceTimer: ReturnType<typeof setTimeout>;
 
-	async function searchUsers(displayName: string) {
-		if (!displayName.trim()) {
-			users = [];
-			return;
-		}
-		loading = true;
-		try {
-			users = await userService.search(displayName);
-		} finally {
-			loading = false;
-		}
-	}
-	$effect(() => {
+	// Debounce user input updates
+	function handleInput(e: Event & { currentTarget: HTMLInputElement }) {
+		query = e.currentTarget.value;
 		clearTimeout(debounceTimer);
-
-		if (!query.trim()) {
-			users = [];
-			return;
-		}
-
 		debounceTimer = setTimeout(() => {
-			searchUsers(query);
+			debouncedQuery = query;
 		}, 300);
+	}
 
-		return () => clearTimeout(debounceTimer);
-	});
-	const handleAddUser = async (user: UserInfo) => {
-		try {
-			const newMember = await roomMemberService.addMember(roomId, user.username);
-			onAddMember(newMember);
-			alert(`User ${user.displayName} added to the room successfully.`);
-		} catch (error) {
-			console.error('Error adding user to room:', error);
-		}
-	};
+	const userQuery = useUsersQuery(() => debouncedQuery);
 </script>
 
 <Popover.Root>
 	<Popover.Trigger>
-		<Button variant="ghost" size="sm">
+		<Button variant="ghost" size="sm" class="w-full justify-start ">
 			<PlusIcon />
-			Add User
+			<span> Add User </span>
 		</Button>
 	</Popover.Trigger>
 
@@ -62,17 +35,17 @@
 		<div class="space-y-3">
 			<span class="font-medium">Add user</span>
 
-			<Input bind:value={query} placeholder="Enter display name..." />
+			<Input bind:value={query} placeholder="Enter display name..." oninput={handleInput} />
 
 			<div class="max-h-64 overflow-y-auto">
-				{#if loading}
+				{#if userQuery.isLoading}
 					<div class="text-sm text-muted-foreground p-2">Searching...</div>
-				{:else if users.length === 0 && query}
+				{:else if userQuery.data?.length === 0 && query}
 					<div class="text-sm text-muted-foreground p-2">No users found.</div>
 				{:else}
-					{#each users as user (user.username)}
+					{#each userQuery.data as user (user.id)}
 						<button
-							onclick={() => handleAddUser(user)}
+							onclick={() => handleInviteUser(user)}
 							class="flex w-full items-center gap-2 rounded p-2 hover:bg-secondary"
 						>
 							<UserAvatar {user} />
