@@ -17,7 +17,7 @@ export class RoomState {
         this.membersQuery = createQuery(() => ({
             queryKey: ['room-members', this.getRoomId()],
             queryFn: () => roomService.getRoomMembers(this.getRoomId()),
-            enabled: !!this.getRoomId(),
+            enabled: (!!this.getRoomId() && this.getRoomId() !== "hall"),
         }));
     }
 

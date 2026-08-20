@@ -1,5 +1,5 @@
-// src/routes/rooms/[roomId]/+page.server.ts
-import { error, redirect } from '@sveltejs/kit';
+import { PUBLIC_BASE_URL } from '$env/static/public';
+import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
@@ -14,10 +14,9 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 		}
 	}
 
-	const response = await fetch(`/api/rooms/${roomId}`);
-	if (response.status === 401) {
-		throw redirect(303, '/login');
-	}
+	console.log(`Fetching room data for roomId: ${roomId}`);
+	const response = await fetch(`${PUBLIC_BASE_URL}/rooms/${roomId}`);
+
 
 	if (response.status === 403) {
 		throw error(403, { message: 'You do not have access to this room' });

@@ -23,6 +23,8 @@
 		repliedToMessage = $bindable(null)
 	}: ChatInputProps = $props();
 
+	const { currentUser } = $derived(useUser());
+
 	let inputMessage = $state('');
 	let showStickerPicker = $state(false);
 	let chatEditorRef = $state<ChatEditor | null>(null);
@@ -30,6 +32,11 @@
 	let typingTimeout: NodeJS.Timeout;
 	let amITyping = false;
 	const roomState = useRoom();
+	$effect(() => {
+		if (repliedToMessage) {
+			chatEditorRef?.focus();
+		}
+	});
 
 	function handleEditorInput(value: string) {
 		inputMessage = value;
@@ -151,7 +158,7 @@
 				value={inputMessage}
 				onkeydown={handleKeyDown}
 				oninput={handleEditorInput}
-				members={roomState.members}
+				members={roomState.members.filter((m) => m.user.id !== currentUser?.id)}
 			/>
 		</div>
 

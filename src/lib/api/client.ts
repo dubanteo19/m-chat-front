@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { PUBLIC_BASE_URL } from '$env/static/public';
+
+// this reserved for server api call only
 export const apiClient = axios.create({
 	baseURL: PUBLIC_BASE_URL,
 	timeout: 8000,

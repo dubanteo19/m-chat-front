@@ -7,8 +7,8 @@ export default defineConfig(({ mode }) => {
 
 	return {
 		server: {
-			host: env.VITE_HOST || '0.0.0.0',
-			port: Number(env.VITE_PORT) || 5173,
+			host: '0.0.0.0',
+			port: 5173,
 			allowedHosts: ['chat.dbt19.site', 'mchat.dbt19.site'],
 			proxy: {
 				'/api': {
@@ -23,12 +23,7 @@ export default defineConfig(({ mode }) => {
 		},
 		plugins: [
 			tailwindcss(),
-			sveltekit({
-				compilerOptions: {
-					runes: ({ filename }) =>
-						filename.split(/[/\\]/).includes('node_modules') ? undefined : true
-				}
-			})
+			sveltekit()
 		]
 	};
 });
