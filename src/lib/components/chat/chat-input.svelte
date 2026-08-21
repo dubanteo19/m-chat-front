@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { useUser } from '$lib/stores/auth.svelte';
-	import { MessageType, type MessagePayload } from '$lib/types/message';
+	import { MessageType, type Message, type MessagePayload } from '$lib/types/message';
 	import { createMessagePayload } from '$lib/utils/message';
 	import { Send } from '@lucide/svelte';
 	import { useRoom } from '../room/room-state.svelte';
@@ -17,6 +17,7 @@
 	}
 
 	let {
+		roomId,
 		onSendMessage,
 		onTypingStateChange,
 		onFileUploadRequested,
@@ -59,12 +60,12 @@
 
 		const trimmed = inputMessage.trim();
 		if (!trimmed && !repliedToMessage) return;
-
-		const payload = createMessagePayload({
+		const payload: MessagePayload = {
+			roomId: String(roomId),
 			content: trimmed,
 			replyTo: repliedToMessage?.id || null,
 			type: MessageType.TEXT
-		});
+		};
 
 		onSendMessage(payload);
 

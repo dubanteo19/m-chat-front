@@ -48,7 +48,7 @@ function createScrollService() {
 
 		container?.scrollTo({
 			top: container.scrollHeight,
-			behavior: 'smooth'
+			behavior: 'instant'
 		});
 	}
 

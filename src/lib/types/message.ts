@@ -23,12 +23,15 @@ export type ReactionInfo = {
 	reactedAt: string;
 };
 export interface MessagePayload {
+	roomId: string;
 	content: string;
 	replyTo?: string | number | null;
 	type: MessageType;
 }
+export type MessageStatus = 'sending' | 'sent' | 'failed';
 export type Message = {
 	id: number;
+	clientId: string;
 	type: MessageType;
 	sender: UserInfo;
 	content: string;
@@ -37,4 +40,5 @@ export type Message = {
 	isDeleted: boolean;
 	repliedTo?: RepliedMessageInfo | null;
 	reactions?: ReactionInfo[];
+	status: MessageStatus;
 };

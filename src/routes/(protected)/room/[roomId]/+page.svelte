@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { roomService } from '$lib/api/room';
+	import { messageService } from '$lib/api/message';
 	import { storageService } from '$lib/api/storage';
 	import ChatInput from '$lib/components/chat/chat-input.svelte';
 	import MessageItem from '$lib/components/chat/message-item.svelte';
@@ -17,6 +18,7 @@
 	import {
 		MessageType,
 		type Message,
+		type MessagePayload,
 		type ReactionInfo,
 		type RepliedMessageInfo
 	} from '$lib/types/message';
@@ -123,7 +125,7 @@
 
 	const loadChatHistory = async (targetRoom: string) => {
 		try {
-			const data = await roomService.getRoomMessages(targetRoom);
+			const data = await messageService.getRoomMessages(targetRoom);
 			messages = (data.data || []).map((msg) => processIncomingMessage(msg, currentUser.username));
 			scrollService.scrollToBottom();
 		} catch (err) {
@@ -146,10 +148,12 @@
 			websocketService.connect(currentRoomId, currentUser, {
 				onMessage(raw) {
 					const message = processIncomingMessage(raw, currentUser.username);
-					messages = [...messages, message];
+					if (message.sender.username !== currentUser.username) {
+						messages = [...messages, message];
+						scrollService.onIncomingMessage();
+					}
 					if (message.sender.username !== currentUser.username && currentUser.allowNotify)
 						notificationService.triggerPush(message, currentRoomId);
-					scrollService.onIncomingMessage();
 				},
 				onReaction(payload) {
 					messages = updateMessageReactions(messages, payload);
@@ -183,7 +187,7 @@
 	});
 	function handleDelete(message: Message) {
 		if (!roomId) return;
-		roomService.deleteMessage(roomId, message.id);
+		messageService.deleteMessage(roomId, message.id);
 	}
 
 	function onOpenLightbox(selectedMsg: Message, imgElement?: HTMLImageElement) {
@@ -269,6 +273,38 @@
 			processFile(file);
 		}
 	}
+	async function onSendMessage(payload: MessagePayload) {
+		const optimistic: Message = {
+			clientId: crypto.randomUUID(),
+			id: Date.now(),
+			type: payload.type,
+			sender: currentUser,
+			content: payload.content,
+			isMine: true,
+			isDeleted: false,
+			repliedTo: repliedToMessage,
+			reactions: [],
+			sentAt: new Date().toISOString(),
+			status: 'sending'
+		};
+		messages = [...messages, optimistic];
+		scrollService.onIncomingMessage();
+		try {
+			const saved = await messageService.sendMessage(payload);
+			messages = messages.map((message) =>
+				message.clientId === optimistic.clientId
+					? { ...saved, status: 'sent', isMine: true }
+					: message
+			);
+		} catch (err) {
+			console.error('Failed to send message:', err);
+			messages = messages.map((message) =>
+				message.clientId === optimistic.clientId
+					? { ...message, status: 'failed', isMine: true }
+					: message
+			);
+		}
+	}
 </script>
 
 <div class="flex h-screen max-h-screen overflow-hidden">
@@ -325,7 +361,7 @@
 					use:scrollService.use
 					class="flex flex-1 flex-col gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
 				>
-					{#each messages as message (message.sentAt)}
+					{#each messages as message, i (i)}
 						<MessageItem
 							{message}
 							onImageLoad={scrollService.scrollToBottom}
@@ -343,7 +379,7 @@
 				<ChatInput
 					{roomId}
 					bind:repliedToMessage
-					onSendMessage={websocketService.sendMessage}
+					{onSendMessage}
 					onTypingStateChange={websocketService.sendTyping}
 					onFileUploadRequested={processFile}
 				/>

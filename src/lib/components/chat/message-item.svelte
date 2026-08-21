@@ -95,6 +95,7 @@
 		{:else}
 			<MessageContent {message} {onImageLoad} {onOpenLightbox} />
 			<MessageReactions {message} {sendReact} />
+			{@render messageStatus(message)}
 			<MessageToolbar
 				{message}
 				{openReactionId}
@@ -106,3 +107,11 @@
 		{/if}
 	</div>
 </div>
+
+{#snippet messageStatus(message: Message)}
+	{#if message.status}
+		<span class="text-xs text-slate-400">
+			{message.status}
+		</span>
+	{/if}
+{/snippet}
