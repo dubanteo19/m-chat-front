@@ -1,4 +1,4 @@
-import type { UserInfo } from "./user";
+import type { UserInfo } from './user';
 
 export const MessageType = {
 	TEXT: 'TEXT',
@@ -22,12 +22,17 @@ export type ReactionInfo = {
 	sender: UserInfo;
 	reactedAt: string;
 };
+
 export interface MessagePayload {
-	roomId: string;
 	content: string;
 	replyTo?: string | number | null;
 	type: MessageType;
 }
+
+export interface MessageReactPayload {
+	emoji: string;
+}
+
 export type MessageStatus = 'sending' | 'sent' | 'failed';
 export type Message = {
 	id: number;

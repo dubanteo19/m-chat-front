@@ -40,63 +40,66 @@
 </script>
 
 <aside
-	class="w-64 border-r flex flex-col bg-sidebar justify-between fixed md:static inset-y-0 left-0 z-50 transform {sidebarOpen
-		? 'translate-x-0'
-		: '-translate-x-full'} md:translate-x-0 transition-transform duration-200 ease-in-out"
+	class="
+		fixed inset-y-0 left-0 z-50
+		flex h-full min-h-0 w-64 shrink-0 flex-col
+		border-r bg-sidebar
+		transition-transform duration-200 ease-in-out
+		{sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+		md:static md:translate-x-0 md:transition-none
+	"
 >
-	<div>
-		{#if notificationService.status === 'default'}
-			<div class="p-4 pb-0">
-				<Button
-					onclick={async () => {
-						await notificationService.requestPermission();
-					}}>🔔 Enable Notification</Button
-				>
-			</div>
-		{/if}
-		<div class="p-4 border-b flex items-center justify-between">
-			<span class="text-xl font-bold tracking-wider text-primary">m-chat</span>
+	{#if notificationService.status === 'default'}
+		<div class="p-4 pb-0">
 			<Button
-				variant="default"
-				size="icon"
-				title="Toggle Notifications"
-				onclick={toggleUpdateNotifications}
+				onclick={async () => {
+					await notificationService.requestPermission();
+				}}>🔔 Enable Notification</Button
 			>
-				{#if currentUser.allowNotify}
-					<Bell />
-				{:else}
-					<BellOff />
-				{/if}
-			</Button>
-			<Button onclick={() => (sidebarOpen = false)} class="md:hidden ">✕</Button>
 		</div>
-		<nav class="p-4 space-y-2">
-			<div class="flex items-center justify-between">
-				<p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Rooms</p>
-				<Button size="icon" variant="outline" onclick={() => (isOpenRoomDialog = true)}>
-					<PlusIcon />
-				</Button>
-			</div>
-			{#if isLoading}
-				<Spinner />
+	{/if}
+	<div class="p-4 border-b flex items-center justify-between">
+		<span class="text-xl font-bold tracking-wider text-primary">m-chat</span>
+		<Button
+			variant="default"
+			size="icon"
+			title="Toggle Notifications"
+			onclick={toggleUpdateNotifications}
+		>
+			{#if currentUser.allowNotify}
+				<Bell />
 			{:else}
-				{#each rooms as room (room.id)}
-					<a
-						href={resolve(`/room/${room.id}`)}
-						onclick={() => (sidebarOpen = false)}
-						class="flex items-center px-3 py-2 rounded-md text-sm transition-colors {room.id ===
-						roomId
-							? 'bg-primary'
-							: ' hover:bg-slate-700/50 hover:text-slate-200'}"
-					>
-						# {room.name}
-					</a>
-				{/each}
+				<BellOff />
 			{/if}
-		</nav>
+		</Button>
+		<Button onclick={() => (sidebarOpen = false)} class="md:hidden">✕</Button>
 	</div>
+	<nav class="p-4 space-y-2 overflow-y-auto flex-1 min-h-0">
+		<div class="flex items-center justify-between">
+			<p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Rooms</p>
+			<Button size="icon" variant="outline" onclick={() => (isOpenRoomDialog = true)}>
+				<PlusIcon />
+			</Button>
+		</div>
+		{#if isLoading}
+			<Spinner />
+		{:else}
+			{#each rooms as room (room.id)}
+				<a
+					href={resolve(`/room/${room.id}`)}
+					onclick={() => (sidebarOpen = false)}
+					class="flex items-center px-3 py-2 rounded-md text-sm transition-colors {room.id ===
+					roomId
+						? 'bg-primary'
+						: ' hover:bg-slate-700/50 hover:text-slate-200'}"
+				>
+					# {room.name}
+				</a>
+			{/each}
+		{/if}
+	</nav>
 
-	<div class="p-4 border-t flex items-center justify-between">
+	<div class="p-4 border-t flex shrink-0 items-center justify-between">
 		<div class="truncate mr-2">
 			<p class="text-xs">Logged in as</p>
 			{#if currentUser.username}

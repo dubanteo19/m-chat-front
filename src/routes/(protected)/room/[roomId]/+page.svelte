@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { roomService } from '$lib/api/room';
 	import { messageService } from '$lib/api/message';
 	import { storageService } from '$lib/api/storage';
 	import ChatInput from '$lib/components/chat/chat-input.svelte';
@@ -25,6 +24,7 @@
 	import type { UserInfo } from '$lib/types/user';
 	import {
 		createMessagePayload,
+		createOptimisticMessage,
 		createRoomEffectMessage,
 		processIncomingMessage
 	} from '$lib/utils/message';
@@ -43,7 +43,7 @@
 	const { currentUser } = $derived(useUser());
 	let openReactionId: number | null = $state(null);
 	let roomEffect = $state<RoomEffect | null>(null);
-	let repliedToMessage = $state<RepliedMessageInfo | null>(null);
+	let repliedToMessage = $state<Message | null>(null);
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
@@ -141,7 +141,6 @@
 		const currentRoomId = roomId;
 		if (!currentRoomId || currentRoomId === 'hall') return;
 
-		// 2. Wrap state initialization & API calls in untrack to prevent infinite loops
 		untrack(() => {
 			messages = [];
 			loadChatHistory(currentRoomId);
@@ -191,12 +190,9 @@
 	}
 
 	function onOpenLightbox(selectedMsg: Message, imgElement?: HTMLImageElement) {
-		// 1. Filter image messages
 		const imageMessages = messages.filter((msg) => msg.type === 'IMAGE' && !msg.isDeleted);
 
 		if (imageMessages.length === 0) return;
-
-		// 2. Map gallery items
 		const dataSource = imageMessages.map((msg) => {
 			const isSelected = msg.id === selectedMsg.id;
 			return {
@@ -209,7 +205,6 @@
 
 		// 3. Find active index
 		const initialIndex = imageMessages.findIndex((msg) => msg.id === selectedMsg.id);
-		console.log('Opening lightbox for message ID:', selectedMsg.id, 'at index:', initialIndex);
 		// 4. Instantiate PhotoSwipe
 		const pswp = new PhotoSwipe({
 			dataSource,
@@ -255,7 +250,7 @@
 				type: fileType,
 				replyTo: null
 			});
-			websocketService.sendMessage(payload);
+			// websocketService.sendMessage(payload);
 		} catch (error) {
 			console.error('Asset upload routing engine exception:', error);
 		}
@@ -274,23 +269,16 @@
 		}
 	}
 	async function onSendMessage(payload: MessagePayload) {
-		const optimistic: Message = {
-			clientId: crypto.randomUUID(),
-			id: Date.now(),
-			type: payload.type,
-			sender: currentUser,
-			content: payload.content,
-			isMine: true,
-			isDeleted: false,
-			repliedTo: repliedToMessage,
-			reactions: [],
-			sentAt: new Date().toISOString(),
-			status: 'sending'
-		};
+		const optimistic: Message = createOptimisticMessage(
+			payload.content,
+			payload.type,
+			currentUser,
+			repliedToMessage
+		);
 		messages = [...messages, optimistic];
 		scrollService.onIncomingMessage();
 		try {
-			const saved = await messageService.sendMessage(payload);
+			const saved = await messageService.sendMessage(roomId, payload);
 			messages = messages.map((message) =>
 				message.clientId === optimistic.clientId
 					? { ...saved, status: 'sent', isMine: true }
@@ -307,7 +295,7 @@
 	}
 </script>
 
-<div class="flex h-screen max-h-screen overflow-hidden">
+<div class="flex h-full min-h-0 overflow-hidden">
 	<Sidebar bind:sidebarOpen {roomId} />
 
 	{#if roomId === 'hall'}
@@ -319,7 +307,7 @@
 
 	{#if roomId !== 'hall'}
 		<main
-			class="relative flex-1 flex flex-col min-w-0 h-full"
+			class="relative flex-1 min-h-0 flex flex-col min-w-0"
 			onpaste={handlePaste}
 			ondragover={(e) => {
 				e.preventDefault();
@@ -369,7 +357,7 @@
 							setOpenReactionId={(id) => (openReactionId = id)}
 							handleReply={(msg) => (repliedToMessage = msg)}
 							{handleDelete}
-							sendReact={websocketService.sendReaction}
+							sendReact={messageService.sendReact}
 							{onOpenLightbox}
 						/>
 					{/each}

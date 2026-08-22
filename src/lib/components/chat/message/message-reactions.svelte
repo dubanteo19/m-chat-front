@@ -3,11 +3,11 @@
 	import UserBadge from '$lib/components/common/user-badge.svelte';
 	import * as HoverCard from '$lib/components/ui/hover-card/index.js';
 	import { Button } from '$lib/components/ui/button';
-	import type { Message, ReactionInfo } from '$lib/types/message';
+	import type { Message, MessageReactPayload, ReactionInfo } from '$lib/types/message';
 
 	let { message, sendReact } = $props<{
 		message: Message;
-		sendReact?: (messageId: number, emoji: string) => void;
+		sendReact?: (payload: MessageReactPayload) => void;
 	}>();
 
 	const groupedReactions = $derived(() => {
@@ -38,7 +38,7 @@
 						variant="ghost"
 						size="icon-sm"
 						class="border-primary "
-						onclick={() => sendReact?.(message.id, reaction.type)}
+						onclick={() => sendReact?.(message.id, { emoji: reaction.type })}
 					>
 						{reaction.type}
 						{#if reaction.count > 1}

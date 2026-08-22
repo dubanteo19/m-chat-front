@@ -1,9 +1,11 @@
 <script lang="ts">
-	import type { Message } from '$lib/types/message';
+	import type { Message, MessageReactPayload } from '$lib/types/message';
 	import { formatDate } from '$lib/utils/date';
 	import 'photoswipe/dist/photoswipe.css';
 	import UserAvatar from '../common/user-avatar.svelte';
 	import UserBadge from '../common/user-badge.svelte';
+	import { CircleAlert, CircleCheck, LoaderCircle } from '@lucide/svelte';
+
 	import { MessageContent, MessageReactions, MessageReply, MessageToolbar } from './message';
 
 	let {
@@ -20,7 +22,7 @@
 		onImageLoad?: () => void;
 		handleReply?: (message: Message) => void;
 		handleDelete?: (message: Message) => void;
-		sendReact?: (messageId: number, emoji: string) => void;
+		sendReact?: (payload: MessageReactPayload) => void;
 		openReactionId: number | null;
 		setOpenReactionId: (id: number | null) => void;
 		onOpenLightbox?: (message: Message, imgElement?: HTMLImageElement) => void;
@@ -94,8 +96,8 @@
 			</div>
 		{:else}
 			<MessageContent {message} {onImageLoad} {onOpenLightbox} />
-			<MessageReactions {message} {sendReact} />
 			{@render messageStatus(message)}
+			<MessageReactions {message} {sendReact} />
 			<MessageToolbar
 				{message}
 				{openReactionId}
@@ -110,8 +112,19 @@
 
 {#snippet messageStatus(message: Message)}
 	{#if message.status}
-		<span class="text-xs text-slate-400">
-			{message.status}
-		</span>
+		<div class="w-full flex justify-end mt-1">
+			{#if message.status === 'sending'}
+				<LoaderCircle
+					size={13}
+					strokeWidth={2}
+					class="animate-spin text-slate-400"
+					aria-label="Sending"
+				/>
+			{:else if message.status === 'sent'}
+				<CircleCheck size={13} strokeWidth={2.5} class="text-slate-400" aria-label="Sent" />
+			{:else if message.status === 'failed'}
+				<CircleAlert size={14} strokeWidth={2} class="text-red-400" aria-label="Failed to send" />
+			{/if}
+		</div>
 	{/if}
 {/snippet}

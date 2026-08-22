@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { useUser } from '$lib/stores/auth.svelte';
-	import { MessageType, type Message, type MessagePayload } from '$lib/types/message';
+	import { MessageType, type MessagePayload } from '$lib/types/message';
 	import { createMessagePayload } from '$lib/utils/message';
 	import { Send } from '@lucide/svelte';
 	import { useRoom } from '../room/room-state.svelte';

@@ -48,13 +48,16 @@ function createWebsocketService() {
 		};
 
 		socket.onmessage = (event) => {
-			const parsed = JSON.parse(event.data)
+			const parsed = JSON.parse(event.data);
 			switch (parsed.eventType as EventType) {
 				case EventType.ONLINE_USERS:
 					onlineUsers = Array.isArray(parsed) ? parsed : parsed.users || [];
 					return;
 				case EventType.TYPING_START:
-					if (parsed.sender.username !== currentUser?.username && !typingUsers.includes(parsed.sender)) {
+					if (
+						parsed.sender.username !== currentUser?.username &&
+						!typingUsers.includes(parsed.sender)
+					) {
 						typingUsers = [...typingUsers, parsed.sender];
 					}
 					return;
@@ -89,10 +92,6 @@ function createWebsocketService() {
 		socket.send(JSON.stringify(payload));
 	}
 
-	function sendMessage(payload: MessagePayload) {
-		sendRaw({ ...payload, eventType: EventType.MESSAGE });
-	}
-
 	function sendReaction(messageId: number, emoji: string) {
 		sendRaw({
 			eventType: EventType.REACTION,
@@ -122,7 +121,6 @@ function createWebsocketService() {
 		},
 		connect,
 		disconnect,
-		sendMessage,
 		sendReaction,
 		sendTyping,
 		sendRaw
