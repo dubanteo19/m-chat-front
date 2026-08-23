@@ -61,7 +61,6 @@
 		const trimmed = inputMessage.trim();
 		if (!trimmed && !repliedToMessage) return;
 		const payload: MessagePayload = {
-			roomId: String(roomId),
 			content: trimmed,
 			replyTo: repliedToMessage?.id || null,
 			type: MessageType.TEXT
@@ -94,13 +93,13 @@
 	}
 
 	function sendSticker(stickerUrl: string) {
-		onSendMessage(
-			createMessagePayload({
-				content: stickerUrl,
-				type: MessageType.STICKER,
-				replyTo: repliedToMessage?.id
-			})
-		);
+		const payload: MessagePayload = {
+			content: stickerUrl,
+			replyTo: null,
+			type: MessageType.STICKER
+		};
+
+		onSendMessage(payload);
 
 		showStickerPicker = false;
 		if (repliedToMessage) repliedToMessage = null;

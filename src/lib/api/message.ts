@@ -1,9 +1,4 @@
-import type {
-	Message,
-	MessagePayload,
-	MessageReactPayload,
-	ReactionInfo
-} from '$lib/types/message';
+import type { Message, MessagePayload, MessageReactPayload } from '$lib/types/message';
 import { apiClient } from './client';
 
 export interface RoomMessage {
@@ -19,8 +14,10 @@ export const messageService = {
 	sendMessage: async (roomId: string, payload: MessagePayload): Promise<Message> => {
 		return apiClient.post(`/rooms/${roomId}/messages`, payload);
 	},
-	sendReact: async (roomId: string, payload: MessageReactPayload): Promise<ReactionInfo> => {
-		return apiClient.post(`/rooms/${roomId}/messages/reactions`, payload);
+	sendReact: async (payload: MessageReactPayload): Promise<void> => {
+		return apiClient.post(`/rooms/${payload.roomId}/messages/${payload.messageId}/reactions`, {
+			emoji: payload.emoji
+		});
 	},
 	deleteMessage: async (roomId: string, messageId: number): Promise<void> => {
 		return apiClient.delete(`/rooms/${roomId}/messages/${messageId}`);

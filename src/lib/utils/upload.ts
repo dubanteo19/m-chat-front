@@ -1,3 +1,4 @@
+import imageCompression from 'browser-image-compression';
 export function extractImageFromPaste(event: ClipboardEvent): File | null {
 	const items = event.clipboardData?.items;
 	if (!items) return null;
@@ -24,4 +25,12 @@ export function validateAndExtractMediaFile(file: File): 'IMAGE' | 'VIDEO' | nul
 		return null;
 	}
 	return isVideo ? 'VIDEO' : 'IMAGE';
+}
+export function compressImage(file: File): Promise<File> {
+	return imageCompression(file, {
+		maxSizeMB: 2,
+		maxWidthOrHeight: 1920,
+		useWebWorker: true,
+		initialQuality: 0.8
+	});
 }

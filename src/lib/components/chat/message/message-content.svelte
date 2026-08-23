@@ -22,13 +22,13 @@
 	</div>
 {:else if message.type === MessageType.TEXT}
 	<div
-		class="inline-block w-auto max-w-full rounded-2xl border px-4 py-2 text-sm shadow-sm
+		class="message-bubble inline-block w-auto max-w-full rounded-2xl border px-4 py-2 text-sm shadow-sm
 		{message.repliedTo ? 'rounded-t-none' : ''}
 		{message.isMine
 			? ' bg-secondary/80 text-black rounded-br-none'
 			: ' bg-secondary  text-black rounded-bl-none'}"
 	>
-		<p class="whitespace-pre-wrap leading-relaxed" style="overflow-wrap: anywhere;">
+		<p class="whitespace-pre-wrap leading-relaxed wrap-anywhere">
 			<MessageContentText text={message.content} />
 		</p>
 	</div>
@@ -68,3 +68,12 @@
 		</Button>
 	</div>
 {/if}
+
+<style>
+	@media (pointer: coarse) {
+		.message-bubble {
+			user-select: none;
+			-webkit-user-select: none;
+		}
+	}
+</style>

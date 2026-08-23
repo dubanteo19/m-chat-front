@@ -28,6 +28,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return resolve(event);
 	}
 	const res = await event.fetch(`${PUBLIC_BASE_URL}/auth/me`);
+  console.log(res);
 	if (res.ok) {
 		const user = (await res.json()) as CurrentUserInfo;
 

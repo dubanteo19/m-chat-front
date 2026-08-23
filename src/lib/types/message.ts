@@ -18,6 +18,7 @@ export type RepliedMessageInfo = {
 };
 
 export type ReactionInfo = {
+	id: number;
 	type: string;
 	sender: UserInfo;
 	reactedAt: string;
@@ -30,6 +31,8 @@ export interface MessagePayload {
 }
 
 export interface MessageReactPayload {
+	messageId: number;
+	roomId: string;
 	emoji: string;
 }
 

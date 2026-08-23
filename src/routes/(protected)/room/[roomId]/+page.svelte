@@ -18,8 +18,7 @@
 		MessageType,
 		type Message,
 		type MessagePayload,
-		type ReactionInfo,
-		type RepliedMessageInfo
+		type ReactionInfo
 	} from '$lib/types/message';
 	import type { UserInfo } from '$lib/types/user';
 	import {
@@ -29,6 +28,7 @@
 		processIncomingMessage
 	} from '$lib/utils/message';
 	import {
+		compressImage,
 		extractFileFromDrop,
 		extractImageFromPaste,
 		validateAndExtractMediaFile
@@ -56,6 +56,7 @@
 			messageId: string | number;
 			action: 'ADDED' | 'REMOVED';
 			reaction: {
+				id: number;
 				type: string;
 				sender: UserInfo;
 				reactedAt: string;
@@ -72,11 +73,7 @@
 			const currentReactions = msg.reactions || [];
 
 			if (action === 'ADDED') {
-				const exists = currentReactions.some(
-					(r) =>
-						r.type === incomingReaction.type &&
-						r.sender.username === incomingReaction.sender.username
-				);
+				const exists = currentReactions.some((r) => r.id === incomingReaction.id);
 				if (exists) return msg;
 
 				const isMyMessage = msg.sender.username === currentUser.username;
@@ -95,6 +92,7 @@
 				}
 
 				const newReaction: ReactionInfo = {
+					id: incomingReaction.id,
 					type: incomingReaction.type,
 					sender: incomingReaction.sender,
 					reactedAt: incomingReaction.reactedAt || new Date().toISOString()
@@ -237,20 +235,53 @@
 				if (!response.ok) throw new Error('Express server video processing rejected.');
 				contentUrl = storageService.getVideoStreamUrl(userHandle, file.name);
 			} else if (fileType === 'IMAGE') {
-				const filename = `${crypto.randomUUID()}-${file.name}`;
-				const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(filename);
-				const uploadResponse = await storageService.uploadFileToMinio(uploadUrl, file);
+				const previewUrl = URL.createObjectURL(file);
+				const optimistic = createOptimisticMessage(
+					previewUrl,
+					MessageType.IMAGE,
+					currentUser,
+					null
+				);
+				messages = [...messages, optimistic];
+				scrollService.onIncomingMessage();
 
-				if (!uploadResponse.ok) throw new Error('MinIO image upload failed');
-				contentUrl = downloadUrl;
+				try {
+					const compressedFile = await compressImage(file);
+					const filename = `${crypto.randomUUID()}-${file.name}`;
+					const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(filename);
+					const uploadResponse = await storageService.uploadFileToMinio(uploadUrl, compressedFile);
+
+					if (!uploadResponse.ok) throw new Error('MinIO image upload failed');
+					contentUrl = downloadUrl;
+
+					const payload = createMessagePayload({
+						content: contentUrl,
+						type: fileType,
+						replyTo: null
+					});
+					const saved = await messageService.sendMessage(roomId, payload);
+					messages = messages.map((message) =>
+						message.clientId === optimistic.clientId
+							? { ...saved, status: 'sent', isMine: true }
+							: message
+					);
+					URL.revokeObjectURL(previewUrl);
+				} catch (err) {
+					console.error('Failed to compress image:', err);
+					messages = messages.map((message) =>
+						message.clientId === optimistic.clientId
+							? {
+									...message,
+									status: 'failed',
+									isMine: true
+								}
+							: message
+					);
+
+					URL.revokeObjectURL(previewUrl);
+					``;
+				}
 			}
-
-			const payload = createMessagePayload({
-				content: contentUrl,
-				type: fileType,
-				replyTo: null
-			});
-			// websocketService.sendMessage(payload);
 		} catch (error) {
 			console.error('Asset upload routing engine exception:', error);
 		}
@@ -293,9 +324,12 @@
 			);
 		}
 	}
+	function handleSendReact(messageId: number, emoji: string) {
+		messageService.sendReact({ messageId, roomId, emoji });
+	}
 </script>
 
-<div class="flex h-full min-h-0 overflow-hidden">
+<div class="flex flex-1 min-h-0 overflow-hidden">
 	<Sidebar bind:sidebarOpen {roomId} />
 
 	{#if roomId === 'hall'}
@@ -307,7 +341,7 @@
 
 	{#if roomId !== 'hall'}
 		<main
-			class="relative flex-1 min-h-0 flex flex-col min-w-0"
+			class="relative min-h-0 min-w-0 flex flex-col flex-1 overflow-hidden"
 			onpaste={handlePaste}
 			ondragover={(e) => {
 				e.preventDefault();
@@ -318,7 +352,7 @@
 		>
 			<!-- Background layer -->
 			<RoomEffects {roomEffect} />
-			<div class="relative z-10 flex flex-col h-full">
+			<div class="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
 				{#if !scrollService.isNearBottom}
 					<Button
 						class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
@@ -347,17 +381,18 @@
 
 				<div
 					use:scrollService.use
-					class="flex flex-1 flex-col gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
+					class="flex flex-1 flex-col min-h-0 gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
 				>
 					{#each messages as message, i (i)}
 						<MessageItem
 							{message}
+							isLastMessage={i === messages.length - 1}
 							onImageLoad={scrollService.scrollToBottom}
 							{openReactionId}
 							setOpenReactionId={(id) => (openReactionId = id)}
 							handleReply={(msg) => (repliedToMessage = msg)}
 							{handleDelete}
-							sendReact={messageService.sendReact}
+							sendReact={handleSendReact}
 							{onOpenLightbox}
 						/>
 					{/each}
