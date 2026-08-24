@@ -234,6 +234,13 @@
 				const response = await storageService.uploadVideoToExpress(userHandle, file);
 				if (!response.ok) throw new Error('Express server video processing rejected.');
 				contentUrl = storageService.getVideoStreamUrl(userHandle, file.name);
+				const payload = createMessagePayload({
+					content: contentUrl,
+					type: fileType,
+					replyTo: null
+				});
+				const saved= await messageService.sendMessage(roomId, payload);
+				messages = [...messages, { ...saved, status: 'sent', isMine: true }];
 			} else if (fileType === 'IMAGE') {
 				const previewUrl = URL.createObjectURL(file);
 				const optimistic = createOptimisticMessage(

@@ -22,16 +22,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const now = Date.now();
 	const cached = sessionCache.get(token);
-
 	if (cached && cached.expiresAt > now) {
 		event.locals.user = cached.user;
 		return resolve(event);
 	}
 	const res = await event.fetch(`${PUBLIC_BASE_URL}/auth/me`);
-  console.log(res);
 	if (res.ok) {
 		const user = (await res.json()) as CurrentUserInfo;
-
 		sessionCache.set(token, {
 			user,
 			expiresAt: now + CACHE_TTL
