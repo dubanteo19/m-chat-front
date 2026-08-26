@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { useUser } from '$lib/stores/auth.svelte';
 	import { MessageType, type MessagePayload } from '$lib/types/message';
-	import { createMessagePayload } from '$lib/utils/message';
 	import { Send } from '@lucide/svelte';
 	import { useRoom } from '../room/room-state.svelte';
 	import { Button } from '../ui/button';
 	import ChatEditor from './chat-input/chat-editor.svelte';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
 	import StickerPicker from './chat-input/sticker-picker.svelte';
+	import GifPicker from './chat-input/gif-picker.svelte';
 	interface ChatInputProps {
 		roomId: string | number;
 		onSendMessage: (payload: MessagePayload) => void;
@@ -140,8 +140,8 @@
 						<span class="text-sm uppercase tracking-wider">Select Sticker</span>
 						<Button onclick={() => (showStickerPicker = false)}>✕</Button>
 					</div>
-
-					<StickerPicker {sendSticker} />
+					<GifPicker onSelectGif={sendSticker} />
+					<!-- <StickerPicker {sendSticker} /> -->
 				</div>
 			{/if}
 		</div>

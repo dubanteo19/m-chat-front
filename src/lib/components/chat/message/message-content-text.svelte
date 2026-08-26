@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ROOM_MEMBERS_KEY, type RoomState } from '$lib/components/room/room-state.svelte';
+	import { useUser } from '$lib/stores/auth.svelte';
 	import { parseMessage } from '$lib/utils/message-parser';
 	import type { MessageToken } from '$lib/utils/message-parser';
 	import { truncateText } from '$lib/utils/text';
@@ -10,7 +11,7 @@
 	let { text }: { text: string } = $props();
 
 	const tokens = $derived(parseMessage(text));
-
+	const useState = useUser();
 	function getDisplayName(userId: string) {
 		const member = roomState.members.find((m) => String(m.user.id) === userId);
 
@@ -26,7 +27,11 @@
 	{#if token.type === 'text'}
 		{token.value}
 	{:else if token.type === 'mention'}
-		<span class="mention-chip" data-user-id={token.userId}>
+		<span
+			class="mention-chip"
+			class:self-mention={token.userId === String(useState.currentUser?.id)}
+			data-user-id={token.userId}
+		>
 			@{getDisplayName(token.userId)}
 		</span>
 	{:else if token.type === 'link'}
@@ -37,6 +42,9 @@
 {/snippet}
 
 <style>
+	.self-mention {
+		color: red !important;
+	}
 	.mention-chip {
 		color: #60a5fa;
 		font-weight: 600;

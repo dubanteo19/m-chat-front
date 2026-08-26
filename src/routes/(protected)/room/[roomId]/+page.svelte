@@ -253,7 +253,7 @@
 				scrollService.onIncomingMessage();
 
 				try {
-					const compressedFile = await compressImage(file);
+					const compressedFile = file.type==="image/gif" ? file : await compressImage(file);
 					const filename = `${crypto.randomUUID()}-${file.name}`;
 					const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(filename);
 					const uploadResponse = await storageService.uploadFileToMinio(uploadUrl, compressedFile);

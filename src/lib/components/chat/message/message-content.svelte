@@ -51,7 +51,7 @@
 			onload={onImageLoad}
 			src={message.content}
 			alt="Sticker"
-			class="w-28 h-28 object-contain animate-in zoom-in-95 duration-150"
+			class="w-full h-full object-contain animate-in zoom-in-95 duration-150"
 		/>
 	</div>
 {:else if message.type === MessageType.VIDEO}
