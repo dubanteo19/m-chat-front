@@ -2,9 +2,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import { downloadService } from '$lib/services/download-service.svelte';
 	import { MessageType, type Message } from '$lib/types/message';
+	import { RefreshCwIcon } from '@lucide/svelte';
 	import MessageContentText from './message-content-text.svelte';
 	let imgElement = $state<HTMLImageElement>();
+	let refreshKey = $state(0);
 
+	function refreshVideo() {
+		refreshKey++;
+	}
 	let { message, onImageLoad, onOpenLightbox } = $props<{
 		message: Message;
 		onImageLoad?: () => void;
@@ -56,7 +61,11 @@
 	</div>
 {:else if message.type === MessageType.VIDEO}
 	<div class="overflow-hidden group rounded-xl border border-slate-200 shadow-sm bg-black max-w-sm">
-		<video src={message.content} controls class="max-h-64 w-full object-contain">
+		<video
+			src={`${message.content}?refresh=${refreshKey}`}
+			controls
+			class="max-h-64 w-full object-contain"
+		>
 			<track kind="captions" />
 		</video>
 		<Button
@@ -65,6 +74,14 @@
 			class="absolute top-6 left-2 hidden group-hover:block "
 		>
 			Download
+		</Button>
+
+		<Button
+			onclick={() => refreshVideo()}
+			size="sm"
+			class="absolute top-6 right-6 hidden group-hover:block "
+		>
+			<RefreshCwIcon />
 		</Button>
 	</div>
 {/if}
