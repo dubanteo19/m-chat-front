@@ -17,6 +17,7 @@
 	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
 	import { useRoom } from '../room/room-state.svelte';
 	import AddUserPopover from './room-header/add-user-popover.svelte';
+	import RoomEffectPicker from '../room-effects/room-effect-picker.svelte';
 	let { sidebarOpen = $bindable(), roomId, onlineUsers, sendRaw, selectedRoomEffect } = $props();
 	let selectedRoom = $state<RoomInfo | null>(null);
 	let isSubmitting = $state(false);
@@ -126,12 +127,13 @@
 					</div>
 				</Popover.Content>
 			</Popover.Root>
+			<RoomEffectPicker {selectedRoomEffect} onselect={onRoomEffectSelect} />
 			<!--  Desktop View -->
-			<div class="hidden md:flex gap-1 px-2 py-1 border items-center rounded-full border-secondary">
+			<!-- <div class="hidden md:flex gap-1 px-2 py-1 border items-center rounded-full border-secondary">
 				{@render effectButtons()}
-			</div>
+			</div> -->
 			<!--  Mobile View -->
-			<div class="block md:hidden">
+			<!-- <div class="block md:hidden">
 				<Popover.Root>
 					<Popover.Trigger>
 						<Button variant="outline" size="icon" aria-label="Room Effects">
@@ -144,7 +146,7 @@
 						</div>
 					</Popover.Content>
 				</Popover.Root>
-			</div>
+			</div> -->
 		</div>
 	</div>
 	<Dialog.Root

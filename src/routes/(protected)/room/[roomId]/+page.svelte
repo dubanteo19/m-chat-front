@@ -37,6 +37,7 @@
 	import PhotoSwipe from 'photoswipe';
 	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
+	import { roomService } from '$lib/api/room';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
@@ -125,6 +126,9 @@
 		try {
 			const data = await messageService.getRoomMessages(targetRoom);
 			messages = (data.data || []).map((msg) => processIncomingMessage(msg, currentUser.username));
+			roomService.readRoom(targetRoom, {
+				seq: messages.reduce((max, msg) => Math.max(max, msg.seq), 0)
+			});
 			scrollService.scrollToBottom();
 		} catch (err) {
 			console.error('Failed to resolve room history channel logs:', err);
@@ -239,7 +243,7 @@
 					type: fileType,
 					replyTo: null
 				});
-				const saved= await messageService.sendMessage(roomId, payload);
+				const saved = await messageService.sendMessage(roomId, payload);
 				messages = [...messages, { ...saved, status: 'sent', isMine: true }];
 			} else if (fileType === 'IMAGE') {
 				const previewUrl = URL.createObjectURL(file);
@@ -253,7 +257,7 @@
 				scrollService.onIncomingMessage();
 
 				try {
-					const compressedFile = file.type==="image/gif" ? file : await compressImage(file);
+					const compressedFile = file.type === 'image/gif' ? file : await compressImage(file);
 					const filename = `${crypto.randomUUID()}-${file.name}`;
 					const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(filename);
 					const uploadResponse = await storageService.uploadFileToMinio(uploadUrl, compressedFile);

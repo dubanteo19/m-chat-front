@@ -4,6 +4,7 @@ export interface RoomInfo {
 	id: string;
 	name: string;
 	description?: string;
+	unreadCount: number;
 }
 
 export type RoomRole = 'MASTER' | 'MEMBER';

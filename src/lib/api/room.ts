@@ -11,6 +11,9 @@ export interface CreateRoomRequest {
 	name: string;
 	description: string;
 }
+export interface readRoomRequest {
+	seq: number;
+}
 export const roomService = {
 	getRoomMembers: async (roomId: string): Promise<RoomMemberInfo[]> => {
 		return apiClient.get(`/rooms/${roomId}/members`);
@@ -21,7 +24,10 @@ export const roomService = {
 	createRoom: async (request: CreateRoomRequest): Promise<RoomInfo> => {
 		return apiClient.post(`/rooms`, request);
 	},
-	deleteRoom: async (roomId: string): Promise<boolean> => {
+	deleteRoom: async (roomId: string): Promise<void> => {
 		return apiClient.delete(`/rooms/${roomId}`);
+	},
+	readRoom: async (roomId: string, request: readRoomRequest): Promise<void> => {
+		return apiClient.put(`/rooms/${roomId}/read`, request);
 	}
 };

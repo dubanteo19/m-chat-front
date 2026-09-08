@@ -48,5 +48,6 @@ export type Message = {
 	isDeleted: boolean;
 	repliedTo?: RepliedMessageInfo | null;
 	reactions?: ReactionInfo[];
+	seq: number;
 	status: MessageStatus;
 };

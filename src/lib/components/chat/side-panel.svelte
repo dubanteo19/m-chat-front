@@ -11,6 +11,7 @@
 	import { Bell, BellOff, PlusIcon } from '@lucide/svelte';
 	import CreateRoomDialog from '../room/create-room-dialog.svelte';
 	import Spinner from '../ui/spinner/spinner.svelte';
+	import { Badge } from '../ui/badge';
 
 	let { sidebarOpen = $bindable(), roomId } = $props();
 	let isOpenRoomDialog = $state(false);
@@ -85,16 +86,24 @@
 			<Spinner />
 		{:else}
 			{#each rooms as room (room.id)}
-				<a
-					href={resolve(`/room/${room.id}`)}
-					onclick={() => (sidebarOpen = false)}
-					class="flex items-center px-3 py-2 rounded-md text-sm transition-colors {room.id ===
-					roomId
-						? 'bg-primary'
-						: ' hover:bg-slate-700/50 hover:text-slate-200'}"
-				>
-					# {room.name}
-				</a>
+				<div class="relative">
+					<a
+						href={resolve(`/room/${room.id}`)}
+						onclick={() => (sidebarOpen = false)}
+						class:bg-primary={room.id === roomId}
+						class="flex items-center px-3 py-2 rounded-md text-sm transition-colors hover:bg-slate-700/50 hover:text-slate-200"
+					>
+						# {room.name}
+					</a>
+					{#if room.unreadCount > 0}
+						<Badge
+							class="absolute -top-1 -right-1 h-5 min-w-5 rounded-full px-1 font-mono"
+							variant="default"
+						>
+							{room.unreadCount > 99 ? '99+' : room.unreadCount}
+						</Badge>
+					{/if}
+				</div>
 			{/each}
 		{/if}
 	</nav>
