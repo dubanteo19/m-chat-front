@@ -40,14 +40,14 @@
 {:else if message.type === MessageType.IMAGE}
 	<button
 		onclick={() => onOpenLightbox?.(message, imgElement)}
-		class="overflow-hidden rounded-xl border border-slate-200 shadow-sm cursor-pointer block hover:opacity-95 transition-opacity focus:outline-none bg-slate-50"
+		class="overflow-hidden rounded-xl border border-slate-200 shadow-sm cursor-pointer block hover:opacity-85 transition-opacity focus:outline-none bg-slate-50"
 	>
 		<img
 			bind:this={imgElement}
 			onload={onImageLoad}
 			src={message.content}
 			alt="Chat attachment"
-			class="max-h-64 max-w-sm object-cover"
+			class="w-full h-full object-contain animate-in zoom-in-95 duration-150"
 		/>
 	</button>
 {:else if message.type === MessageType.STICKER}

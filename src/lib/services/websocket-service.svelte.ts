@@ -1,5 +1,4 @@
 import { PUBLIC_BASE_URL } from '$env/static/public';
-import { type MessagePayload } from '$lib/types/message';
 import type { UserInfo } from '$lib/types/user';
 export const EventType = {
 	MESSAGE: 'MESSAGE',

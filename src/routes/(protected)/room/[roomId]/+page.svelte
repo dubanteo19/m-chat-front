@@ -31,6 +31,8 @@
 		compressImage,
 		extractFileFromDrop,
 		extractImageFromPaste,
+		extractImageUrlFromPaste,
+		fetchFile,
 		validateAndExtractMediaFile
 	} from '$lib/utils/upload';
 	import { ArrowDown } from '@lucide/svelte';
@@ -38,6 +40,8 @@
 	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
 	import { roomService } from '$lib/api/room';
+	import { useUserRoomsQuery } from '$lib/queries/use-user-room';
+	import { readRoomService } from '$lib/api/room-read';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
@@ -48,7 +52,7 @@
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
-
+	const { markRoomAsRead } = useUserRoomsQuery();
 	setContext(ROOM_MEMBERS_KEY, roomState);
 
 	function updateMessageReactions(
@@ -126,9 +130,8 @@
 		try {
 			const data = await messageService.getRoomMessages(targetRoom);
 			messages = (data.data || []).map((msg) => processIncomingMessage(msg, currentUser.username));
-			roomService.readRoom(targetRoom, {
-				seq: messages.reduce((max, msg) => Math.max(max, msg.seq), 0)
-			});
+			const lastestSeq = messages.reduce((max, msg) => Math.max(max, msg.seq), 0);
+			await markRoomAsRead(targetRoom, lastestSeq);
 			scrollService.scrollToBottom();
 		} catch (err) {
 			console.error('Failed to resolve room history channel logs:', err);
@@ -149,11 +152,13 @@
 			websocketService.connect(currentRoomId, currentUser, {
 				onMessage(raw) {
 					const message = processIncomingMessage(raw, currentUser.username);
-					if (message.sender.username !== currentUser.username) {
+					if (!message.isMine) {
 						messages = [...messages, message];
 						scrollService.onIncomingMessage();
+						if (message.type !== MessageType.SYSTEM)
+							readRoomService.scheduleReadRoom(currentRoomId, message.seq);
 					}
-					if (message.sender.username !== currentUser.username && currentUser.allowNotify)
+					if (!message.isMine && currentUser.allowNotify)
 						notificationService.triggerPush(message, currentRoomId);
 				},
 				onReaction(payload) {
@@ -299,8 +304,16 @@
 	}
 
 	function handlePaste(event: ClipboardEvent) {
+		const imageUrl = extractImageUrlFromPaste(event);
+		if (imageUrl?.toLowerCase().includes('.gif')) {
+			fetchFile(imageUrl).then((file) => processFile(file));
+			return;
+		}
 		const file = extractImageFromPaste(event);
-		if (file) processFile(file);
+
+		if (file) {
+			processFile(file);
+		}
 	}
 
 	function handleDrop(event: DragEvent) {

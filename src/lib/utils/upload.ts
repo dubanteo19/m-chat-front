@@ -11,6 +11,24 @@ export function extractImageFromPaste(event: ClipboardEvent): File | null {
 	return null;
 }
 
+export function extractImageUrlFromPaste(
+	event: ClipboardEvent
+): string | null {
+	const html = event.clipboardData?.getData('text/html');
+	if (!html) return null;
+
+	const doc = new DOMParser().parseFromString(html, 'text/html');
+	const img = doc.querySelector('img');
+
+	return img?.src ?? null;
+}
+export async function fetchFile(url: string): Promise<File> {
+	const response = await fetch(url);
+	if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+	const blob = await response.blob();
+	const filename = url.split('/').pop()?.split('?')[0] || 'image.gif';
+	return new File([blob], filename, { type: blob.type });
+}
 export function extractFileFromDrop(event: DragEvent): File | null {
 	event.preventDefault();
 	const files = event.dataTransfer?.files;
