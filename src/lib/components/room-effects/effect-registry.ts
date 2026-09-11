@@ -1,6 +1,6 @@
 import { roomEffectsLabels, type RoomEffect } from './effects/particles';
 
-export type RoomEffectCategory = 'nature' | 'celebration' | 'dreamscape' | 'journey';
+export type RoomEffectCategory = 'nature' | 'celebration' | 'dreamscape' | 'worlds';
 
 export type RoomEffectDefinition = {
     type: RoomEffect;
@@ -19,10 +19,15 @@ export const roomEffectCategories: ReadonlyArray<{
         { value: 'nature', label: 'Nature' },
         { value: 'celebration', label: 'Celebration' },
         { value: 'dreamscape', label: 'Dreamscape' },
-        { value: 'journey', label: 'Journey' }
+        { value: 'worlds', label: 'Worlds' }
     ];
 
 const effectPresentation = {
+    'dewdrop-worlds': {
+        description: 'Tiny worlds gather in the morning dew.',
+        category: 'worlds',
+        previewBackground: 'radial-gradient(circle at 32% 28%, #e5faf2 0%, #8fc9b5 32%, #386f67 68%, #143b3b 100%)'
+    },
     snow: {
         description: 'A calm fall of winter snow.',
         category: 'nature',
@@ -55,17 +60,17 @@ const effectPresentation = {
     },
     'paper-butterfly-dream': {
         description: 'Paper butterflies in a gentle dream.',
-        category: 'dreamscape',
+        category: 'worlds',
         previewBackground: 'linear-gradient(145deg, #f5f3ff 0%, #c4b5fd 42%, #f0abfc 72%, #4c1d95 100%)'
     },
     'bioluminescent-tide': {
         description: 'Glowing waves from a moonlit sea.',
-        category: 'nature',
+        category: 'worlds',
         previewBackground: 'linear-gradient(160deg, #020617 0%, #164e63 45%, #0891b2 72%, #67e8f9 100%)'
     },
     'sticker-road-trip': {
         description: 'A playful ride full of travel stickers.',
-        category: 'journey',
+        category: 'worlds',
         previewBackground: 'linear-gradient(145deg, #fef3c7 0%, #fb923c 45%, #0ea5e9 100%)'
     },
     'vietnamese-mid-autumn': {

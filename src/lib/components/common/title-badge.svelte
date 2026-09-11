@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { UserInfo } from '$lib/api/types';
+	import type { TitleStyle, UserInfo } from '$lib/types/user';
 	import { animationClassMap } from '$lib/constants/animations';
 
 	let { user } = $props<{
-		user: Partial<UserInfo> & { title?: string; titleStyle?: any };
+		user: Partial<UserInfo> & { title?: string; titleStyle?: TitleStyle };
 		textSize?: string;
 	}>();
 

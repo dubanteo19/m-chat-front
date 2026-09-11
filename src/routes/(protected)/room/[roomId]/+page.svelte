@@ -48,6 +48,8 @@
 	const { currentUser } = $derived(useUser());
 	let openReactionId: number | null = $state(null);
 	let roomEffect = $state<RoomEffect | null>(null);
+	let effectMessageActivity = $state(0);
+	let effectReactionActivity = $state(0);
 	let repliedToMessage = $state<Message | null>(null);
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
@@ -152,6 +154,7 @@
 			websocketService.connect(currentRoomId, currentUser, {
 				onMessage(raw) {
 					const message = processIncomingMessage(raw, currentUser.username);
+					if (message.type !== MessageType.SYSTEM) effectMessageActivity += 1;
 					if (!message.isMine) {
 						messages = [...messages, message];
 						scrollService.onIncomingMessage();
@@ -162,6 +165,7 @@
 						notificationService.triggerPush(message, currentRoomId);
 				},
 				onReaction(payload) {
+					if (payload.action === 'ADDED') effectReactionActivity += 1;
 					messages = updateMessageReactions(messages, payload);
 				},
 				onDeleteMessage(payload) {
@@ -375,7 +379,7 @@
 			ondrop={handleDrop}
 		>
 			<!-- Background layer -->
-			<RoomEffects {roomEffect} />
+			<RoomEffects {roomEffect} messageActivity={effectMessageActivity} reactionActivity={effectReactionActivity} />
 			<div class="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
 				{#if !scrollService.isNearBottom}
 					<Button
