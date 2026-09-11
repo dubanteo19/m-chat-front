@@ -1,3 +1,4 @@
+import { roomEffectsLabels } from '$lib/components/room-effects/effects/particles';
 import { MessageType, type Message, type RepliedMessageInfo } from '$lib/types/message';
 import type { UserInfo } from '$lib/types/user';
 
@@ -53,17 +54,22 @@ export function processIncomingMessage(rawMsg: any, currentUser: string): Messag
 }
 
 export function createRoomEffectMessage(options: {
-	sender: { displayName: string };
+	sender: { displayName: string; username: string };
+	currentUsername: string;
 	effect: string;
 }): Message {
 	const id = Date.now(); // Generate a unique ID based on the current timestamp
+	const effect = roomEffectsLabels.find((effect) => effect.type === options.effect);
+	const senderName =
+		options.sender.username === options.currentUsername ? 'You' : options.sender.displayName;
 	return {
 		id: id,
-		content: `${options.sender.displayName} activated the ${options.effect} effect!`,
+		content: effect
+			? `${senderName} activated the ${effect.icon} ${effect.label} effect.`
+			: `${senderName} activated a room effect.`,
 		type: MessageType.SYSTEM,
 		sender: options.sender,
 		sentAt: new Date().toISOString(),
 		isDeleted: false
 	};
 }
-

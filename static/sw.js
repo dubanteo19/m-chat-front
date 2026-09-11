@@ -6,7 +6,6 @@ self.addEventListener('push', (event) => {
 
     try {
         const data = event.data.json();
-        console.log('Push event received:', data);
         const options = {
             body: data.body,
             icon: '/favicon.png',

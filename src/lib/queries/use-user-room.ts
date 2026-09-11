@@ -1,7 +1,7 @@
 import { roomService } from '$lib/api/room';
 import { userService } from '$lib/api/user';
 import type { RoomInfo } from '$lib/types/room';
-import { createQuery, useQueryClient } from '@tanstack/svelte-query';
+import { createQuery, QueryClient, useQueryClient } from '@tanstack/svelte-query';
 
 export const USER_ROOMS_QUERY_KEY = ['user-rooms'];
 
@@ -49,4 +49,26 @@ export function useUserRoomsQuery() {
             queryClient.invalidateQueries({ queryKey: USER_ROOMS_QUERY_KEY });
         }
     };
+}
+
+export function updateUnread(
+    queryClient: QueryClient,
+    roomId: string,
+    seq: number
+) {
+    queryClient.setQueryData<RoomInfo[]>(
+        USER_ROOMS_QUERY_KEY,
+        (rooms) =>
+            rooms?.map((room) => {
+                if (room.id !== roomId) return room;
+
+                const delta = Math.max(0, seq - room.lastSeq);
+
+                return {
+                    ...room,
+                    lastSeq: Math.max(room.lastSeq, seq),
+                    unreadCount: room.unreadCount + delta
+                };
+            }) ?? []
+    );
 }

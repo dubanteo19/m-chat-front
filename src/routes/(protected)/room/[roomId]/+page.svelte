@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { messageService } from '$lib/api/message';
+	import { readRoomService } from '$lib/api/room-read';
 	import { storageService } from '$lib/api/storage';
 	import ChatInput from '$lib/components/chat/chat-input.svelte';
 	import MessageItem from '$lib/components/chat/message-item.svelte';
@@ -10,6 +11,7 @@
 	import RoomEffects from '$lib/components/room-effects/room-effects.svelte';
 	import { ROOM_MEMBERS_KEY, RoomState } from '$lib/components/room/room-state.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { useUserRoomsQuery } from '$lib/queries/use-user-room';
 	import { notificationService } from '$lib/services/notification-service.svelte';
 	import { scrollService } from '$lib/services/scroll-service.svelte';
 	import { websocketService } from '$lib/services/websocket-service.svelte';
@@ -39,9 +41,6 @@
 	import PhotoSwipe from 'photoswipe';
 	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
-	import { roomService } from '$lib/api/room';
-	import { useUserRoomsQuery } from '$lib/queries/use-user-room';
-	import { readRoomService } from '$lib/api/room-read';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
@@ -179,6 +178,7 @@
 					roomEffect = payload.effect;
 					const effectMsg = createRoomEffectMessage({
 						sender: payload.sender,
+						currentUsername: currentUser.username,
 						effect: payload.effect
 					});
 					messages = [...messages, effectMsg];
