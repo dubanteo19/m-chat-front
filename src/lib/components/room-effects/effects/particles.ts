@@ -1,4 +1,7 @@
+import { DewdropWorlds } from './dewdrop-worlds';
+
 export const roomEffectsLabels: { type: RoomEffect; icon: string; label: string }[] = [
+    { type: 'dewdrop-worlds', icon: '💧', label: 'Dewdrop Worlds' },
     { type: 'snow', icon: '❄️', label: 'Snow' },
     { type: 'sakura', icon: '🌸', label: 'Sakura' },
     { type: 'aurora', icon: '🌌', label: 'Aurora' },
@@ -12,6 +15,7 @@ export const roomEffectsLabels: { type: RoomEffect; icon: string; label: string 
 ];
 
 export type RoomEffect =
+    | "dewdrop-worlds"
     | "snow"
     | "sakura"
     | "aurora"
@@ -358,6 +362,7 @@ export class ParticleEngine {
     private isStopping = false;
     private transitionAlpha = 0;
     private randomState: number;
+    private dewdropWorlds: DewdropWorlds | null = null;
 
 
     // Vietnamese Mid-Autumn: ambient particles plus occasional lobby events.
@@ -497,6 +502,10 @@ export class ParticleEngine {
 
         this.resize();
 
+        if (this.effect === "dewdrop-worlds") {
+            this.dewdropWorlds = new DewdropWorlds(canvas, () => this.random());
+        }
+
         window.addEventListener("resize", this.resize);
 
         this.createParticles();
@@ -531,6 +540,7 @@ export class ParticleEngine {
         this.canvas.height = Math.round(this.height * dpr);
 
         this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.dewdropWorlds?.resize();
 
         if (this.effect === "radiance-of-amitabha") {
             this.rebuildAmitabhaCaches();
@@ -627,6 +637,10 @@ export class ParticleEngine {
     }
 
     private update(deltaSeconds: number) {
+        if (this.dewdropWorlds) {
+            this.dewdropWorlds.update(deltaSeconds);
+            return;
+        }
         if (this.effect === "bioluminescent-tide") {
             this.updateBioluminescentTideScene(deltaSeconds);
         }
@@ -1522,7 +1536,13 @@ export class ParticleEngine {
         this.cleanup();
     };
 
+    public activity(kind: 'message' | 'reaction') {
+        this.dewdropWorlds?.activity(kind);
+    }
+
     private cleanup() {
+        this.dewdropWorlds?.destroy();
+        this.dewdropWorlds = null;
         this.isRunning = false;
         this.isStopping = false;
         this.transitionAlpha = 0;
@@ -1593,6 +1613,7 @@ export class ParticleEngine {
     }
 
     private createParticles(reset = false) {
+        if (this.effect === "dewdrop-worlds") return;
         if (reset)
             this.particles = [];
 
@@ -2263,6 +2284,12 @@ export class ParticleEngine {
 
         this.ctx.save();
         this.ctx.globalAlpha = this.transitionAlpha;
+
+        if (this.dewdropWorlds) {
+            this.dewdropWorlds.draw(this.ctx);
+            this.ctx.restore();
+            return;
+        }
 
         if (this.effect === "snow") {
             this.drawSnowBackground();

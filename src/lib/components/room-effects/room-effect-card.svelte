@@ -5,50 +5,47 @@
 	let {
 		effect,
 		active = false,
-		onselect
+		onselect,
+		onhover,
+		onfocuschange
 	}: {
 		effect: RoomEffectDefinition;
 		active?: boolean;
 		onselect: (effect: RoomEffectDefinition) => void;
+		onhover?: (effect: RoomEffectDefinition | null) => void;
+		onfocuschange?: (effect: RoomEffectDefinition | null) => void;
 	} = $props();
 </script>
 
 <button
 	type="button"
-	class="group relative min-w-0 overflow-hidden rounded-2xl border text-left transition-all duration-200 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none {active
-		? 'border-primary bg-primary/10 shadow-sm'
-		: 'border-border/70 bg-background/70 hover:-translate-y-0.5 hover:border-primary/50 hover:bg-muted/60 hover:shadow-sm'}"
+	class="flex min-h-20 w-full min-w-0 items-center gap-3 rounded-2xl border p-3 text-left transition-colors duration-150 motion-reduce:transition-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 focus-visible:outline-none {active
+		? 'border-primary/50 bg-primary/10'
+		: 'border-border/60 bg-background/40 hover:border-border hover:bg-muted/60'}"
 	aria-pressed={active}
 	aria-label={`${effect.label}${active ? ', active' : ''}`}
+	title={`${effect.label} — ${effect.description}`}
 	onclick={() => onselect(effect)}
+	onpointerenter={(event) => {
+		if (event.pointerType !== 'touch') onhover?.(effect);
+	}}
+	onpointerleave={() => onhover?.(null)}
+	onfocus={() => onfocuschange?.(effect)}
+	onblur={() => onfocuschange?.(null)}
 >
 	<div
-		class="relative flex h-16 items-center justify-center overflow-hidden border-b border-white/10"
+		class="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl ring-1 ring-inset ring-foreground/5"
 		style:background={effect.previewBackground}
 		aria-hidden="true"
 	>
 		<div class="absolute inset-0 bg-linear-to-t from-black/20 to-white/10"></div>
-		<span
-			class="relative text-2xl drop-shadow-md transition-transform duration-200 group-hover:scale-110"
-		>
+		<span class="relative text-2xl leading-none drop-shadow-sm">
 			{effect.icon}
 		</span>
-		{#if active}
-			<span
-				class="absolute top-2 right-2 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
-			>
-				<Check size={12} strokeWidth={3} />
-			</span>
-		{/if}
 	</div>
 
-	<div class="space-y-0.5 p-2.5">
-		<div class="flex min-w-0 items-center gap-1.5">
-			<span class="truncate text-xs font-semibold">{effect.label}</span>
-			{#if active}
-				<span class="ml-auto text-[10px] font-medium text-primary">Active</span>
-			{/if}
-		</div>
-		<p class="line-clamp-2 text-[10px] leading-4 text-muted-foreground">{effect.description}</p>
-	</div>
+	<span class="min-w-0 flex-1 text-[13px] leading-5 font-medium break-words">{effect.label}</span>
+	<span class="flex size-4 shrink-0 items-center justify-center text-primary" aria-hidden="true">
+		{#if active}<Check size={16} strokeWidth={2.5} />{/if}
+	</span>
 </button>
