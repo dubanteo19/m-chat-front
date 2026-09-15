@@ -37,7 +37,7 @@
 			variant="link"
 			size="sm"
 			class="p-0 text-primary-foreground"
-			onclick={() => (selectedRoom = { id: roomId, name: roomId })}
+			onclick={() => (selectedRoom = { id: roomId, name: roomId, lastSeq: 0, unreadCount: 0 })}
 		>
 			{roomId}
 		</Button>
