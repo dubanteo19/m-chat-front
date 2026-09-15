@@ -22,7 +22,7 @@
 	});
 </script>
 
-<div class="app flex flex-col min-h-0 h-screen overflow-hidden">
+<div class="app flex flex-col min-h-0 h-dvh overflow-hidden">
 	<main class="flex-1 flex flex-col min-h-0 overflow-hidden">
 		{@render children()}
 	</main>
