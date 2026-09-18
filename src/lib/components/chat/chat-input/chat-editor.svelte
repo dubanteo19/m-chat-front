@@ -5,6 +5,7 @@
 	import StarterKit from '@tiptap/starter-kit';
 	import Link from '@tiptap/extension-link';
 	import Mention from '@tiptap/extension-mention';
+	import { Placeholder } from '@tiptap/extensions';
 	import type { RoomMemberInfo } from '$lib/types/room';
 
 	let {
@@ -235,7 +236,9 @@
 					codeBlock: false,
 					horizontalRule: false
 				}),
-
+				Placeholder.configure({
+					placeholder: 'Type a message...'
+				}),
 				Mention.configure({
 					HTMLAttributes: {
 						class: 'mention'
@@ -470,5 +473,12 @@
 		color: #2563eb;
 		text-decoration: underline;
 		word-break: break-all;
+	}
+	:global(.tiptap p.is-editor-empty:first-child::before) {
+		content: attr(data-placeholder);
+		float: left;
+		color: #999;
+		pointer-events: none;
+		height: 0;
 	}
 </style>

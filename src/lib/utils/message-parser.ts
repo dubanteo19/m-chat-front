@@ -12,11 +12,32 @@ export interface MentionToken {
     raw: string;
 }
 
-export type MessageToken = TextToken | MentionToken | LinkToken;
+export interface MergeRequestToken {
+    type: 'merge_request';
+    url: string;
+    projectPath: string;
+    mrId: string;
+}
+export interface BacklogToken {
+    type: 'backlog';
+    url: string;
+    issueKey: string;
+    commentId?: string;
+}
+export type MessageToken =
+    | TextToken
+    | MentionToken
+    | LinkToken
+    | MergeRequestToken
+    | BacklogToken;
 
+const GITLAB_MR_REGEX =
+    /https?:\/\/gitlab\.shiftseven-dev\.com\/([^\s<]+)\/-\/merge_requests\/(\d+)/i;
+const BACKLOG_REGEX =
+    /https?:\/\/[a-zA-Z0-9_-]+\.backlog\.com\/view\/([a-zA-Z0-9_-]+)(?:#comment-(\d+))?/i;
 // Global regex targeting markup tags like <@userId>
 const MARKUP_REGEX =
-    /<@([a-zA-Z0-9_-]+)>|\b(https?:\/\/[^\s<]+|www\.[^\s<]+)\b/gi;
+    /<@([a-zA-Z0-9_-]+)>|(https?:\/\/gitlab\.shiftseven-dev\.com\/[^\s<]+\/-\/merge_requests\/\d+)|(https?:\/\/[a-zA-Z0-9_-]+\.backlog\.com\/view\/[a-zA-Z0-9_-]+(?:#comment-\d+)?)|\b(https?:\/\/[^\s<]+|www\.[^\s<]+)\b/gi;
 
 
 export function parseMessage(text: string): MessageToken[] {
@@ -28,7 +49,7 @@ export function parseMessage(text: string): MessageToken[] {
     for (const match of text.matchAll(MARKUP_REGEX)) {
         const index = match.index ?? 0;
 
-        // Plain text before this token
+        // Plain text segment before match
         if (index > lastIndex) {
             tokens.push({
                 type: 'text',
@@ -36,7 +57,7 @@ export function parseMessage(text: string): MessageToken[] {
             });
         }
 
-        // Mention
+        // 1. Mention: <@userId>
         if (match[1]) {
             tokens.push({
                 type: 'mention',
@@ -44,18 +65,45 @@ export function parseMessage(text: string): MessageToken[] {
                 raw: match[0]
             });
         }
-        // Link
+        // 2. GitLab Merge Request
         else if (match[2]) {
+            const mrMatch = match[2].match(GITLAB_MR_REGEX);
+            if (mrMatch) {
+                tokens.push({
+                    type: 'merge_request',
+                    url: match[2],
+                    projectPath: mrMatch[1],
+                    mrId: mrMatch[2]
+                });
+            } else {
+                tokens.push({ type: 'link', url: match[2] });
+            }
+        }
+        // 3. Backlog Issue / Comment
+        else if (match[3]) {
+            const backlogMatch = match[3].match(BACKLOG_REGEX);
+            if (backlogMatch) {
+                tokens.push({
+                    type: 'backlog',
+                    url: match[3],
+                    issueKey: backlogMatch[1],
+                    commentId: backlogMatch[2] // undefined if no comment hash
+                });
+            } else {
+                tokens.push({ type: 'link', url: match[3] });
+            }
+        }
+        // 4. Standard Fallback Link
+        else if (match[4]) {
             tokens.push({
                 type: 'link',
-                url: match[2]
+                url: match[4]
             });
         }
 
         lastIndex = index + match[0].length;
     }
 
-    // Remaining text
     if (lastIndex < text.length) {
         tokens.push({
             type: 'text',

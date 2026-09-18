@@ -379,7 +379,11 @@
 			ondrop={handleDrop}
 		>
 			<!-- Background layer -->
-			<RoomEffects {roomEffect} messageActivity={effectMessageActivity} reactionActivity={effectReactionActivity} />
+			<RoomEffects
+				{roomEffect}
+				messageActivity={effectMessageActivity}
+				reactionActivity={effectReactionActivity}
+			/>
 			<div class="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
 				{#if !scrollService.isNearBottom}
 					<Button

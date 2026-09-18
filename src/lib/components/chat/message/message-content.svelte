@@ -47,16 +47,16 @@
 			onload={onImageLoad}
 			src={message.content}
 			alt="Chat attachment"
-			class="w-full h-full object-contain animate-in zoom-in-95 duration-150"
+			class="max-w-[512px] max-h-[512px] object-contain animate-in zoom-in-95 duration-150"
 		/>
 	</button>
 {:else if message.type === MessageType.STICKER}
-	<div class="block my-1 select-none pointer-events-none">
+	<div class="block my-1 select-none flex-center">
 		<img
 			onload={onImageLoad}
 			src={message.content}
 			alt="Sticker"
-			class="w-full h-full object-contain animate-in zoom-in-95 duration-150"
+			class="max-w-[128px] max-h-[128px] w-auto h-auto object-contain animate-in zoom-in-95 duration-150"
 		/>
 	</div>
 {:else if message.type === MessageType.VIDEO}

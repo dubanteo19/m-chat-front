@@ -1,105 +1,178 @@
 export const STICKER_PACKS = [
 	{
 		id: 'silly_goose',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1fabf/512.webp',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-1.webp',
 		name: 'Goose'
 	},
 	{
 		id: 'skull_face',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f480/512.webp',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-2.webp',
 		name: 'Dead'
 	},
+
 	{
-		id: 'collapse_dizzy',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f635/512.webp',
-		name: 'Xỉu'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-3.webp',
+		name: 'Dead'
 	},
+
 	{
-		id: 'comic_boom',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a5/512.webp',
-		name: 'Boom'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-4.webp',
+		name: 'Dead'
 	},
+
 	{
-		id: 'pepe_dance',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f483/512.webp',
-		name: 'Dance'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-5.webp',
+		name: 'Dead'
 	},
+
 	{
-		id: 'doge_wow',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f436/512.webp',
-		name: 'Doge'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-6.webp',
+		name: 'Dead'
 	},
+
 	{
-		id: 'cat_heart',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f63b/512.webp',
-		name: 'Cat Love'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-7.webp',
+		name: 'Dead'
 	},
+
 	{
-		id: 'fire_hype',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f525/512.webp',
-		name: 'Fire Hype'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-8.webp',
+		name: 'Dead'
 	},
-	// --- EXTENDED EMOTIONAL STICKERS ---
+
 	{
-		id: 'blob_cry',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f62d/512.webp',
-		name: 'Sobbing'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-9.webp',
+		name: 'Dead'
 	},
+
 	{
-		id: 'laugh_tilt',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f923/512.webp',
-		name: 'ROFL'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-10.webp',
+		name: 'Dead'
 	},
+
 	{
-		id: 'mind_blown',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f92f/512.webp',
-		name: 'Mind Blown'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-11.webp',
+		name: 'Dead'
 	},
+
 	{
-		id: 'thinking_hm',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.webp',
-		name: 'Thinking'
+		id: 'skull_face',
+		url: 'https://minio.dbt19.site/mchat-public/nga/nga-12.webp',
+		name: 'Dead'
 	},
-	// --- EXTENDED TECH & GEEK STICKERS ---
-	{
-		id: 'cyber_alien',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f47d/512.webp',
-		name: 'Alien'
-	},
-	{
-		id: 'party_wizard',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1e9d9_200d_2642_fe0f/512.webp',
-		name: 'Wizard'
-	},
-	{
-		id: 'cool_sunglasses',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp',
-		name: 'Deal With It'
-	},
-	{
-		id: 'clown_fiesta',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f921/512.webp',
-		name: 'Clown'
-	},
-	// --- EXTENDED CELEBRATION & REACTION STICKERS ---
-	{
-		id: 'party_popper',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f389/512.webp',
-		name: 'Celebrate'
-	},
-	{
-		id: 'rocket_moon',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f680/512.webp',
-		name: 'To the Moon'
-	},
-	{
-		id: 'eyes_look',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f440/512.webp',
-		name: 'Suspicious'
-	},
-	{
-		id: 'ghost_boo',
-		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f47b/512.webp',
-		name: 'Ghost'
-	}
 ];
+
+// export const STICKER_PACKS = [
+// 	{
+// 		id: 'silly_goose',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1fabf/512.webp',
+// 		name: 'Goose'
+// 	},
+// 	{
+// 		id: 'skull_face',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f480/512.webp',
+// 		name: 'Dead'
+// 	},
+// 	{
+// 		id: 'collapse_dizzy',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f635/512.webp',
+// 		name: 'Xỉu'
+// 	},
+// 	{
+// 		id: 'comic_boom',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a5/512.webp',
+// 		name: 'Boom'
+// 	},
+// 	{
+// 		id: 'pepe_dance',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f483/512.webp',
+// 		name: 'Dance'
+// 	},
+// 	{
+// 		id: 'doge_wow',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f436/512.webp',
+// 		name: 'Doge'
+// 	},
+// 	{
+// 		id: 'cat_heart',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f63b/512.webp',
+// 		name: 'Cat Love'
+// 	},
+// 	{
+// 		id: 'fire_hype',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f525/512.webp',
+// 		name: 'Fire Hype'
+// 	},
+// 	// --- EXTENDED EMOTIONAL STICKERS ---
+// 	{
+// 		id: 'blob_cry',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f62d/512.webp',
+// 		name: 'Sobbing'
+// 	},
+// 	{
+// 		id: 'laugh_tilt',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f923/512.webp',
+// 		name: 'ROFL'
+// 	},
+// 	{
+// 		id: 'mind_blown',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f92f/512.webp',
+// 		name: 'Mind Blown'
+// 	},
+// 	{
+// 		id: 'thinking_hm',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.webp',
+// 		name: 'Thinking'
+// 	},
+// 	// --- EXTENDED TECH & GEEK STICKERS ---
+// 	{
+// 		id: 'cyber_alien',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f47d/512.webp',
+// 		name: 'Alien'
+// 	},
+// 	{
+// 		id: 'party_wizard',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1e9d9_200d_2642_fe0f/512.webp',
+// 		name: 'Wizard'
+// 	},
+// 	{
+// 		id: 'cool_sunglasses',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp',
+// 		name: 'Deal With It'
+// 	},
+// 	{
+// 		id: 'clown_fiesta',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f921/512.webp',
+// 		name: 'Clown'
+// 	},
+// 	// --- EXTENDED CELEBRATION & REACTION STICKERS ---
+// 	{
+// 		id: 'party_popper',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f389/512.webp',
+// 		name: 'Celebrate'
+// 	},
+// 	{
+// 		id: 'rocket_moon',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f680/512.webp',
+// 		name: 'To the Moon'
+// 	},
+// 	{
+// 		id: 'eyes_look',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f440/512.webp',
+// 		name: 'Suspicious'
+// 	},
+// 	{
+// 		id: 'ghost_boo',
+// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f47b/512.webp',
+// 		name: 'Ghost'
+// 	}
+// ];

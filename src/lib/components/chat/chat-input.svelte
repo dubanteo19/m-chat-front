@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { useUser } from '$lib/stores/auth.svelte';
+
+	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { MessageType, type MessagePayload } from '$lib/types/message';
 	import { Send } from '@lucide/svelte';
 	import { useRoom } from '../room/room-state.svelte';
 	import { Button } from '../ui/button';
 	import ChatEditor from './chat-input/chat-editor.svelte';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
-	import StickerPicker from './chat-input/sticker-picker.svelte';
 	import GifPicker from './chat-input/gif-picker.svelte';
+	import ExpressionPicker from './chat-input/expression-picker.svelte';
 	interface ChatInputProps {
 		roomId: string | number;
 		onSendMessage: (payload: MessagePayload) => void;
@@ -27,7 +29,7 @@
 	const { currentUser } = $derived(useUser());
 
 	let inputMessage = $state('');
-	let showStickerPicker = $state(false);
+	let showExpressionPicker = $state(false);
 	let chatEditorRef = $state<ChatEditor | null>(null);
 	let fileInputRef = $state<HTMLInputElement | null>(null);
 	let typingTimeout: NodeJS.Timeout;
@@ -101,7 +103,7 @@
 
 		onSendMessage(payload);
 
-		showStickerPicker = false;
+		showExpressionPicker = false;
 		if (repliedToMessage) repliedToMessage = null;
 	}
 </script>
@@ -124,26 +126,21 @@
 				📎
 			</Button>
 
-			<Button
-				onclick={() => (showStickerPicker = !showStickerPicker)}
-				class="p-3 h-11"
-				title="Send a Sticker"
+			<Popover.Root
+				open={showExpressionPicker}
+				onOpenChange={(open) => (showExpressionPicker = open)}
 			>
-				🎭
-			</Button>
-
-			{#if showStickerPicker}
-				<div
-					class="absolute bottom-full left-0 mb-3 z-50 w-84 rounded-xl p-3 fade-in bg-background slide-in-from-bottom-2 duration-200"
+				<Popover.Trigger>
+					<Button class="p-3 h-11" title="Send a Sticker">🎭</Button>
+				</Popover.Trigger>
+				<Popover.Content
+					align="start"
+					sideOffset={5}
+					class="w-[520px] rounded-xl p-2.5 bg-[#1e1e1e] text-white shadow-lg"
 				>
-					<div class="flex items-center justify-between pb-2 mb-2">
-						<span class="text-sm uppercase tracking-wider">Select Sticker</span>
-						<Button onclick={() => (showStickerPicker = false)}>✕</Button>
-					</div>
-					<GifPicker onSelectGif={sendSticker} />
-					<!-- <StickerPicker {sendSticker} /> -->
-				</div>
-			{/if}
+					<ExpressionPicker onClickItem={sendSticker} />
+				</Popover.Content>
+			</Popover.Root>
 		</div>
 
 		<div
