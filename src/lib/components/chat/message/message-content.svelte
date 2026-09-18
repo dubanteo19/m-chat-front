@@ -51,7 +51,7 @@
 		/>
 	</button>
 {:else if message.type === MessageType.STICKER}
-	<div class="block my-1 select-none flex-center">
+	<div class="block my-1 select-none flex" class:justify-end={message.isMine}>
 		<img
 			onload={onImageLoad}
 			src={message.content}
