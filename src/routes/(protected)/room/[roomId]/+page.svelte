@@ -323,10 +323,11 @@
 	function handleDrop(event: DragEvent) {
 		const file = extractFileFromDrop(event);
 		if (file) {
-			isDragging = false;
 			processFile(file);
 		}
+		isDragging = false;
 	}
+
 	async function onSendMessage(payload: MessagePayload) {
 		const optimistic: Message = createOptimisticMessage(
 			payload.content,

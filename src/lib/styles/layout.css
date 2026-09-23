@@ -30,7 +30,7 @@
 	--muted-foreground: oklch(0.542 0.034 322.5);
 	--accent: oklch(0.52 0.105 223.128);
 	--accent-foreground: oklch(0.984 0.019 200.873);
-	--destructive: oklch(0.55 0.20 25);
+	--destructive: oklch(0.55 0.2 25);
 	--border: oklch(23.9% 0.006 271.2);
 	--input: oklch(0.922 0.005 325.62);
 	--ring: oklch(0.711 0.019 323.02);
@@ -126,24 +126,11 @@ button:focus:not(:focus-visible) {
 	}
 }
 
-.visually-hidden {
-	border: 0;
-	clip: rect(0 0 0 0);
-	height: auto;
-	margin: 0;
-	overflow: hidden;
-	padding: 0;
-	position: absolute;
-	width: 1px;
-	white-space: nowrap;
-}
-
 .flex-center {
 	display: flex;
 	justify-content: center;
 	align-items: center;
 }
-
 .dark {
 	--background: oklch(0.145 0.008 326);
 	--foreground: oklch(0.985 0 0);
