@@ -253,33 +253,57 @@
 	<AvatarCropDialog file={cropFile} onapply={applyPhoto} oncancel={() => (cropFile = null)} />
 {/if}
 
-<div class="profile-page">
-	<div class="profile-scroll">
-		<div class="profile-shell">
-			<nav class="breadcrumb" aria-label="Breadcrumb">
-				<button type="button" class="back-link" onclick={() => history.back()}
-					><ArrowLeft size={16} /> Back</button
+<div
+	class="flex min-h-0 flex-1 flex-col bg-slate-950 font-[var(--font-body)] text-slate-100 motion-reduce:[&_*]:animate-none! motion-reduce:[&_*]:transition-none! motion-reduce:[&_*::after]:animate-none! motion-reduce:[&_*::before]:animate-none!"
+>
+	<div class="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable]">
+		<div class="mx-auto w-full max-w-[1160px] px-5 pt-4 pb-8 sm:px-10 sm:pt-7 sm:pb-16">
+			<nav class="flex items-center gap-4 text-[13px] text-slate-500" aria-label="Breadcrumb">
+				<button
+					type="button"
+					class="inline-flex min-h-11 items-center gap-2 border-0 bg-transparent text-slate-300 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
+					onclick={() => history.back()}><ArrowLeft size={16} /> Back</button
 				>
 				<span aria-hidden="true">/</span><span>Profile</span>
 			</nav>
-			<header class="page-heading">
-				<h1>{isOwner ? 'Your profile' : 'Profile'}</h1>
-				{#if isOwner}<p>Manage how you appear in chat.</p>{/if}
+			<header class="border-b border-slate-800 py-6 sm:pt-7 sm:pb-9">
+				<h1
+					class="m-0 text-left text-[clamp(28px,4vw,36px)] leading-[1.2] font-[650] tracking-[-0.035em]"
+				>
+					{isOwner ? 'Your profile' : 'Profile'}
+				</h1>
+				{#if isOwner}<p class="mt-2.5 text-sm text-slate-400">
+						Manage how you appear in chat.
+					</p>{/if}
 			</header>
-			<div class="profile-layout" class:public-profile={!isOwner}>
-				<aside class="identity-panel" aria-label="Profile information">
-					<div class="avatar-wrap">
-						<div class="avatar">
+			<div
+				class={isOwner
+					? 'grid grid-cols-1 items-start gap-8 pt-6 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-7 sm:pt-9 min-[961px]:grid-cols-[240px_minmax(0,1fr)] min-[961px]:gap-14'
+					: 'grid grid-cols-[minmax(0,480px)] items-start justify-center pt-6 sm:pt-9'}
+			>
+				<aside
+					class="grid min-w-0 grid-cols-[80px_minmax(0,1fr)] gap-x-6 rounded-[20px] border border-slate-800 bg-slate-900 p-6 text-left sm:block sm:px-5 sm:py-8 sm:text-center"
+					aria-label="Profile information"
+				>
+					<div class="relative row-span-3 m-0 w-[72px] self-center sm:mx-auto sm:mb-5 sm:w-24">
+						<div
+							class="grid size-[72px] place-items-center overflow-hidden rounded-full bg-slate-700 text-2xl font-semibold shadow-[0_0_0_5px_#1e293b] sm:size-24 sm:text-[28px]"
+						>
 							{#if avatarUrl && !imageFailed}
 								<img
 									src={avatarUrl}
 									alt={profile.displayName + "'s avatar"}
 									onerror={() => (imageFailed = true)}
+									class="size-full object-cover"
 								/>
 							{:else}<span>{avatarInitials}</span>{/if}
 						</div>
 						{#if isOwner}
-							<label class="avatar-edit" class:upload-disabled={isSaving}>
+							<label
+								class="absolute -right-[7px] -bottom-[7px] grid size-11 cursor-pointer place-items-center rounded-full border-4 border-slate-900 bg-slate-200 text-slate-950 hover:bg-white focus-within:outline-2 focus-within:outline-offset-3 focus-within:outline-sky-400"
+								class:pointer-events-none={isSaving}
+								class:opacity-50={isSaving}
+							>
 								<Camera size={18} /><span class="sr-only">Change photo</span>
 								<input
 									type="file"
@@ -291,36 +315,57 @@
 							</label>
 						{/if}
 					</div>
-					<h2>{previewName}</h2>
-					<p class="username">@{profile.username}</p>
-					{#if previewUser.title}<div class="saved-title">
+					<h2 class="self-end text-lg font-semibold [overflow-wrap:anywhere]">{previewName}</h2>
+					<p class="mt-1.5 text-[13px] text-slate-400 [overflow-wrap:anywhere]">
+						@{profile.username}
+					</p>
+					{#if previewUser.title}<div class="mt-2 [overflow-wrap:anywhere] sm:mt-3.5">
 							<TitleBadge user={previewUser} />
 						</div>{/if}
 					{#if isOwner}
-						<p class="photo-help">JPG, PNG or WebP. Up to 5 MB.</p>
-						{#if selectedAvatarFile}<div class="photo-selected">
-								New photo selected <button type="button" disabled={isSaving} onclick={undoPhoto}
+						<p
+							class="col-span-full mt-3 border-t border-slate-800 pt-3 text-xs leading-[1.8] text-slate-400 sm:mt-7 sm:pt-[22px]"
+						>
+							JPG, PNG or WebP. Up to 5 MB.
+						</p>
+						{#if selectedAvatarFile}<div class="col-span-full mt-3 text-xs text-sky-300">
+								New photo selected <button
+									type="button"
+									disabled={isSaving}
+									onclick={undoPhoto}
+									class="mt-1 block min-h-11 underline underline-offset-4 sm:mx-auto"
 									>Undo photo</button
 								>
 							</div>{/if}
-						{#if photoError}<p class="photo-error" role="alert">{photoError}</p>{/if}
+						{#if photoError}<p class="col-span-full mt-3 text-[13px] text-red-300" role="alert">
+								{photoError}
+							</p>{/if}
 					{/if}
 				</aside>
 				{#if isOwner}
-					<form id="profile-form" class="settings-form" onsubmit={handleProfileUpdate}>
-						<fieldset disabled={isSaving}>
-							<section class="settings-section" aria-labelledby="details-heading">
-								<div class="section-heading">
-									<span class="section-icon"><UserRound size={19} /></span>
+					<form id="profile-form" class="min-w-0" onsubmit={handleProfileUpdate}>
+						<fieldset class="min-w-0 border-0 p-0" disabled={isSaving}>
+							<section aria-labelledby="details-heading">
+								<div class="mb-7 flex items-center gap-3">
+									<span
+										class="grid size-10 shrink-0 place-items-center rounded-xl border border-slate-800 text-slate-400"
+										><UserRound size={19} /></span
+									>
 									<div>
-										<h2 id="details-heading">Personal details</h2>
-										<p>Your name and title are visible in your rooms.</p>
+										<h2 id="details-heading" class="text-base font-semibold tracking-[-0.015em]">
+											Personal details
+										</h2>
+										<p class="mt-1 text-[13px] text-slate-400">
+											Your name and title are visible in your rooms.
+										</p>
 									</div>
 								</div>
-								<div class="field-row">
-									<div class="field-caption">
-										<label for="displayName">Display name</label>
-										<p>What others call you.</p>
+								<div
+									class="mt-6 grid grid-cols-1 items-start gap-2.5 min-[961px]:grid-cols-[180px_minmax(0,1fr)] min-[961px]:gap-5"
+								>
+									<div>
+										<label for="displayName" class="block text-sm font-medium">Display name</label>
+										<p class="mt-1.5 text-xs text-slate-400">What others call you.</p>
 									</div>
 									<Input
 										id="displayName"
@@ -328,84 +373,120 @@
 										maxlength={50}
 										autocomplete="name"
 										required
+										class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
 									/>
 								</div>
-								<div class="field-row">
-									<div class="field-caption">
-										<label for="title">Title <span>Optional</span></label>
-										<p id="title-help">Shown beside your name.</p>
+								<div
+									class="mt-6 grid grid-cols-1 items-start gap-2.5 min-[961px]:grid-cols-[180px_minmax(0,1fr)] min-[961px]:gap-5"
+								>
+									<div>
+										<label for="title" class="block text-sm font-medium"
+											>Title <span class="ml-1.5 text-xs font-normal text-slate-400">Optional</span
+											></label
+										>
+										<p id="title-help" class="mt-1.5 text-xs text-slate-400">
+											Shown beside your name.
+										</p>
 									</div>
-									<div class="title-input">
+									<div class="min-w-0">
 										<Input
 											id="title"
 											bind:value={badgeForm.title}
 											maxlength={30}
 											placeholder="Add a short title"
 											aria-describedby="title-help"
-										/><span class="character-count">{badgeForm.title.length}/30</span>
+											class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
+										/><span class="mt-[7px] block text-right text-xs text-slate-400 tabular-nums"
+											>{badgeForm.title.length}/30</span
+										>
 									</div>
 								</div>
 							</section>
-							<section class="chat-preview settings-section" aria-labelledby="preview-heading">
-								<div class="preview-heading">
-									<h2 id="preview-heading">Chat preview</h2>
-									<span>Only visible to you until saved</span>
+							<section
+								class="mt-8 rounded-[14px] border border-slate-700 bg-slate-900 p-5 pt-8"
+								aria-labelledby="preview-heading"
+							>
+								<div class="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+									<h2 id="preview-heading" class="text-sm font-semibold">Chat preview</h2>
+									<span class="text-[13px] text-slate-400">Only visible to you until saved</span>
 								</div>
-								<div class="preview-message">
-									<div class="preview-avatar">
+								<div class="flex items-start gap-3">
+									<div
+										class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-700 text-sm"
+									>
 										{#if avatarUrl && !imageFailed}<img
 												src={avatarUrl}
 												alt=""
+												class="size-full object-cover"
 											/>{:else}{avatarInitials}{/if}
 									</div>
-									<div class="preview-content">
-										<div class="preview-identity">
-											<strong>{previewName}</strong><TitleBadge user={previewUser} />
+									<div class="min-w-0">
+										<div class="flex flex-wrap items-center gap-2 [overflow-wrap:anywhere]">
+											<strong class="text-sm">{previewName}</strong><TitleBadge
+												user={previewUser}
+											/>
 										</div>
-										<p>This is how you appear in chat.</p>
+										<p class="mt-2 text-sm text-slate-300">This is how you appear in chat.</p>
 									</div>
 								</div>
 							</section>
-							<section class="settings-section" aria-labelledby="style-heading">
-								<div class="section-heading">
-									<span class="section-icon"><Palette size={19} /></span>
+							<section class="mt-8 border-t border-slate-800 pt-8" aria-labelledby="style-heading">
+								<div class="mb-7 flex items-center gap-3">
+									<span
+										class="grid size-10 shrink-0 place-items-center rounded-xl border border-slate-800 text-slate-400"
+										><Palette size={19} /></span
+									>
 									<div>
-										<h2 id="style-heading">Title appearance</h2>
-										<p>Choose a style or set your own colors.</p>
+										<h2 id="style-heading" class="text-base font-semibold tracking-[-0.015em]">
+											Title appearance
+										</h2>
+										<p class="mt-1 text-[13px] text-slate-400">
+											Choose a style or set your own colors.
+										</p>
 									</div>
 								</div>
 								{#if !badgeForm.title.trim()}
-									<div class="title-empty">
-										<p>Add a title to personalize how you appear beside your name.</p>
+									<div
+										class="flex flex-wrap items-center gap-4 rounded-xl border border-dashed border-slate-700 p-5"
+									>
+										<p class="min-w-[180px] flex-1 text-sm text-slate-400">
+											Add a title to personalize how you appear beside your name.
+										</p>
 										<Button
 											type="button"
 											variant="outline"
+											class="focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
 											onclick={() => document.getElementById('title')?.focus()}>Add a title</Button
 										>
 									</div>
 								{:else}
-									<Tabs.Root
-										value={badgeMode}
-										onValueChange={handleTabChange}
-										class="appearance-tabs"
-									>
+									<Tabs.Root value={badgeMode} onValueChange={handleTabChange}>
 										<Tabs.List
-											><Tabs.Trigger value="presets">Choose a style</Tabs.Trigger><Tabs.Trigger
-												value="custom">Advanced</Tabs.Trigger
+											class="min-h-11 w-fit rounded-[10px] border border-slate-800 bg-slate-900 p-1"
+											><Tabs.Trigger
+												value="presets"
+												class="min-h-9 rounded-[7px] px-3 text-[13px] text-slate-400 data-active:bg-slate-700 data-active:text-slate-50 sm:px-[18px]"
+												>Choose a style</Tabs.Trigger
+											><Tabs.Trigger
+												value="custom"
+												class="min-h-9 rounded-[7px] px-3 text-[13px] text-slate-400 data-active:bg-slate-700 data-active:text-slate-50 sm:px-[18px]"
+												>Advanced</Tabs.Trigger
 											></Tabs.List
 										>
 										<Tabs.Content value="presets" class="mt-5 focus-visible:outline-none">
-											<div class="preset-grid">
+											<div class="grid grid-cols-2 gap-3 min-[961px]:grid-cols-3">
 												{#each BADGE_PRESETS as preset (preset.id)}
 													<button
 														type="button"
-														class="preset-option"
-														class:selected={isPresetSelected(preset)}
+														class={isPresetSelected(preset)
+															? "min-w-0 overflow-hidden rounded-xl border border-sky-400 bg-slate-900 p-0 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*]:[animation-play-state:paused]! [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*::after]:[animation-play-state:paused]! [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*::before]:[animation-play-state:paused]!"
+															: "min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 p-0 text-left transition-colors hover:border-slate-500 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*]:[animation-play-state:paused]! [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*::after]:[animation-play-state:paused]! [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*::before]:[animation-play-state:paused]!"}
 														aria-pressed={isPresetSelected(preset)}
 														aria-label={preset.name}
 														onclick={() => applyBadgePreset(preset)}
 													>
-														<span class="preset-art"
+														<span
+															class="flex min-h-[76px] items-center justify-center px-2 py-3 [overflow-wrap:anywhere]"
 															><TitleBadge
 																user={{
 																	title: badgeForm.title.trim() || preset.title,
@@ -413,8 +494,13 @@
 																}}
 															/></span
 														>
-														<span class="preset-label"
-															>{preset.name}<span class="selection-dot" aria-hidden="true"
+														<span
+															class="flex items-center justify-between gap-1.5 border-t border-slate-800 p-3 text-xs text-slate-300"
+															>{preset.name}<span
+																class={isPresetSelected(preset)
+																	? 'grid size-4 shrink-0 place-items-center rounded-full border border-sky-400 bg-sky-400 text-slate-950'
+																	: 'grid size-4 shrink-0 place-items-center rounded-full border border-slate-600'}
+																aria-hidden="true"
 																>{#if isPresetSelected(preset)}<Check size={12} />{/if}</span
 															></span
 														>
@@ -422,8 +508,8 @@
 												{/each}
 											</div>
 										</Tabs.Content>
-										<Tabs.Content value="custom" class="mt-0 focus-visible:outline-none">
-											<p class="advanced-help">
+										<Tabs.Content value="custom" class="mt-5 focus-visible:outline-none">
+											<p class="mb-5 text-[13px] text-slate-400">
 												Advanced customization — adjust colors, shape and effects.
 											</p>
 											{#if isFramed}<p class="mb-4 text-sm text-slate-400">
@@ -438,10 +524,11 @@
 															id="textColor"
 															type="color"
 															bind:value={badgeForm.textColor}
-															class="size-9 shrink-0 cursor-pointer bg-transparent p-0"
+															class="h-[46px] min-h-[46px] w-9 shrink-0 cursor-pointer rounded-[10px] border-slate-700 bg-transparent p-0 shadow-none focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
 														/><Input
 															bind:value={badgeForm.textColor}
 															aria-label="Text color hex value"
+															class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
 														/>
 													</div></Field.Field
 												>
@@ -453,11 +540,12 @@
 															type="color"
 															bind:value={badgeForm.backgroundColor}
 															disabled={isBackgroundControlled}
-															class="size-9 shrink-0 cursor-pointer bg-transparent p-0"
+															class="h-[46px] min-h-[46px] w-9 shrink-0 cursor-pointer rounded-[10px] border-slate-700 bg-transparent p-0 shadow-none focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
 														/><Input
 															bind:value={badgeForm.backgroundColor}
 															disabled={isBackgroundControlled}
 															aria-label="Background color hex value"
+															class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
 														/>
 													</div>
 													{#if isBackgroundControlled}<p class="text-xs text-amber-200">
@@ -469,7 +557,9 @@
 														type="single"
 														disabled={isFramed}
 														bind:value={badgeForm.borderRadius}
-														><Select.Trigger id="radius" class="w-full"
+														><Select.Trigger
+															id="radius"
+															class="min-h-[46px] w-full rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
 															>{{
 																'0px': 'Square',
 																'4px': 'Slightly rounded',
@@ -490,7 +580,9 @@
 														type="single"
 														disabled={isFramed}
 														bind:value={badgeForm.borderStyle}
-														><Select.Trigger id="borderStyle" class="w-full"
+														><Select.Trigger
+															id="borderStyle"
+															class="min-h-[46px] w-full rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
 															>{BORDER_STYLE_OPTIONS.find(
 																(option) => option.value === badgeForm.borderStyle
 															)?.label ?? 'Choose a border'}</Select.Trigger
@@ -509,11 +601,12 @@
 															type="color"
 															bind:value={badgeForm.borderColor}
 															disabled={!isFramed && badgeForm.borderStyle === 'none'}
-															class="size-9 shrink-0 cursor-pointer bg-transparent p-0"
+															class="h-[46px] min-h-[46px] w-9 shrink-0 cursor-pointer rounded-[10px] border-slate-700 bg-transparent p-0 shadow-none focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
 														/><Input
 															bind:value={badgeForm.borderColor}
 															disabled={!isFramed && badgeForm.borderStyle === 'none'}
 															aria-label="Border color hex value"
+															class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
 														/>
 													</div></Field.Field
 												>
@@ -522,7 +615,9 @@
 														type="single"
 														disabled={isFramed}
 														bind:value={badgeForm.textEffect}
-														><Select.Trigger id="textEffect" class="w-full"
+														><Select.Trigger
+															id="textEffect"
+															class="min-h-[46px] w-full rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
 															>{TEXT_EFFECT_OPTIONS.find(
 																(option) => option.value === badgeForm.textEffect
 															)?.label ?? 'Choose a text effect'}</Select.Trigger
@@ -537,7 +632,9 @@
 													><Field.Label for="vibe">Frame or effect</Field.Label><Select.Root
 														type="single"
 														bind:value={badgeForm.animationVibe}
-														><Select.Trigger id="vibe" class="w-full"
+														><Select.Trigger
+															id="vibe"
+															class="min-h-[46px] w-full rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
 															>{BADGE_ANIMATIONS.find(
 																(animation) => animation.value === badgeForm.animationVibe
 															)?.label ?? 'Choose a style'}</Select.Trigger
@@ -559,33 +656,35 @@
 			</div>
 		</div>
 	</div>
-	{#if isOwner}
-		<footer class="save-bar">
-			<div class="save-bar-inner">
-				<div class="save-status" aria-live="polite">
+	{#if isOwner && (hasChanges || isSaving)}
+		<footer
+			class="shrink-0 border-t border-slate-800 bg-slate-950 px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-10 sm:pt-4 sm:pb-[max(16px,env(safe-area-inset-bottom))]"
+		>
+			<div
+				class="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-2.5 sm:flex-nowrap sm:gap-5"
+			>
+				<div class="min-w-0 empty:hidden sm:empty:block" aria-live="polite">
 					{#if feedbackMessage.text}<p
-							class:error={feedbackMessage.type === 'error'}
+							class={feedbackMessage.type === 'error'
+								? 'flex items-center gap-2 text-[13px] text-red-300 [overflow-wrap:anywhere]'
+								: 'flex items-center gap-2 text-[13px] text-emerald-300 [overflow-wrap:anywhere]'}
 							role={feedbackMessage.type === 'error' ? 'alert' : 'status'}
 						>
 							{#if feedbackMessage.type === 'success'}<Check size={16} />{/if}{feedbackMessage.text}
-						</p>{:else if hasChanges}<p class="unsaved">Unsaved changes</p>{:else}<p
-							class="unchanged"
-						>
-							No unsaved changes
-						</p>{/if}
+						</p>{:else}<p class="text-[13px] text-amber-300">Unsaved changes</p>{/if}
 				</div>
-				<div class="save-actions">
+				<div class="flex w-full shrink-0 justify-end gap-2.5 sm:w-auto">
 					<Button
 						type="button"
 						variant="ghost"
-						class="cancel-button"
+						class="h-11 flex-1 rounded-[10px] px-2.5 text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:flex-none sm:px-5"
 						disabled={isSaving || !hasChanges}
 						onclick={discardChanges}>Discard changes</Button
 					>
 					<Button
 						type="submit"
 						form="profile-form"
-						class="save-button"
+						class="h-11 flex-1 rounded-[10px] bg-sky-600 px-2.5 font-medium text-white hover:bg-sky-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:flex-none sm:px-6"
 						disabled={isSaving || isUploading || !hasChanges || !badgeForm.displayName.trim()}
 						>{#if isSaving}<LoaderCircle class="animate-spin" />{/if}{isUploading
 							? 'Uploading photo...'
@@ -598,584 +697,3 @@
 		</footer>
 	{/if}
 </div>
-
-<style>
-	.profile-layout.public-profile {
-		grid-template-columns: minmax(0, 480px);
-		justify-content: center;
-	}
-	.chat-preview {
-		padding: 20px;
-		background: #0f172a;
-		border: 1px solid #334155;
-		border-radius: 14px;
-	}
-	.preview-heading {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px 16px;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 20px;
-	}
-	.preview-heading h2 {
-		font-size: 14px;
-		font-weight: 600;
-	}
-	.preview-heading span,
-	.advanced-help {
-		font-size: 13px;
-		color: #94a3b8;
-	}
-	.advanced-help {
-		margin-bottom: 20px;
-	}
-	.preview-message {
-		display: flex;
-		gap: 12px;
-		align-items: start;
-	}
-	.preview-avatar {
-		width: 40px;
-		height: 40px;
-		flex-shrink: 0;
-		display: grid;
-		place-items: center;
-		overflow: hidden;
-		border-radius: 50%;
-		background: #334155;
-		font-size: 14px;
-	}
-	.preview-avatar img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-	.preview-content {
-		min-width: 0;
-	}
-	.preview-identity {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 8px;
-		overflow-wrap: anywhere;
-	}
-	.preview-identity strong {
-		font-size: 14px;
-	}
-	.preview-content p {
-		margin-top: 8px;
-		color: #cbd5e1;
-		font-size: 14px;
-	}
-	.title-empty {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: 16px;
-		padding: 20px;
-		border: 1px dashed #334155;
-		border-radius: 12px;
-	}
-	.title-empty p {
-		flex: 1;
-		min-width: 180px;
-		font-size: 14px;
-		color: #94a3b8;
-	}
-	.photo-error {
-		grid-column: 1 / -1;
-		margin-top: 12px;
-		color: #fca5a5;
-		font-size: 13px;
-	}
-	.photo-selected button {
-		display: block;
-		margin: 4px auto 0;
-		min-height: 44px;
-		text-decoration: underline;
-		text-underline-offset: 4px;
-	}
-	.save-status p.unsaved {
-		color: #fcd34d;
-	}
-	.save-status p.unchanged {
-		color: #94a3b8;
-	}
-	.preset-option:not(:hover):not(:focus-visible):not(.selected) :global(*),
-	.preset-option:not(:hover):not(:focus-visible):not(.selected) :global(*::before),
-	.preset-option:not(:hover):not(:focus-visible):not(.selected) :global(*::after) {
-		animation-play-state: paused !important;
-	}
-	@media (prefers-reduced-motion: reduce) {
-		.profile-page :global(*),
-		.profile-page :global(*::before),
-		.profile-page :global(*::after) {
-			animation: none !important;
-			transition: none !important;
-		}
-	}
-	.profile-page {
-		display: flex;
-		flex: 1;
-		flex-direction: column;
-		min-height: 0;
-		background: #020617;
-		color: #f1f5f9;
-		font-family: var(--font-body);
-	}
-	.profile-scroll {
-		flex: 1;
-		min-height: 0;
-		overflow-y: auto;
-		overscroll-behavior-y: contain;
-		scrollbar-gutter: stable;
-	}
-	.profile-shell {
-		max-width: 1160px;
-		margin: 0 auto;
-		padding: 28px 40px 64px;
-	}
-	.breadcrumb {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-		color: #64748b;
-		font-size: 13px;
-	}
-	.back-link {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		min-height: 44px;
-		color: #cbd5e1;
-		background: none;
-		border: 0;
-	}
-	.back-link:hover {
-		color: white;
-	}
-	.page-heading {
-		padding: 28px 0 36px;
-		border-bottom: 1px solid #1e293b;
-	}
-	.page-heading h1 {
-		margin: 0;
-		text-align: left;
-		font-size: clamp(28px, 4vw, 36px);
-		font-weight: 650;
-		letter-spacing: -0.035em;
-		line-height: 1.2;
-	}
-	.page-heading p {
-		margin-top: 10px;
-		color: #94a3b8;
-		font-size: 14px;
-	}
-	.profile-layout {
-		display: grid;
-		grid-template-columns: 240px minmax(0, 1fr);
-		gap: 56px;
-		padding-top: 36px;
-		align-items: start;
-	}
-	.identity-panel {
-		min-width: 0;
-		text-align: center;
-		padding: 32px 20px;
-		background: #0f172a;
-		border: 1px solid #1e293b;
-		border-radius: 20px;
-	}
-	.avatar-wrap {
-		position: relative;
-		width: 96px;
-		margin: 0 auto 20px;
-	}
-	.avatar {
-		display: grid;
-		place-items: center;
-		width: 96px;
-		height: 96px;
-		overflow: hidden;
-		border-radius: 50%;
-		background: #334155;
-		box-shadow: 0 0 0 5px #1e293b;
-		font-size: 28px;
-		font-weight: 600;
-	}
-	.avatar img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-	.avatar-edit {
-		position: absolute;
-		bottom: -7px;
-		right: -7px;
-		display: grid;
-		place-items: center;
-		width: 44px;
-		height: 44px;
-		border: 4px solid #0f172a;
-		border-radius: 50%;
-		background: #e2e8f0;
-		color: #0f172a;
-		cursor: pointer;
-	}
-	.avatar-edit:hover {
-		background: white;
-	}
-	.avatar-edit:focus-within {
-		outline: 2px solid #38bdf8;
-		outline-offset: 3px;
-	}
-	.upload-disabled {
-		opacity: 0.5;
-		pointer-events: none;
-	}
-	.identity-panel h2 {
-		font-size: 18px;
-		font-weight: 600;
-		overflow-wrap: anywhere;
-	}
-	.username {
-		margin-top: 6px;
-		font-size: 13px;
-		color: #94a3b8;
-		overflow-wrap: anywhere;
-	}
-	.saved-title {
-		margin-top: 14px;
-		overflow-wrap: anywhere;
-	}
-	.photo-help {
-		margin-top: 28px;
-		padding-top: 22px;
-		border-top: 1px solid #1e293b;
-		font-size: 12px;
-		color: #94a3b8;
-		line-height: 1.8;
-	}
-	.photo-selected {
-		margin-top: 12px;
-		font-size: 12px;
-		color: #7dd3fc;
-	}
-	.settings-form,
-	fieldset {
-		min-width: 0;
-	}
-	fieldset {
-		padding: 0;
-		border: 0;
-	}
-	.settings-section + .settings-section {
-		margin-top: 32px;
-		padding-top: 32px;
-		border-top: 1px solid #1e293b;
-	}
-	.section-heading {
-		display: flex;
-		gap: 12px;
-		align-items: center;
-		margin-bottom: 28px;
-	}
-	.section-icon {
-		display: grid;
-		place-items: center;
-		width: 40px;
-		height: 40px;
-		flex-shrink: 0;
-		border: 1px solid #1e293b;
-		border-radius: 12px;
-		color: #94a3b8;
-	}
-	.section-heading h2 {
-		font-size: 16px;
-		font-weight: 600;
-		letter-spacing: -0.015em;
-	}
-	.section-heading p {
-		margin-top: 5px;
-		color: #94a3b8;
-		font-size: 13px;
-	}
-	.field-row {
-		display: grid;
-		grid-template-columns: 180px minmax(0, 1fr);
-		gap: 20px;
-		align-items: start;
-		margin-top: 24px;
-	}
-	.field-caption label {
-		display: block;
-		font-size: 14px;
-		font-weight: 500;
-	}
-	.field-caption label span {
-		margin-left: 6px;
-		font-weight: 400;
-		font-size: 12px;
-		color: #94a3b8;
-	}
-	.field-caption p {
-		margin-top: 6px;
-		color: #94a3b8;
-		font-size: 12px;
-	}
-	.title-input {
-		min-width: 0;
-	}
-	.character-count {
-		display: block;
-		text-align: right;
-		margin-top: 7px;
-		color: #94a3b8;
-		font-size: 12px;
-		font-variant-numeric: tabular-nums;
-	}
-	.preset-grid {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 12px;
-	}
-	.preset-option {
-		min-width: 0;
-		overflow: hidden;
-		padding: 0;
-		border: 1px solid #1e293b;
-		border-radius: 12px;
-		background: #0f172a;
-		transition:
-			border-color 150ms,
-			background 150ms;
-		text-align: left;
-	}
-	.preset-option:hover {
-		border-color: #64748b;
-	}
-	.preset-option.selected {
-		border-color: #38bdf8;
-	}
-	.preset-art {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		min-height: 76px;
-		padding: 12px 8px;
-		overflow-wrap: anywhere;
-	}
-	.preset-label {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 6px;
-		border-top: 1px solid #1e293b;
-		padding: 12px;
-		color: #cbd5e1;
-		font-size: 12px;
-	}
-	.selection-dot {
-		display: grid;
-		place-items: center;
-		width: 16px;
-		height: 16px;
-		flex-shrink: 0;
-		border: 1px solid #475569;
-		border-radius: 50%;
-	}
-	.selected .selection-dot {
-		background: #38bdf8;
-		color: #020617;
-		border-color: #38bdf8;
-	}
-	.profile-page :global(input:not([type='file'])),
-	.profile-page :global([data-slot='select-trigger']) {
-		min-height: 46px;
-		border-radius: 10px;
-		border: 1px solid #334155;
-		background: #0f172a;
-		color: #f1f5f9;
-		font-size: 14px;
-		box-shadow: none;
-	}
-	.profile-page :global(input:not([type='color']):not([type='file'])) {
-		cursor: text;
-	}
-	.profile-page :global(input::placeholder) {
-		color: #94a3b8;
-	}
-	.profile-page :global(input:focus-visible),
-	.profile-page :global(button:focus-visible) {
-		outline: 2px solid #38bdf8;
-		outline-offset: 3px;
-	}
-	.profile-page :global([data-slot='tabs-list']) {
-		width: fit-content;
-		padding: 4px;
-		min-height: 44px;
-		border: 1px solid #1e293b;
-		border-radius: 10px;
-		background: #0f172a;
-	}
-	.profile-page :global([data-slot='tabs-trigger']) {
-		min-height: 36px;
-		padding: 0 18px;
-		border-radius: 7px;
-		color: #94a3b8;
-		font-size: 13px;
-	}
-	.profile-page :global([data-slot='tabs-trigger'][data-active]) {
-		background: #334155;
-		color: #f8fafc;
-	}
-	.profile-page :global([data-slot='tabs-content']) {
-		margin-top: 20px;
-	}
-	.save-bar {
-		flex-shrink: 0;
-		background: #020617;
-		border-top: 1px solid #1e293b;
-		padding: 16px 40px max(16px, env(safe-area-inset-bottom));
-	}
-	.save-bar-inner {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 20px;
-		max-width: 1080px;
-		margin: auto;
-	}
-	.save-status {
-		min-width: 0;
-	}
-	.save-status p {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		color: #6ee7b7;
-		font-size: 13px;
-		overflow-wrap: anywhere;
-	}
-	.save-status p.error {
-		color: #fca5a5;
-	}
-	.save-actions {
-		display: flex;
-		gap: 10px;
-		flex-shrink: 0;
-	}
-	.profile-page :global(.cancel-button) {
-		height: 44px;
-		border-radius: 10px;
-		padding: 0 20px;
-		color: #cbd5e1;
-	}
-	.profile-page :global(.cancel-button:hover) {
-		background: #1e293b;
-		color: white;
-	}
-	.profile-page :global(.save-button) {
-		height: 44px;
-		border-radius: 10px;
-		padding: 0 24px;
-		background: #0284c7;
-		color: white;
-		font-weight: 500;
-	}
-	.profile-page :global(.save-button:hover) {
-		background: #0369a1;
-	}
-	@media (max-width: 960px) {
-		.profile-layout {
-			grid-template-columns: 200px minmax(0, 1fr);
-			gap: 28px;
-		}
-		.field-row {
-			grid-template-columns: 1fr;
-			gap: 10px;
-		}
-		.preset-grid {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-	}
-	@media (max-width: 640px) {
-		.profile-shell {
-			padding: 16px 20px 32px;
-		}
-		.page-heading {
-			padding: 18px 0 24px;
-		}
-		.profile-layout {
-			grid-template-columns: minmax(0, 1fr);
-			gap: 32px;
-			padding-top: 24px;
-		}
-		.identity-panel {
-			display: grid;
-			grid-template-columns: 80px minmax(0, 1fr);
-			column-gap: 24px;
-			padding: 24px;
-			text-align: left;
-		}
-		.avatar-wrap {
-			grid-row: span 3;
-			width: 72px;
-			margin: 0;
-			align-self: center;
-		}
-		.avatar {
-			width: 72px;
-			height: 72px;
-			font-size: 24px;
-		}
-		.identity-panel h2 {
-			align-self: end;
-		}
-		.saved-title {
-			margin-top: 8px;
-		}
-		.photo-help {
-			grid-column: 1 / -1;
-			margin-top: 24px;
-			padding-top: 16px;
-		}
-		.photo-selected {
-			grid-column: 1 / -1;
-		}
-		.save-bar {
-			padding: 12px 20px max(12px, env(safe-area-inset-bottom));
-		}
-		.save-bar-inner {
-			flex-wrap: wrap;
-			gap: 10px;
-		}
-		.save-status:empty {
-			display: none;
-		}
-		.save-actions {
-			width: 100%;
-			justify-content: flex-end;
-		}
-		.save-actions :global(button) {
-			flex: 1;
-			padding: 0 10px;
-		}
-		.photo-selected button {
-			margin-left: 0;
-		}
-		.photo-help {
-			margin-top: 12px;
-			padding-top: 12px;
-		}
-		.profile-page :global([data-slot='tabs-trigger']) {
-			padding: 0 12px;
-		}
-		.profile-page :global(input:not([type='file'])),
-		.profile-page :global([data-slot='select-trigger']) {
-			font-size: 16px;
-		}
-	}
-</style>
