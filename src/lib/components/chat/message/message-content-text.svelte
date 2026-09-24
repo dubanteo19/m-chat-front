@@ -129,9 +129,11 @@
 <style>
 	.self-mention {
 		color: red !important;
+		background-color: rgba(255, 0, 0, 0.2) !important;
 	}
 	.mention-chip {
 		color: #60a5fa;
+		background-color: #e0f2fe;
 		font-weight: 600;
 		padding: 1px 4px;
 		border-radius: 4px;

@@ -7,7 +7,6 @@
 
 	import { useUser } from '$lib/stores/auth.svelte';
 	import type { RoomInfo } from '$lib/types/room';
-	import { roomEffectsLabels } from '../room-effects/effects/particles';
 	import RoomEffectPicker from '../room-effects/room-effect-picker.svelte';
 	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
 	import RoomMembersPopover from './room-header/room-members-popover.svelte';
@@ -63,40 +62,7 @@
 		<div class="flex gap-2 items-center">
 			<RoomMembersPopover {roomId} {onlineUsers} />
 			<RoomEffectPicker {selectedRoomEffect} onselect={onRoomEffectSelect} />
-			<!--  Desktop View -->
-			<!-- <div class="hidden md:flex gap-1 px-2 py-1 border items-center rounded-full border-secondary">
-				{@render effectButtons()}
-			</div> -->
-			<!--  Mobile View -->
-			<!-- <div class="block md:hidden">
-				<Popover.Root>
-					<Popover.Trigger>
-						<Button variant="outline" size="icon" aria-label="Room Effects">
-							{roomEffectsLabels.find((e) => e.type === selectedRoomEffect)?.icon ?? '✨'}
-						</Button>
-					</Popover.Trigger>
-					<Popover.Content class="w-auto p-2">
-						<div class="flex gap-1 items-center">
-							{@render effectButtons()}
-						</div>
-					</Popover.Content>
-				</Popover.Root>
-			</div> -->
 		</div>
 	</div>
 	<RoomDetailDiaglog open={selectedRoom !== null} />
 </header>
-
-{#snippet effectButtons()}
-	{#each roomEffectsLabels as effect (effect.type)}
-		<Button
-			variant={selectedRoomEffect === effect.type ? 'default' : 'ghost'}
-			size="icon"
-			title={effect.label}
-			aria-label={effect.label}
-			onclick={() => onRoomEffectSelect(effect.type)}
-		>
-			{effect.icon}
-		</Button>
-	{/each}
-{/snippet}
