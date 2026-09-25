@@ -8,7 +8,6 @@
 	import { Button } from '../ui/button';
 	import ChatEditor from './chat-input/chat-editor.svelte';
 	import ReplyPreview from './chat-input/reply-preview.svelte';
-	import GifPicker from './chat-input/gif-picker.svelte';
 	import ExpressionPicker from './chat-input/expression-picker.svelte';
 	interface ChatInputProps {
 		roomId: string | number;

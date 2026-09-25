@@ -88,13 +88,11 @@
 		<div class="space-y-5">
 			<div class="space-y-2">
 				<Label for="name">Name</Label>
-
 				<Input id="name" bind:value={name} placeholder="e.g. Cute Cats" />
 			</div>
 
 			<div class="space-y-2">
 				<Label for="description">Description</Label>
-
 				<Textarea
 					id="description"
 					bind:value={description}
@@ -105,7 +103,7 @@
 
 			<div class=" flex items-baseline gap-2">
 				<Label>Visibility:</Label>
-				<Select.Root type="single" allowDeselect bind:value={visibility}>
+				<Select.Root type="single" bind:value={visibility}>
 					<Select.Trigger class="w-[180px]">
 						<Select.Value>
 							{#snippet children({ selection })}

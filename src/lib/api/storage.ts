@@ -4,8 +4,12 @@ import type { PresignedUrlResponse } from './types';
 
 const VIDEO_STORAGE_URL = 'http://192.168.1.81:5000';
 export const storageService = {
-    getPresignedUrl: (filename: string): Promise<PresignedUrlResponse> => {
-        return apiClient.get(`/storage/presigned-url?filename=${encodeURIComponent(filename)}`);
+    getPresignedUrl: (
+        filename: string,
+        type: string
+    ): Promise<PresignedUrlResponse> => {
+        const params = new URLSearchParams({ filename, type });
+        return apiClient.get(`/storage/presigned-url?${params.toString()}`);
     },
 
     uploadFileToMinio: async (uploadUrl: string, file: File): Promise<Response> => {

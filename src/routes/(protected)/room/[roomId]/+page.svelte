@@ -14,7 +14,7 @@
 	import { useUserRoomsQuery } from '$lib/queries/use-user-room';
 	import { notificationService } from '$lib/services/notification-service.svelte';
 	import { scrollService } from '$lib/services/scroll-service.svelte';
-	import { websocketService } from '$lib/services/websocket-service.svelte';
+	import { EventType, websocketService } from '$lib/services/websocket-service.svelte';
 	import { useUser } from '$lib/stores/auth.svelte';
 	import {
 		MessageType,
@@ -41,6 +41,8 @@
 	import PhotoSwipe from 'photoswipe';
 	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
+	import MooncakeActivity from '$lib/components/room-activity/mooncake-activity.svelte';
+	import { createAnimationTrigger, debounce } from '$lib/utils/debounce';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
@@ -53,6 +55,9 @@
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
+	let isBuzzing = $state(false);
+	let isSpinning = $state(false);
+	let mooncakeActivity: MooncakeActivity | null = $state(null);
 	const { markRoomAsRead } = useUserRoomsQuery();
 	setContext(ROOM_MEMBERS_KEY, roomState);
 
@@ -153,6 +158,21 @@
 			websocketService.connect(currentRoomId, currentUser, {
 				onMessage(raw) {
 					const message = processIncomingMessage(raw, currentUser.username);
+					const match = message.content.match(/^\/(\S+)/);
+					if (match) {
+						const action = match[1];
+						switch (action) {
+							case 'buzz':
+								playBuzz();
+								break;
+							case 'spin':
+								playSpin();
+								break;
+							default:
+								console.warn(`Unknown room effect action: ${action}`);
+						}
+						return;
+					}
 					if (message.type !== MessageType.SYSTEM) effectMessageActivity += 1;
 					if (!message.isMine) {
 						messages = [...messages, message];
@@ -186,6 +206,11 @@
 						effect: payload.effect
 					});
 					messages = [...messages, effectMsg];
+				},
+				onRoomActivity(payload) {
+					if (payload.activity === 'mooncake') {
+						mooncakeActivity?.play();
+					}
 				}
 			});
 		});
@@ -195,6 +220,10 @@
 			websocketService.disconnect();
 		};
 	});
+
+	const playSpin = createAnimationTrigger((active) => (isSpinning = active), 3400);
+	const playBuzz = createAnimationTrigger((active) => (isBuzzing = active), 1400);
+
 	function handleDelete(message: Message) {
 		if (!roomId) return;
 		messageService.deleteMessage(roomId, message.id);
@@ -267,8 +296,10 @@
 
 				try {
 					const compressedFile = file.type === 'image/gif' ? file : await compressImage(file);
-					const filename = `${crypto.randomUUID()}-${file.name}`;
-					const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(filename);
+					const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(
+						file.name,
+						'IMAGE'
+					);
 					const uploadResponse = await storageService.uploadFileToMinio(uploadUrl, compressedFile);
 
 					if (!uploadResponse.ok) throw new Error('MinIO image upload failed');
@@ -371,6 +402,8 @@
 	{#if roomId !== 'hall'}
 		<main
 			class="relative min-h-0 min-w-0 flex flex-col flex-1 overflow-hidden"
+			class:room-buzzing={isBuzzing}
+			class:room-spinning={isSpinning}
 			onpaste={handlePaste}
 			ondragover={(e) => {
 				e.preventDefault();
@@ -394,6 +427,35 @@
 						<ArrowDown />
 					</Button>
 				{/if}
+
+				<Button
+					onclick={() => {
+						websocketService.sendRaw({
+							eventType: EventType.ROOM_ACTIVITY,
+							activity: 'mooncake',
+							sender: {
+								displayName: currentUser.displayName
+							}
+						});
+					}}
+					variant="link"
+					class="group absolute right-5 bottom-24 z-50
+					flex rounded-full p-0
+					transition-transform duration-300
+					hover:scale-110
+					active:scale-95"
+				>
+					<img
+						src="https://minio.dbt19.site/mchat-public/ca59e98f-b3c4-4ebf-ae81-da61e7efc660-image.png"
+						alt="mooncake"
+						class="h-12 w-12
+							drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]
+							floating
+							transition-all duration-300
+							group-hover:rotate-6
+							group-hover:drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)]"
+					/>
+				</Button>
 				{#if isDragging}
 					<div
 						class="flex-center absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 pointer-events-none"
@@ -440,7 +502,20 @@
 					onFileUploadRequested={processFile}
 				/>
 			</div>
+			<MooncakeActivity bind:this={mooncakeActivity} />
 		</main>
 	{/if}
 </div>
 <svelte:window onclick={() => (openReactionId = null)} />
+
+<style>
+	.floating {
+		animation: float 3s ease-in-out infinite;
+	}
+	.room-buzzing {
+		animation: buzz 1.4s ease-in-out;
+	}
+	.room-spinning {
+		animation: spin 3.4s ease-in-out;
+	}
+</style>

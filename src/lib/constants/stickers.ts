@@ -1,6 +1,11 @@
 export const STICKER_PACKS = [
 	{
 		id: 'silly_goose',
+		url: 'https://minio.dbt19.site/mchat-public/2daf319b-52c1-4642-a13b-9687da024023-image.png',
+		name: 'Goose'
+	},
+	{
+		id: 'silly_goose',
 		url: 'https://minio.dbt19.site/mchat-public/nga/nga-1.webp',
 		name: 'Goose'
 	},

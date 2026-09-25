@@ -191,8 +191,10 @@
 	}
 
 	async function uploadAvatar(file: File): Promise<string> {
-		const finalFileName = `avatars/${profile.username}-${Date.now()}.png`;
-		const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(finalFileName);
+		const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(
+			file.name,
+			'AVATAR'
+		);
 		await storageService.uploadFileToMinio(uploadUrl, file);
 		return downloadUrl;
 	}

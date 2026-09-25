@@ -8,7 +8,8 @@ export const EventType = {
 	REACTION: 'REACTION',
 	MESSAGE_DELETE: 'MESSAGE_DELETE',
 	PING: 'PING',
-	ROOM_EFFECT: 'ROOM_EFFECT'
+	ROOM_EFFECT: 'ROOM_EFFECT',
+	ROOM_ACTIVITY: 'ROOM_ACTIVITY'
 } as const;
 
 export type EventType = (typeof EventType)[keyof typeof EventType];
@@ -18,6 +19,7 @@ type ChatEventHandlers = {
 	onReaction?: (payload: any) => void;
 	onDeleteMessage?: (payload: any) => void;
 	onRoomEffect?: (payload: any) => void;
+	onRoomActivity?: (payload: any) => void;
 };
 
 function createWebsocketService() {
@@ -75,6 +77,9 @@ function createWebsocketService() {
 
 				case EventType.ROOM_EFFECT:
 					handlers.onRoomEffect?.(parsed);
+					return;
+				case EventType.ROOM_ACTIVITY:
+					handlers.onRoomActivity?.(parsed);
 					return;
 				default:
 					handlers.onMessage?.(parsed);
