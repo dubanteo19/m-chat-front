@@ -9,6 +9,8 @@
 	import TypingIndicator from '$lib/components/chat/typing-indicator.svelte';
 	import type { RoomEffect } from '$lib/components/room-effects/effects/particles';
 	import RoomEffects from '$lib/components/room-effects/room-effects.svelte';
+	import SpinActivityLayer from '$lib/components/room-activity/spin/spin-activity.svelte';
+	import { isSpinCommand } from '$lib/components/room-activity/spin/spin';
 	import { ROOM_MEMBERS_KEY, RoomState } from '$lib/components/room/room-state.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { useUserRoomsQuery } from '$lib/queries/use-user-room';
@@ -22,6 +24,7 @@
 		type MessagePayload,
 		type ReactionInfo
 	} from '$lib/types/message';
+	import { RoomActivityType } from '$lib/types/room-activity';
 	import type { UserInfo } from '$lib/types/user';
 	import {
 		createMessagePayload,
@@ -42,7 +45,7 @@
 	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
 	import MooncakeActivity from '$lib/components/room-activity/mooncake-activity.svelte';
-	import { createAnimationTrigger, debounce } from '$lib/utils/debounce';
+	import { createAnimationTrigger } from '$lib/utils/debounce';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
@@ -56,8 +59,8 @@
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
 	let isBuzzing = $state(false);
-	let isSpinning = $state(false);
 	let mooncakeActivity: MooncakeActivity | null = $state(null);
+	let spinActivity: SpinActivityLayer | null = $state(null);
 	const { markRoomAsRead } = useUserRoomsQuery();
 	setContext(ROOM_MEMBERS_KEY, roomState);
 
@@ -158,19 +161,8 @@
 			websocketService.connect(currentRoomId, currentUser, {
 				onMessage(raw) {
 					const message = processIncomingMessage(raw, currentUser.username);
-					const match = message.content.match(/^\/(\S+)/);
-					if (match) {
-						const action = match[1];
-						switch (action) {
-							case 'buzz':
-								playBuzz();
-								break;
-							case 'spin':
-								playSpin();
-								break;
-							default:
-								console.warn(`Unknown room effect action: ${action}`);
-						}
+					if (message.type === MessageType.TEXT && /^\s*\/buzz\s*$/.test(message.content)) {
+						playBuzz();
 						return;
 					}
 					if (message.type !== MessageType.SYSTEM) effectMessageActivity += 1;
@@ -208,20 +200,21 @@
 					messages = [...messages, effectMsg];
 				},
 				onRoomActivity(payload) {
-					if (payload.activity === 'mooncake') {
+					if (payload.activity === RoomActivityType.MOONCAKE) {
 						mooncakeActivity?.play();
 					}
+					spinActivity?.playPayload(payload);
 				}
 			});
 		});
 
 		// Cleanup only when roomId changes or component unmounts
 		return () => {
+			spinActivity?.reset();
 			websocketService.disconnect();
 		};
 	});
 
-	const playSpin = createAnimationTrigger((active) => (isSpinning = active), 3400);
 	const playBuzz = createAnimationTrigger((active) => (isBuzzing = active), 1400);
 
 	function handleDelete(message: Message) {
@@ -360,6 +353,17 @@
 	}
 
 	async function onSendMessage(payload: MessagePayload) {
+		if (payload.type === MessageType.TEXT && isSpinCommand(payload.content)) {
+			const activity = spinActivity?.trigger();
+			if (activity) {
+				websocketService.sendRaw({
+					eventType: EventType.ROOM_ACTIVITY,
+					...activity,
+					sender: currentUser
+				});
+			}
+		}
+
 		const optimistic: Message = createOptimisticMessage(
 			payload.content,
 			payload.type,
@@ -403,7 +407,6 @@
 		<main
 			class="relative min-h-0 min-w-0 flex flex-col flex-1 overflow-hidden"
 			class:room-buzzing={isBuzzing}
-			class:room-spinning={isSpinning}
 			onpaste={handlePaste}
 			ondragover={(e) => {
 				e.preventDefault();
@@ -412,6 +415,7 @@
 			ondragleave={() => (isDragging = false)}
 			ondrop={handleDrop}
 		>
+			<SpinActivityLayer bind:this={spinActivity}>
 			<!-- Background layer -->
 			<RoomEffects
 				{roomEffect}
@@ -432,7 +436,7 @@
 					onclick={() => {
 						websocketService.sendRaw({
 							eventType: EventType.ROOM_ACTIVITY,
-							activity: 'mooncake',
+							activity: RoomActivityType.MOONCAKE,
 							sender: {
 								displayName: currentUser.displayName
 							}
@@ -502,6 +506,7 @@
 					onFileUploadRequested={processFile}
 				/>
 			</div>
+			</SpinActivityLayer>
 			<MooncakeActivity bind:this={mooncakeActivity} />
 		</main>
 	{/if}
@@ -514,8 +519,5 @@
 	}
 	.room-buzzing {
 		animation: buzz 1.4s ease-in-out;
-	}
-	.room-spinning {
-		animation: spin 3.4s ease-in-out;
 	}
 </style>
