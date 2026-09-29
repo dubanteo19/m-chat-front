@@ -52,8 +52,6 @@
 	const { currentUser } = $derived(useUser());
 	let openReactionId: number | null = $state(null);
 	let roomEffect = $state<RoomEffect | null>(null);
-	let effectMessageActivity = $state(0);
-	let effectReactionActivity = $state(0);
 	let repliedToMessage = $state<Message | null>(null);
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
@@ -165,7 +163,6 @@
 						playBuzz();
 						return;
 					}
-					if (message.type !== MessageType.SYSTEM) effectMessageActivity += 1;
 					if (!message.isMine) {
 						messages = [...messages, message];
 						scrollService.onIncomingMessage();
@@ -176,8 +173,7 @@
 						notificationService.triggerPush(message, currentRoomId);
 				},
 				onReaction(payload) {
-					if (payload.action === 'ADDED') effectReactionActivity += 1;
-					messages = updateMessageReactions(messages, payload);
+					if (payload.action === 'ADDED') messages = updateMessageReactions(messages, payload);
 				},
 				onDeleteMessage(payload) {
 					const targetId = Number(payload.messageId);
@@ -417,11 +413,7 @@
 		>
 			<SpinActivityLayer bind:this={spinActivity}>
 			<!-- Background layer -->
-			<RoomEffects
-				{roomEffect}
-				messageActivity={effectMessageActivity}
-				reactionActivity={effectReactionActivity}
-			/>
+			<RoomEffects {roomEffect} />
 			<div class="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
 				{#if !scrollService.isNearBottom}
 					<Button
@@ -450,7 +442,7 @@
 					active:scale-95"
 				>
 					<img
-						src="https://minio.dbt19.site/mchat-public/ca59e98f-b3c4-4ebf-ae81-da61e7efc660-image.png"
+						src="https://minio.dbt19.site/mchat-public/images/f893f220-062a-474f-96ed-ca4f29af5688.png"
 						alt="mooncake"
 						class="h-12 w-12
 							drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]

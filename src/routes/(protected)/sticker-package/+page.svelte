@@ -28,15 +28,7 @@
 	}
 
 	function savePackage(pkg: StickerPackage) {
-		const index = packages.findIndex((item) => item.id === pkg.id);
 
-		if (index === -1) {
-			packages.push(pkg);
-		} else {
-			packages[index] = pkg;
-		}
-
-		closeEditor();
 	}
 
 	function deletePackage(id: string) {

@@ -48,7 +48,7 @@
 				<Field.Set>
 					<Field.Group>
 						<Field.Field>
-							<Field.Label for="displayName">Username</Field.Label>
+							<Field.Label for="displayName">Display Name</Field.Label>
 							<Input bind:value={displayName} id="displayName" type="text" placeholder="Join Doe" />
 						</Field.Field>
 						<Field.Field>

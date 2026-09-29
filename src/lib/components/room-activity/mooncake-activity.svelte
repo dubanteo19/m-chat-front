@@ -10,7 +10,7 @@
 	let mooncakes = $state<Mooncake[]>([]);
 
 	const MOONCAKE_URL =
-		'https://minio.dbt19.site/mchat-public/ca59e98f-b3c4-4ebf-ae81-da61e7efc660-image.png';
+		'https://minio.dbt19.site/mchat-public/images/f893f220-062a-474f-96ed-ca4f29af5688.png';
 
 	function play() {
 		const id = Date.now() + Math.random();

@@ -1,13 +1,13 @@
 export type StickerVisibility = 'PUBLIC' | 'PRIVATE';
 
 export interface Sticker {
-    id: string;
+    id: number;
     url: string;
     name?: string;
 }
 
 export interface StickerPackage {
-    id: string;
+    id: number;
     name: string;
     description: string;
     visibility: StickerVisibility;

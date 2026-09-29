@@ -5,7 +5,7 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import type { Sticker, StickerPackage, StickerVisibility } from '$lib/types/sticker';
-	import { Globe, Lock, Trash2, Upload } from '@lucide/svelte';
+	import { Globe, Lock } from '@lucide/svelte';
 	let {
 		package: initialPackage,
 		onSave,
@@ -29,10 +29,8 @@
 
 	function handleFiles(files: FileList | null) {
 		if (!files) return;
-
 		for (const file of Array.from(files)) {
 			if (!file.type.startsWith('image/')) continue;
-
 			const sticker: Sticker = {
 				id: crypto.randomUUID(),
 				url: URL.createObjectURL(file),
@@ -43,24 +41,11 @@
 		}
 	}
 
-	function handleDrop(event: DragEvent) {
-		event.preventDefault();
-		handleFiles(event.dataTransfer?.files ?? null);
-	}
-
 	function save() {
-		if (!name.trim()) return;
-
-		const now = new Date().toISOString();
-
 		const pkg: StickerPackage = {
-			id: initialPackage?.id ?? crypto.randomUUID(),
 			name: name.trim(),
 			description: description.trim(),
 			visibility,
-			stickers,
-			createdAt: initialPackage?.createdAt ?? now,
-			updatedAt: now
 		};
 
 		onSave(pkg);
@@ -68,7 +53,6 @@
 </script>
 
 <div class="mx-auto w-full max-w-5xl space-y-4 p-6">
-	<!-- Header -->
 	<div class="flex items-center gap-3">
 		<div>
 			<h1 class="text-2xl font-semibold">
@@ -140,7 +124,7 @@
 	</div>
 
 	<!-- Stickers -->
-	<div class="rounded-xl border p-6">
+	<!-- <div class="rounded-xl border p-6">
 		<div class="mb-4">
 			<h2 class="font-medium">Stickers</h2>
 
@@ -165,28 +149,9 @@
 				</div>
 			{/each}
 
-			<!-- Upload -->
-			<label
-				class="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed text-center transition hover:bg-muted"
-				ondragover={(event) => event.preventDefault()}
-				ondrop={handleDrop}
-			>
-				<Upload class="mb-2 size-5 text-muted-foreground" />
-
-				<span class="text-xs font-medium"> Add stickers </span>
-
-				<span class="mt-1 px-2 text-[10px] text-muted-foreground"> Drop or click </span>
-
-				<input
-					type="file"
-					accept="image/*"
-					multiple
-					class="hidden"
-					onchange={(event) => handleFiles(event.currentTarget.files)}
-				/>
-			</label>
+			<FileUploader label="Add stickers" onFilesChanged={handleFiles} />
 		</div>
-	</div>
+	</div> -->
 
 	<!-- Actions -->
 	<div class="flex justify-end gap-2">
