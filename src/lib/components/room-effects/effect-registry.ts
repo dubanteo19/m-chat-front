@@ -31,11 +31,11 @@ export const roomEffectCategories: ReadonlyArray<{
     ];
 
 const effectPresentation = {
-    'cartoon-haunt': {
-        description: 'Cute pumpkins drift through a cartoon night until something visits.',
+    'halloween-night': {
+        description: 'A deserted corridor where the silence occasionally looks back.',
         category: RoomEffectCategory.EVENT,
         previewBackground:
-            'radial-gradient(circle at 72% 25%, #f8d58a 0 9%, #51325f 10% 42%, #17112d 76%, #090713 100%)'
+            'linear-gradient(145deg, #111b1d 0%, #172628 38%, #080f11 72%, #020506 100%)'
     },
     'dewdrop-worlds': {
         description: 'Tiny worlds gather in the morning dew.',

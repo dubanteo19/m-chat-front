@@ -3,7 +3,7 @@ import { DiscoFever } from './disco-fever';
 
 export const roomEffectsLabels: { type: RoomEffect; icon: string; label: string }[] = [
     { type: 'dewdrop-worlds', icon: '💧', label: 'Dewdrop Worlds' },
-    { type: 'cartoon-haunt', icon: '🎃', label: 'Cartoon Haunt' },
+    { type: 'halloween-night', icon: '👁️', label: 'Halloween Night' },
     { type: 'snow', icon: '❄️', label: 'Snow' },
     { type: 'sakura', icon: '🌸', label: 'Sakura' },
     { type: 'aurora', icon: '🌌', label: 'Aurora' },
@@ -18,7 +18,7 @@ export const roomEffectsLabels: { type: RoomEffect; icon: string; label: string 
 
 export type RoomEffect =
     | "dewdrop-worlds"
-    | "cartoon-haunt"
+    | "halloween-night"
     | "snow"
     | "sakura"
     | "aurora"

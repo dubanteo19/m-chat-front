@@ -82,9 +82,9 @@ export function createRoomEffectMessage(options: {
 		content =
 			`The ${effect.icon} disco floor is lit! ` +
 			`${subject} getting the party started.`;
-	} else if (effect.type === 'cartoon-haunt') {
+	} else if (effect.type === 'halloween-night') {
 		content = 
-			`${senderName} brought ${effect.icon} ${effect.label} into the room. Let the spooky fun begin!`
+			`${senderName} brought ${effect.icon} ${effect.label} into the room. The corridor is no longer empty.`
 	} else {
 		content =
 			`${senderName} activated the ${effect.icon} ${effect.label} effect.`;

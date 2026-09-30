@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import { CartoonHaunt } from './effects/cartoon-haunt';
+	import { HalloweenNight } from './effects/halloween-night';
 	import { ParticleEngine, type RoomEffect } from './effects/particles';
 
 	type RoomEffectEngine = Pick<ParticleEngine, 'start' | 'destroy' | 'activity'>;
@@ -20,8 +20,8 @@
 	$effect(() => {
 		if (!canvas || !roomEffect) return;
 		const engine: RoomEffectEngine =
-			roomEffect === 'cartoon-haunt'
-				? new CartoonHaunt(canvas)
+			roomEffect === 'halloween-night'
+				? new HalloweenNight(canvas)
 				: new ParticleEngine(canvas, roomEffect);
 		currentEngine = engine;
 		engine.start();
