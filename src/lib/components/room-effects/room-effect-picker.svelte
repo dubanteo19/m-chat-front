@@ -6,9 +6,9 @@
 	import type { RoomEffect } from './effects/particles';
 	import {
 		getRoomEffectDefinition,
+		RoomEffectCategory,
 		roomEffectCategories,
 		roomEffects,
-		type RoomEffectCategory,
 		type RoomEffectDefinition
 	} from './effect-registry';
 	import RoomEffectCard from './room-effect-card.svelte';
@@ -24,7 +24,7 @@
 	let open = $state(false);
 	let search = $state('');
 	let effectList: HTMLDivElement | null = $state(null);
-	let selectedCategory = $state<'all' | RoomEffectCategory>('all');
+	let selectedCategory = $state<RoomEffectCategory>(RoomEffectCategory.ALL);
 	let hoveredEffect = $state<RoomEffectDefinition | null>(null);
 	let focusedEffect = $state<RoomEffectDefinition | null>(null);
 
@@ -33,7 +33,7 @@
 	let filteredEffects = $derived(
 		roomEffects.filter(
 			(effect) =>
-				(selectedCategory === 'all' || effect.category === selectedCategory) &&
+				(selectedCategory === RoomEffectCategory.ALL || effect.category === selectedCategory) &&
 				`${effect.label} ${effect.description}`.toLowerCase().includes(search.trim().toLowerCase())
 		)
 	);
@@ -57,7 +57,7 @@
 	onOpenChange={(value) => {
 		if (!value) {
 			search = '';
-			selectedCategory = 'all';
+			selectedCategory = RoomEffectCategory.ALL;
 			hoveredEffect = null;
 			focusedEffect = null;
 		}
@@ -148,7 +148,7 @@
 						size="sm"
 						onclick={() => {
 							search = '';
-							selectedCategory = 'all';
+							selectedCategory = RoomEffectCategory.ALL;
 						}}>Clear filters</Button
 					>
 				</div>
