@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { CartoonHaunt } from './effects/cartoon-haunt';
 	import { ParticleEngine, type RoomEffect } from './effects/particles';
+
+	type RoomEffectEngine = Pick<ParticleEngine, 'start' | 'destroy' | 'activity'>;
 
 	let {
 		roomEffect,
@@ -12,11 +15,14 @@
 		reactionActivity?: number;
 	} = $props();
 	let canvas: HTMLCanvasElement;
-	let currentEngine = $state<ParticleEngine | null>(null);
+	let currentEngine = $state<RoomEffectEngine | null>(null);
 
 	$effect(() => {
 		if (!canvas || !roomEffect) return;
-		const engine = new ParticleEngine(canvas, roomEffect);
+		const engine: RoomEffectEngine =
+			roomEffect === 'cartoon-haunt'
+				? new CartoonHaunt(canvas)
+				: new ParticleEngine(canvas, roomEffect);
 		currentEngine = engine;
 		engine.start();
 

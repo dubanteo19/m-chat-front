@@ -59,14 +59,41 @@ export function createRoomEffectMessage(options: {
 	effect: string;
 }): Message {
 	const id = Date.now(); // Generate a unique ID based on the current timestamp
-	const effect = roomEffectsLabels.find((effect) => effect.type === options.effect);
-	const senderName =
-		options.sender.username === options.currentUsername ? 'You' : options.sender.displayName;
+
+	const effect = roomEffectsLabels.find(
+		(effect) => effect.type === options.effect
+	);
+
+	const isCurrentUser = options.sender.username === options.currentUsername;
+
+	const senderName = isCurrentUser
+		? 'You'
+		: options.sender.displayName;
+
+	let content: string;
+
+	if (!effect) {
+		content = `${senderName} activated a room effect.`;
+	} else if (effect.type === 'disco-fever') {
+		const subject = isCurrentUser
+			? "You're"
+			: `${options.sender.displayName} is`;
+
+		content =
+			`The ${effect.icon} disco floor is lit! ` +
+			`${subject} getting the party started.`;
+	} else if (effect.type === 'cartoon-haunt') {
+		content = 
+			`${senderName} brought ${effect.icon} ${effect.label} into the room. Let the spooky fun begin!`
+	} else {
+		content =
+			`${senderName} activated the ${effect.icon} ${effect.label} effect.`;
+	}
+
+
 	return {
 		id: id,
-		content: effect
-			? `${senderName} activated the ${effect.icon} ${effect.label} effect.`
-			: `${senderName} activated a room effect.`,
+		content,
 		type: MessageType.SYSTEM,
 		sender: options.sender,
 		sentAt: new Date().toISOString(),

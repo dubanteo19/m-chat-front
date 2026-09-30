@@ -1,7 +1,9 @@
 import { DewdropWorlds } from './dewdrop-worlds';
+import { DiscoFever } from './disco-fever';
 
 export const roomEffectsLabels: { type: RoomEffect; icon: string; label: string }[] = [
     { type: 'dewdrop-worlds', icon: '💧', label: 'Dewdrop Worlds' },
+    { type: 'cartoon-haunt', icon: '🎃', label: 'Cartoon Haunt' },
     { type: 'snow', icon: '❄️', label: 'Snow' },
     { type: 'sakura', icon: '🌸', label: 'Sakura' },
     { type: 'aurora', icon: '🌌', label: 'Aurora' },
@@ -16,6 +18,7 @@ export const roomEffectsLabels: { type: RoomEffect; icon: string; label: string 
 
 export type RoomEffect =
     | "dewdrop-worlds"
+    | "cartoon-haunt"
     | "snow"
     | "sakura"
     | "aurora"
@@ -26,35 +29,6 @@ export type RoomEffect =
     | "bioluminescent-tide"
     | "sticker-road-trip"
     | "vietnamese-mid-autumn";
-
-const discoColors = [
-    [236, 72, 153],
-    [168, 85, 247],
-    [34, 211, 238],
-    [59, 130, 246],
-    [163, 230, 53],
-    [251, 191, 36],
-] as const;
-
-interface DiscoBeam {
-    baseAngle: number;
-    sweep: number;
-    speed: number;
-    phase: number;
-    width: number;
-    length: number;
-    alpha: number;
-    colorIndex: number;
-}
-
-interface DiscoLightPool {
-    phase: number;
-    speed: number;
-    radius: number;
-    alpha: number;
-    colorIndex: number;
-    yRatio: number;
-}
 
 const paperButterflyDreamColors = [
     [153, 27, 27],
@@ -363,6 +337,7 @@ export class ParticleEngine {
     private transitionAlpha = 0;
     private randomState: number;
     private dewdropWorlds: DewdropWorlds | null = null;
+    private discoFever: DiscoFever | null = null;
 
 
     // Vietnamese Mid-Autumn: ambient particles plus occasional lobby events.
@@ -412,18 +387,6 @@ export class ParticleEngine {
     private amitabhaFigure: HTMLCanvasElement | null = null;
     private amitabhaParticleSprites = new Map<string, HTMLCanvasElement>();
     private readonly amitabhaSpriteDpr = 1.5;
-
-    // The disco ball, light pools and glitter sprites are cached so the
-    // per-frame work is limited to transforms, simple paths and drawImage.
-    private discoBackdrop: HTMLCanvasElement | null = null;
-    private discoBall: HTMLCanvasElement | null = null;
-    private discoLightPoolSprites: HTMLCanvasElement[] = [];
-    private discoParticleSprites = new Map<string, HTMLCanvasElement>();
-    private discoBeams: DiscoBeam[] = [];
-    private discoLightPools: DiscoLightPool[] = [];
-    private discoBallLogicalSize = 168;
-    private readonly discoSpriteDpr = 1.35;
-
 
     // Static paper-cut artwork, lanterns, fog and particle sprites are cached.
     // Per-frame work is limited to transforms and lightweight paths.
@@ -500,6 +463,10 @@ export class ParticleEngine {
 
         this.ctx = ctx;
 
+        if (this.effect === "disco-fever") {
+            this.discoFever = new DiscoFever(() => this.random());
+        }
+
         this.resize();
 
         if (this.effect === "dewdrop-worlds") {
@@ -546,9 +513,7 @@ export class ParticleEngine {
             this.rebuildAmitabhaCaches();
         }
 
-        if (this.effect === "disco-fever") {
-            this.rebuildDiscoCaches();
-        }
+        this.discoFever?.resize(this.width, this.height);
 
         if (this.effect === "paper-butterfly-dream") {
             this.rebuildPaperButterflyDreamCaches();
@@ -641,6 +606,11 @@ export class ParticleEngine {
             this.dewdropWorlds.update(deltaSeconds);
             return;
         }
+
+        if (this.discoFever) {
+            this.discoFever.update(deltaSeconds, this.timer);
+            return;
+        }
         if (this.effect === "bioluminescent-tide") {
             this.updateBioluminescentTideScene(deltaSeconds);
         }
@@ -682,11 +652,6 @@ export class ParticleEngine {
 
             if (this.effect === "radiance-of-amitabha") {
                 this.updateAmitabhaParticle(p, deltaSeconds);
-                continue;
-            }
-
-            if (this.effect === "disco-fever") {
-                this.updateDiscoParticle(p, deltaSeconds);
                 continue;
             }
 
@@ -783,13 +748,6 @@ export class ParticleEngine {
             this.wind =
                 Math.sin(this.timer * 0.22) * 0.06 +
                 Math.sin(this.timer * 0.09 + 1.1) * 0.025;
-            return;
-        }
-
-        if (this.effect === "disco-fever") {
-            this.wind =
-                Math.sin(this.timer * 0.31) * 0.08 +
-                Math.sin(this.timer * 0.12 + 1.4) * 0.035;
             return;
         }
 
@@ -1244,59 +1202,6 @@ export class ParticleEngine {
             baseAlpha * envelope * pulse;
     }
 
-    private updateDiscoParticle(
-        p: Particle,
-        deltaSeconds: number
-    ) {
-        const sidewaysOscillation =
-            Math.sin(
-                this.timer * p.wobbleSpeed +
-                p.wobble
-            ) * (4 + p.depth * 11);
-
-        p.x +=
-            (
-                p.vx +
-                sidewaysOscillation +
-                this.wind * (6 + p.depth * 10)
-            ) * deltaSeconds;
-        p.y += p.vy * deltaSeconds;
-        p.rotation += p.rotationSpeed * deltaSeconds;
-
-        const shimmer =
-            0.76 +
-            Math.sin(
-                this.timer * p.flutterSpeed +
-                p.flutter
-            ) * 0.24;
-
-        const flashDuration =
-            4.2 +
-            (p.variant ?? 0) * 0.72 +
-            p.depth * 1.1;
-        const flashCycle =
-            (this.timer + p.flutter) % flashDuration;
-        const restrainedFlash = this.smoothPulse(
-            flashCycle,
-            0.12 + (p.variant ?? 0) * 0.035,
-            0.075
-        );
-        const beat = this.getDiscoBeatPulse();
-
-        p.alpha =
-            (p.baseAlpha ?? 0.44) *
-            (shimmer + restrainedFlash * 0.34) *
-            (1 + beat * 0.22);
-
-        if (p.y > this.height + 24) {
-            p.y = -24 - this.random() * 36;
-            p.x = this.random() * this.width;
-            p.rotation = this.random() * Math.PI * 2;
-        }
-
-        this.wrapHorizontal(p, 34);
-    }
-
     private updatePaperButterflyDreamParticle(
         p: Particle,
         deltaSeconds: number
@@ -1543,6 +1448,8 @@ export class ParticleEngine {
     private cleanup() {
         this.dewdropWorlds?.destroy();
         this.dewdropWorlds = null;
+        this.discoFever?.destroy();
+        this.discoFever = null;
         this.isRunning = false;
         this.isStopping = false;
         this.transitionAlpha = 0;
@@ -1555,14 +1462,6 @@ export class ParticleEngine {
         this.amitabhaBackdrop = null;
         this.amitabhaFigure = null;
         this.amitabhaParticleSprites.clear();
-
-        this.discoBackdrop = null;
-        this.discoBall = null;
-        this.discoLightPoolSprites = [];
-        this.discoParticleSprites.clear();
-        this.discoBeams = [];
-        this.discoLightPools = [];
-    
 
         this.paperButterflyDreamBackdrop = null;
         this.paperButterflyDreamMoonlight = null;
@@ -1613,7 +1512,7 @@ export class ParticleEngine {
     }
 
     private createParticles(reset = false) {
-        if (this.effect === "dewdrop-worlds") return;
+        if (this.effect === "dewdrop-worlds" || this.discoFever) return;
         if (reset)
             this.particles = [];
 
@@ -1654,12 +1553,6 @@ export class ParticleEngine {
                             i,
                             count
                         )
-                    );
-                    break;
-
-                case "disco-fever":
-                    this.particles.push(
-                        this.createDiscoParticle(depth)
                     );
                     break;
 
@@ -1732,13 +1625,6 @@ export class ParticleEngine {
                     Math.floor(area / 36000),
                     24,
                     38
-                );
-
-            case "disco-fever":
-                return this.clamp(
-                    Math.floor(area / 13500),
-                    42,
-                    92
                 );
 
             case "paper-butterfly-dream":
@@ -2147,51 +2033,6 @@ export class ParticleEngine {
         };
     }
 
-    private createDiscoParticle(depth: number): Particle {
-        const x = this.random() * this.width;
-        const y = this.random() * this.height;
-        const variantSelector = this.random();
-        const variant =
-            variantSelector < 0.7
-                ? 0
-                : variantSelector < 0.92
-                    ? 1
-                    : 2;
-        const baseAlpha = 0.18 + depth * 0.46;
-
-        return {
-            originX: x,
-            originY: y,
-            x,
-            y,
-
-            vx: (this.random() - 0.5) * 5,
-            vy: 10 + depth * 34 + this.random() * 10,
-
-            size: 0.8 + depth * 2.8,
-            length: 0,
-            alpha: baseAlpha,
-
-            rotation: this.random() * Math.PI * 2,
-            rotationSpeed:
-                (this.random() - 0.5) *
-                (1.1 + depth * 1.9),
-
-            wobble: this.random() * Math.PI * 2,
-            wobbleSpeed: 0.35 + this.random() * 0.75,
-
-            flutter: this.random() * Math.PI * 2,
-            flutterSpeed: 0.55 + this.random() * 1.05,
-
-            depth,
-            variant,
-            colorIndex: Math.floor(
-                this.random() * discoColors.length
-            ),
-            baseAlpha,
-        };
-    }
-
     private createAmitabhaParticle(
         depth: number,
         index: number,
@@ -2291,6 +2132,12 @@ export class ParticleEngine {
             return;
         }
 
+        if (this.discoFever) {
+            this.discoFever.draw(this.ctx);
+            this.ctx.restore();
+            return;
+        }
+
         if (this.effect === "snow") {
             this.drawSnowBackground();
         }
@@ -2309,11 +2156,6 @@ export class ParticleEngine {
 
         if (this.effect === "radiance-of-amitabha") {
             this.drawAmitabhaBackground();
-        }
-
-        if (this.effect === "disco-fever") {
-            this.drawDiscoBackground();
-            this.drawDiscoBeams();
         }
 
         if (this.effect === "paper-butterfly-dream") {
@@ -2377,10 +2219,6 @@ export class ParticleEngine {
                     this.drawRainDrop(p);
                     break;
 
-                case "disco-fever":
-                    this.drawDiscoParticle(p);
-                    break;
-
                 case "paper-butterfly-dream":
                     this.drawPaperButterflyDreamParticle(p);
                     break;
@@ -2410,13 +2248,6 @@ export class ParticleEngine {
             this.ctx.save();
             this.ctx.globalAlpha = this.transitionAlpha;
             this.drawLightning();
-            this.ctx.restore();
-        }
-
-        if (this.effect === "disco-fever") {
-            this.ctx.save();
-            this.ctx.globalAlpha = this.transitionAlpha;
-            this.drawDiscoBall();
             this.ctx.restore();
         }
 
@@ -3528,598 +3359,6 @@ export class ParticleEngine {
         c.lineTo(x, y + r);
         c.quadraticCurveTo(x, y, x + r, y);
         c.closePath();
-    }
-
-    private rebuildDiscoCaches() {
-        this.discoParticleSprites.clear();
-        this.discoBallLogicalSize = this.clamp(
-            Math.min(this.width, this.height) * 0.25,
-            128,
-            184
-        );
-        this.discoBackdrop = this.createDiscoBackdropCache();
-        this.discoBall = this.createDiscoBallCache();
-        this.discoLightPoolSprites = discoColors.map(
-            (_, index) => this.createDiscoLightPoolSprite(index)
-        );
-        this.rebuildDiscoScene();
-    }
-
-    private rebuildDiscoScene() {
-        const beamCount = this.width < 640 ? 7 : 9;
-
-        this.discoBeams = Array.from(
-            { length: beamCount },
-            (_, index): DiscoBeam => {
-                const side = index % 2 === 0 ? -1 : 1;
-                const sideAngle =
-                    side < 0
-                        ? Math.PI * (0.59 + this.random() * 0.27)
-                        : Math.PI * (0.14 + this.random() * 0.27);
-
-                return {
-                    baseAngle: sideAngle,
-                    sweep: 0.1 + this.random() * 0.2,
-                    speed: 0.08 + this.random() * 0.15,
-                    phase: this.random() * Math.PI * 2,
-                    width: 0.075 + this.random() * 0.085,
-                    length: 0.86 + this.random() * 0.24,
-                    alpha: 0.026 + this.random() * 0.035,
-                    colorIndex: index % discoColors.length,
-                };
-            }
-        );
-
-        this.discoLightPools = Array.from(
-            { length: 3 },
-            (_, index): DiscoLightPool => ({
-                phase: this.random() * Math.PI * 2,
-                speed: 0.045 + this.random() * 0.06,
-                radius: 0.2 + this.random() * 0.13,
-                alpha: 0.022 + this.random() * 0.02,
-                colorIndex: (index * 2 + 1) % discoColors.length,
-                yRatio: 0.52 + this.random() * 0.32,
-            })
-        );
-    }
-
-    private createDiscoBackdropCache() {
-        const scale =
-            this.width * this.height > 1_400_000
-                ? 0.5
-                : 0.68;
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(
-            1,
-            Math.round(this.width * scale)
-        );
-        canvas.height = Math.max(
-            1,
-            Math.round(this.height * scale)
-        );
-
-        const c = canvas.getContext("2d");
-        if (!c)
-            return canvas;
-
-        c.setTransform(scale, 0, 0, scale, 0, 0);
-
-        const tint = c.createLinearGradient(
-            0,
-            0,
-            0,
-            this.height
-        );
-        tint.addColorStop(0, "rgba(30, 27, 75, 0.11)");
-        tint.addColorStop(0.48, "rgba(49, 46, 129, 0.055)");
-        tint.addColorStop(1, "rgba(15, 23, 42, 0.08)");
-
-        c.fillStyle = tint;
-        c.fillRect(0, 0, this.width, this.height);
-
-        const topGlow = c.createRadialGradient(
-            this.width * 0.5,
-            0,
-            0,
-            this.width * 0.5,
-            0,
-            Math.max(this.width, this.height) * 0.58
-        );
-        topGlow.addColorStop(0, "rgba(196, 181, 253, 0.07)");
-        topGlow.addColorStop(0.44, "rgba(59, 130, 246, 0.028)");
-        topGlow.addColorStop(1, "rgba(30, 27, 75, 0)");
-
-        c.fillStyle = topGlow;
-        c.fillRect(0, 0, this.width, this.height);
-
-        return canvas;
-    }
-
-    private createDiscoBallCache() {
-        const logicalSize = this.discoBallLogicalSize;
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(
-            logicalSize * this.discoSpriteDpr
-        );
-        canvas.height = canvas.width;
-
-        const c = canvas.getContext("2d");
-        if (!c)
-            return canvas;
-
-        c.setTransform(
-            this.discoSpriteDpr,
-            0,
-            0,
-            this.discoSpriteDpr,
-            0,
-            0
-        );
-
-        const center = logicalSize * 0.5;
-        const radius = logicalSize * 0.37;
-
-        c.save();
-        c.translate(center, center);
-        c.beginPath();
-        c.arc(0, 0, radius, 0, Math.PI * 2);
-        c.clip();
-
-        const chrome = c.createRadialGradient(
-            -radius * 0.28,
-            -radius * 0.34,
-            radius * 0.06,
-            0,
-            0,
-            radius * 1.12
-        );
-        chrome.addColorStop(0, "rgba(255, 255, 255, 0.98)");
-        chrome.addColorStop(0.22, "rgba(226, 232, 240, 0.94)");
-        chrome.addColorStop(0.56, "rgba(148, 163, 184, 0.9)");
-        chrome.addColorStop(0.82, "rgba(109, 90, 146, 0.88)");
-        chrome.addColorStop(1, "rgba(30, 27, 75, 0.95)");
-
-        c.fillStyle = chrome;
-        c.fillRect(
-            -radius,
-            -radius,
-            radius * 2,
-            radius * 2
-        );
-
-        const tileSize = this.clamp(logicalSize * 0.047, 6, 8);
-        const tileGap = 1.05;
-
-        for (
-            let y = -radius;
-            y < radius;
-            y += tileSize
-        ) {
-            const normalizedY = y / radius;
-            const halfRow =
-                Math.sqrt(
-                    Math.max(0, 1 - normalizedY * normalizedY)
-                ) * radius;
-
-            for (
-                let x = -halfRow;
-                x < halfRow;
-                x += tileSize
-            ) {
-                const normalizedX = x / radius;
-                const shine = this.clamp(
-                    0.3 +
-                    (1 - Math.abs(normalizedX)) * 0.42 +
-                    Math.sin(x * 0.21 + y * 0.17) * 0.18,
-                    0.18,
-                    0.92
-                );
-                const alternate =
-                    (
-                        Math.floor((x + y) / tileSize)
-                    ) % 2 === 0;
-
-                c.fillStyle = alternate
-                    ? `rgba(240, 249, 255, ${shine})`
-                    : `rgba(216, 180, 254, ${shine * 0.72})`;
-                c.fillRect(
-                    x + tileGap * 0.5,
-                    y + tileGap * 0.5,
-                    tileSize - tileGap,
-                    tileSize - tileGap
-                );
-            }
-        }
-
-        c.restore();
-
-        c.strokeStyle = "rgba(255, 255, 255, 0.68)";
-        c.lineWidth = 1.1;
-        c.beginPath();
-        c.arc(center, center, radius, 0, Math.PI * 2);
-        c.stroke();
-
-        return canvas;
-    }
-
-    private createDiscoLightPoolSprite(colorIndex: number) {
-        const logicalSize = 220;
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(
-            logicalSize * this.discoSpriteDpr
-        );
-        canvas.height = canvas.width;
-
-        const c = canvas.getContext("2d");
-        if (!c)
-            return canvas;
-
-        c.setTransform(
-            this.discoSpriteDpr,
-            0,
-            0,
-            this.discoSpriteDpr,
-            0,
-            0
-        );
-
-        const center = logicalSize * 0.5;
-        const gradient = c.createRadialGradient(
-            center,
-            center,
-            0,
-            center,
-            center,
-            center
-        );
-        gradient.addColorStop(
-            0,
-            this.getDiscoColor(colorIndex, 0.82)
-        );
-        gradient.addColorStop(0.46, this.getDiscoColor(colorIndex, 0.22));
-        gradient.addColorStop(1, this.getDiscoColor(colorIndex, 0));
-
-        c.fillStyle = gradient;
-        c.fillRect(0, 0, logicalSize, logicalSize);
-
-        return canvas;
-    }
-
-    private getDiscoBeatPulse() {
-        const cycle = this.timer % 3.55;
-        const primary = this.smoothPulse(
-            cycle,
-            0.18,
-            0.12
-        );
-        const secondary = this.smoothPulse(
-            cycle,
-            0.48,
-            0.085
-        ) * 0.34;
-
-        return this.clamp(primary + secondary, 0, 1);
-    }
-
-    private drawDiscoBackground() {
-        const c = this.ctx;
-        const beat = this.getDiscoBeatPulse();
-
-        if (this.discoBackdrop) {
-            c.drawImage(
-                this.discoBackdrop,
-                0,
-                0,
-                this.width,
-                this.height
-            );
-        }
-
-        if (!this.discoLightPoolSprites.length)
-            return;
-
-        c.save();
-        c.globalCompositeOperation = "screen";
-
-        for (const pool of this.discoLightPools) {
-            const centerX =
-                (
-                    0.5 +
-                    Math.sin(
-                        this.timer * pool.speed +
-                        pool.phase
-                    ) * 0.47
-                ) * this.width;
-            const centerY =
-                pool.yRatio * this.height +
-                Math.sin(
-                    this.timer * pool.speed * 0.73 +
-                    pool.phase
-                ) * this.height * 0.045;
-            const diameter =
-                Math.max(this.width, this.height) *
-                pool.radius *
-                2;
-            const sprite =
-                this.discoLightPoolSprites[pool.colorIndex];
-
-            c.globalAlpha =
-                pool.alpha *
-                (1 + beat * 0.55);
-            c.drawImage(
-                sprite,
-                centerX - diameter * 0.5,
-                centerY - diameter * 0.5,
-                diameter,
-                diameter
-            );
-        }
-
-        c.restore();
-    }
-
-    private drawDiscoBeams() {
-        const c = this.ctx;
-        const beat = this.getDiscoBeatPulse();
-        const centerX = this.width * 0.5;
-        const centerY = this.clamp(
-            this.height * 0.14,
-            70,
-            108
-        );
-        const ballRadius = this.discoBallLogicalSize * 0.37;
-        const maxLength =
-            Math.hypot(this.width, this.height) * 1.08;
-
-        c.save();
-        c.globalCompositeOperation = "screen";
-
-        for (const beam of this.discoBeams) {
-            const angle =
-                beam.baseAngle +
-                Math.sin(
-                    this.timer * beam.speed +
-                    beam.phase
-                ) * beam.sweep +
-                Math.sin(
-                    this.timer * beam.speed * 0.43 +
-                    beam.phase * 0.7
-                ) * beam.sweep * 0.28;
-            const halfWidth =
-                beam.width * (1 + beat * 0.28);
-            const length = maxLength * beam.length;
-            const startRadius = ballRadius * 0.55;
-            const startX =
-                centerX + Math.cos(angle) * startRadius;
-            const startY =
-                centerY + Math.sin(angle) * startRadius;
-            const firstAngle = angle - halfWidth;
-            const secondAngle = angle + halfWidth;
-            const edgeBias =
-                0.5 +
-                Math.abs(Math.cos(angle)) * 0.5;
-            const alpha =
-                beam.alpha *
-                edgeBias *
-                (1 + beat * 0.66);
-
-            c.fillStyle = this.getDiscoColor(
-                beam.colorIndex,
-                alpha
-            );
-            c.beginPath();
-            c.moveTo(startX, startY);
-            c.lineTo(
-                startX + Math.cos(firstAngle) * length,
-                startY + Math.sin(firstAngle) * length
-            );
-            c.lineTo(
-                startX + Math.cos(secondAngle) * length,
-                startY + Math.sin(secondAngle) * length
-            );
-            c.closePath();
-            c.fill();
-        }
-
-        c.restore();
-    }
-
-    private drawDiscoBall() {
-        if (!this.discoBall)
-            return;
-
-        const c = this.ctx;
-        const beat = this.getDiscoBeatPulse();
-        const centerX = this.width * 0.5;
-        const centerY = this.clamp(
-            this.height * 0.14,
-            70,
-            108
-        );
-        const logicalWidth =
-            this.discoBall.width / this.discoSpriteDpr;
-        const logicalHeight =
-            this.discoBall.height / this.discoSpriteDpr;
-        const glowDiameter =
-            this.discoBallLogicalSize *
-            (1.8 + beat * 0.28);
-
-        c.save();
-        c.globalCompositeOperation = "screen";
-
-        const violetGlow = this.discoLightPoolSprites[1];
-        const cyanGlow = this.discoLightPoolSprites[2];
-
-        if (violetGlow && cyanGlow) {
-            const colorBlend =
-                Math.sin(this.timer * 0.34) * 0.5 + 0.5;
-
-            c.globalAlpha = 0.12 + beat * 0.07;
-            c.drawImage(
-                violetGlow,
-                centerX - glowDiameter * 0.5,
-                centerY - glowDiameter * 0.5,
-                glowDiameter,
-                glowDiameter
-            );
-            c.globalAlpha = 0.04 + colorBlend * 0.055;
-            c.drawImage(
-                cyanGlow,
-                centerX - glowDiameter * 0.46,
-                centerY - glowDiameter * 0.46,
-                glowDiameter * 0.92,
-                glowDiameter * 0.92
-            );
-        }
-
-        c.translate(centerX, centerY);
-        c.rotate(this.timer * 0.062);
-        c.scale(
-            1 + beat * 0.012,
-            1 + beat * 0.012
-        );
-        c.globalAlpha = 0.93 + beat * 0.07;
-        c.drawImage(
-            this.discoBall,
-            -logicalWidth * 0.5,
-            -logicalHeight * 0.5,
-            logicalWidth,
-            logicalHeight
-        );
-        c.restore();
-
-        c.save();
-        c.strokeStyle = "rgba(226, 232, 240, 0.28)";
-        c.lineWidth = 1;
-        c.beginPath();
-        c.moveTo(centerX, 0);
-        c.lineTo(
-            centerX,
-            centerY - this.discoBallLogicalSize * 0.36
-        );
-        c.stroke();
-        c.restore();
-    }
-
-    private drawDiscoParticle(p: Particle) {
-        const sprite = this.getDiscoParticleSprite(p);
-        const logicalWidth =
-            sprite.width / this.discoSpriteDpr;
-        const logicalHeight =
-            sprite.height / this.discoSpriteDpr;
-
-        this.ctx.globalCompositeOperation = "screen";
-        this.ctx.drawImage(
-            sprite,
-            -logicalWidth * 0.5,
-            -logicalHeight * 0.5,
-            logicalWidth,
-            logicalHeight
-        );
-    }
-
-    private getDiscoParticleSprite(p: Particle) {
-        const sizeBucket = Math.max(
-            1,
-            Math.round(p.size)
-        );
-        const variant = p.variant ?? 0;
-        const colorIndex = p.colorIndex ?? 0;
-        const key =
-            `${variant}:${sizeBucket}:${colorIndex}`;
-        const cached = this.discoParticleSprites.get(key);
-
-        if (cached)
-            return cached;
-
-        const sprite = this.createDiscoParticleSprite(
-            variant,
-            sizeBucket,
-            colorIndex
-        );
-        this.discoParticleSprites.set(key, sprite);
-
-        return sprite;
-    }
-
-    private createDiscoParticleSprite(
-        variant: number,
-        size: number,
-        colorIndex: number
-    ) {
-        const logicalSize = size * 7 + 14;
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(
-            1,
-            Math.ceil(logicalSize * this.discoSpriteDpr)
-        );
-        canvas.height = canvas.width;
-
-        const c = canvas.getContext("2d");
-        if (!c)
-            return canvas;
-
-        c.setTransform(
-            this.discoSpriteDpr,
-            0,
-            0,
-            this.discoSpriteDpr,
-            0,
-            0
-        );
-        c.translate(logicalSize * 0.5, logicalSize * 0.5);
-        c.fillStyle = this.getDiscoColor(colorIndex, 0.94);
-        c.shadowColor = this.getDiscoColor(colorIndex, 0.7);
-        c.shadowBlur = 3 + size * 1.4;
-
-        if (variant === 1) {
-            c.fillRect(
-                -size * 0.95,
-                -size * 0.22,
-                size * 1.9,
-                size * 0.44
-            );
-            return canvas;
-        }
-
-        c.beginPath();
-        c.moveTo(0, -size);
-        c.lineTo(size * 0.62, 0);
-        c.lineTo(0, size);
-        c.lineTo(-size * 0.62, 0);
-        c.closePath();
-        c.fill();
-
-        if (variant === 2) {
-            c.globalAlpha = 0.54;
-            c.fillStyle = "rgba(255, 255, 255, 0.9)";
-            c.fillRect(
-                -size * 1.7,
-                -0.4,
-                size * 3.4,
-                0.8
-            );
-            c.fillRect(
-                -0.4,
-                -size * 1.7,
-                0.8,
-                size * 3.4
-            );
-        }
-
-        return canvas;
-    }
-
-    private getDiscoColor(
-        colorIndex: number,
-        alpha: number
-    ) {
-        const [red, green, blue] =
-            discoColors[
-                colorIndex % discoColors.length
-            ];
-
-        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
     }
 
     private rebuildPaperButterflyDreamCaches() {
