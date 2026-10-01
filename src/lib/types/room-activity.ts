@@ -1,6 +1,7 @@
 export enum RoomActivityType {
 	BUZZ = 'buzz',
-	MOONCAKE = 'mooncake',
+	REVERSE = 'reverse',
+	CHEER = 'cheer',
 	SPIN = 'spin'
 }
 

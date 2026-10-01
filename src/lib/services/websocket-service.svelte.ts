@@ -9,17 +9,19 @@ export const EventType = {
 	MESSAGE_DELETE: 'MESSAGE_DELETE',
 	PING: 'PING',
 	ROOM_EFFECT: 'ROOM_EFFECT',
-	ROOM_ACTIVITY: 'ROOM_ACTIVITY'
+	ROOM_ACTIVITY: 'ROOM_ACTIVITY',
+	ROOM_EFFECT_STATE_REQUEST: 'ROOM_EFFECT_STATE_REQUEST',
+	ROOM_EFFECT_STATE_RESPONSE: 'ROOM_EFFECT_STATE_RESPONSE',
 } as const;
 
-export type EventType = (typeof EventType)[keyof typeof EventType];
+export type EventType =
+	(typeof EventType)[keyof typeof EventType]
 
 type ChatEventHandlers = {
 	onMessage?: (message: any) => void;
 	onReaction?: (payload: any) => void;
 	onDeleteMessage?: (payload: any) => void;
-	onRoomEffect?: (payload: any) => void;
-	onRoomActivity?: (payload: any) => void;
+	onRoomEvent?: (payload: any) => void;
 };
 
 function createWebsocketService() {
@@ -50,7 +52,8 @@ function createWebsocketService() {
 
 		socket.onmessage = (event) => {
 			const parsed = JSON.parse(event.data);
-			switch (parsed.eventType as EventType) {
+			const eventType = parsed.eventType as EventType;
+			switch (eventType) {
 				case EventType.ONLINE_USERS:
 					onlineUsers = Array.isArray(parsed) ? parsed : parsed.users || [];
 					return;
@@ -62,24 +65,20 @@ function createWebsocketService() {
 						typingUsers = [...typingUsers, parsed.sender];
 					}
 					return;
-
 				case EventType.TYPING_STOP:
 					typingUsers = typingUsers.filter((u) => u.username !== parsed.sender.username);
 					return;
-
 				case EventType.REACTION:
 					handlers.onReaction?.(parsed);
 					return;
-
+				case EventType.ROOM_EFFECT:
+				case EventType.ROOM_ACTIVITY:
+				case EventType.ROOM_EFFECT_STATE_REQUEST:
+				case EventType.ROOM_EFFECT_STATE_RESPONSE:
+					handlers.onRoomEvent?.(parsed);
+					return;
 				case EventType.MESSAGE_DELETE:
 					handlers.onDeleteMessage?.(parsed);
-					return;
-
-				case EventType.ROOM_EFFECT:
-					handlers.onRoomEffect?.(parsed);
-					return;
-				case EventType.ROOM_ACTIVITY:
-					handlers.onRoomActivity?.(parsed);
 					return;
 				default:
 					handlers.onMessage?.(parsed);

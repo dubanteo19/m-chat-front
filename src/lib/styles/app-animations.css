@@ -86,3 +86,30 @@
 		transform: rotate(360deg);
 	}
 }
+
+@keyframes cheer-pop {
+	0% {
+		opacity: 0;
+		transform: translate(-50%, -40%) scale(0.3) rotate(var(--rotation));
+	}
+
+	15% {
+		opacity: 1;
+		transform: translate(-50%, -50%) scale(calc(var(--scale) * 1.15))
+			rotate(calc(var(--rotation) * -0.5));
+	}
+
+	35% {
+		transform: translate(-50%, -55%) scale(var(--scale)) rotate(var(--rotation));
+	}
+
+	70% {
+		opacity: 0.9;
+		transform: translate(-50%, -70px) scale(var(--scale)) rotate(calc(var(--rotation) * -1));
+	}
+
+	100% {
+		opacity: 0;
+		transform: translate(-50%, -140px) scale(calc(var(--scale) * 0.8)) rotate(var(--rotation));
+	}
+}

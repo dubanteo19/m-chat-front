@@ -36,9 +36,7 @@ export function selectSpinMode(seed: number): SpinMode {
 }
 
 function createSeed() {
-	return typeof crypto !== 'undefined' && crypto.getRandomValues
-		? crypto.getRandomValues(new Uint32Array(1))[0]
-		: Date.now() >>> 0;
+	return Date.now() >>> 0;
 }
 
 export function createSpinActivity(startedAt = Date.now()): SpinActivity {
@@ -48,10 +46,7 @@ export function createSpinActivity(startedAt = Date.now()): SpinActivity {
 
 	return {
 		activity: RoomActivityType.SPIN,
-		activityId:
-			typeof crypto !== 'undefined' && crypto.randomUUID
-				? crypto.randomUUID()
-				: `spin-${startedAt}-${seed}`,
+		activityId: `spin-${startedAt}-${seed}`,
 		seed,
 		startedAt,
 		mode,

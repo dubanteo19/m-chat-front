@@ -10,9 +10,13 @@
 	import RoomEffectPicker from '../room-effects/room-effect-picker.svelte';
 	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
 	import RoomMembersPopover from './room-header/room-members-popover.svelte';
+	import { Bot } from '@lucide/svelte';
+	import AiDiaglog from '../room/ai-diaglog.svelte';
 	let { sidebarOpen = $bindable(), roomId, onlineUsers, sendRaw, selectedRoomEffect } = $props();
 	let selectedRoom = $state<RoomInfo | null>(null);
 	const { currentUser } = $derived(useUser());
+
+	let openAiDialog = $state(false);
 	const onRoomEffectSelect = (roomEffect: string) => {
 		sendRaw({
 			eventType: EventType.ROOM_EFFECT,
@@ -60,9 +64,14 @@
 			{/each}
 		</div>
 		<div class="flex gap-2 items-center">
+			<Button variant="default" onclick={() => (openAiDialog = true)} size="icon" class="animate-pulse">
+				<Bot />
+			</Button>
 			<RoomMembersPopover {roomId} {onlineUsers} />
 			<RoomEffectPicker {selectedRoomEffect} onselect={onRoomEffectSelect} />
 		</div>
 	</div>
+
+	<AiDiaglog bind:open={openAiDialog} />
 	<RoomDetailDiaglog open={selectedRoom !== null} />
 </header>

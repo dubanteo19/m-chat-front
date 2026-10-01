@@ -32,7 +32,7 @@ export function createOptimisticMessage(
 ): Message {
 	const repliedToInfo = repliedTo ? toRepliedMessageInfo(repliedTo) : null;
 	const message: Message = {
-		clientId: crypto.randomUUID(),
+		clientId: Date.now().toString(),
 		id: Date.now(),
 		type,
 		sender,
@@ -64,9 +64,9 @@ export function createRoomEffectMessage(options: {
 		(effect) => effect.type === options.effect
 	);
 
-	const isCurrentUser = options.sender.username === options.currentUsername;
+	const isMine = options.sender.username === options.currentUsername;
 
-	const senderName = isCurrentUser
+	const senderName = isMine
 		? 'You'
 		: options.sender.displayName;
 
@@ -75,7 +75,7 @@ export function createRoomEffectMessage(options: {
 	if (!effect) {
 		content = `${senderName} activated a room effect.`;
 	} else if (effect.type === 'disco-fever') {
-		const subject = isCurrentUser
+		const subject = isMine
 			? "You're"
 			: `${options.sender.displayName} is`;
 
@@ -83,7 +83,7 @@ export function createRoomEffectMessage(options: {
 			`The ${effect.icon} disco floor is lit! ` +
 			`${subject} getting the party started.`;
 	} else if (effect.type === 'halloween-night') {
-		content = 
+		content =
 			`${senderName} brought ${effect.icon} ${effect.label} into the room. The corridor is no longer empty.`
 	} else {
 		content =

@@ -40,12 +40,13 @@
 		fetchFile,
 		validateAndExtractMediaFile
 	} from '$lib/utils/upload';
-	import { ArrowDown } from '@lucide/svelte';
+	import { ArrowDown, Bot } from '@lucide/svelte';
 	import PhotoSwipe from 'photoswipe';
 	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
-	import MooncakeActivity from '$lib/components/room-activity/mooncake-activity.svelte';
 	import { createAnimationTrigger } from '$lib/utils/debounce';
+	import CheerActivity from '$lib/components/room-activity/cheer-activity.svelte';
+	import CheerButton from '$lib/components/common/cheer-button.svelte';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
@@ -57,7 +58,8 @@
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
 	let isBuzzing = $state(false);
-	let mooncakeActivity: MooncakeActivity | null = $state(null);
+	let isReversing = $state(false);
+	let cheerActivity: CheerActivity | null = $state(null);
 	let spinActivity: SpinActivityLayer | null = $state(null);
 	const { markRoomAsRead } = useUserRoomsQuery();
 	setContext(ROOM_MEMBERS_KEY, roomState);
@@ -159,10 +161,6 @@
 			websocketService.connect(currentRoomId, currentUser, {
 				onMessage(raw) {
 					const message = processIncomingMessage(raw, currentUser.username);
-					if (message.type === MessageType.TEXT && /^\s*\/buzz\s*$/.test(message.content)) {
-						playBuzz();
-						return;
-					}
 					if (!message.isMine) {
 						messages = [...messages, message];
 						scrollService.onIncomingMessage();
@@ -186,20 +184,22 @@
 						};
 					});
 				},
-				onRoomEffect(payload) {
-					roomEffect = payload.effect;
-					const effectMsg = createRoomEffectMessage({
-						sender: payload.sender,
-						currentUsername: currentUser.username,
-						effect: payload.effect
-					});
-					messages = [...messages, effectMsg];
-				},
-				onRoomActivity(payload) {
-					if (payload.activity === RoomActivityType.MOONCAKE) {
-						mooncakeActivity?.play();
+				onRoomEvent(payload) {
+					if (payload.eventType === EventType.ROOM_ACTIVITY) {
+						if (payload.activity === RoomActivityType.CHEER) cheerActivity?.play();
+						if (payload.activity === RoomActivityType.BUZZ) playBuzz();
+						if (payload.activity === RoomActivityType.REVERSE) isReversing = !isReversing;
+						spinActivity?.playPayload(payload);
 					}
-					spinActivity?.playPayload(payload);
+					if (payload.eventType === EventType.ROOM_EFFECT) {
+						roomEffect = payload.effect;
+						const effectMsg = createRoomEffectMessage({
+							sender: payload.sender,
+							currentUsername: currentUser.username,
+							effect: payload.effect
+						});
+						messages = [...messages, effectMsg];
+					}
 				}
 			});
 		});
@@ -348,16 +348,30 @@
 		isDragging = false;
 	}
 
+	export function parseCommand(content: string): string | null {
+		const match = content.trim().match(/^\/([a-zA-Z0-9_-]+)\s*$/);
+
+		return match?.[1].toLowerCase() ?? null;
+	}
+
 	async function onSendMessage(payload: MessagePayload) {
-		if (payload.type === MessageType.TEXT && isSpinCommand(payload.content)) {
-			const activity = spinActivity?.trigger();
-			if (activity) {
-				websocketService.sendRaw({
-					eventType: EventType.ROOM_ACTIVITY,
-					...activity,
-					sender: currentUser
-				});
+		const command = parseCommand(payload.content);
+		if (payload.type === MessageType.TEXT && command) {
+			let payload = {
+				eventType: EventType.ROOM_ACTIVITY,
+				activity: command,
+				sender: currentUser
+			};
+			switch (command) {
+				case 'spin':
+					const activity = spinActivity?.trigger();
+					if (activity) {
+						payload = { ...payload, ...activity };
+					}
+					break;
 			}
+			websocketService.sendRaw(payload);
+			return;
 		}
 
 		const optimistic: Message = createOptimisticMessage(
@@ -401,8 +415,9 @@
 
 	{#if roomId !== 'hall'}
 		<main
-			class="relative min-h-0 min-w-0 flex flex-col flex-1 overflow-hidden"
+			class="relative min-h-0 min-w-0 flex flex-col flex-1 overflow-hidden transition-transform duration-500"
 			class:room-buzzing={isBuzzing}
+			class:rotate-180={isReversing}
 			onpaste={handlePaste}
 			ondragover={(e) => {
 				e.preventDefault();
@@ -412,103 +427,82 @@
 			ondrop={handleDrop}
 		>
 			<SpinActivityLayer bind:this={spinActivity}>
-			<!-- Background layer -->
-			<RoomEffects {roomEffect} />
-			<div class="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
-				{#if !scrollService.isNearBottom}
-					<Button
-						class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
-						onclick={() => scrollService.scrollToBottom()}
-					>
-						<ArrowDown />
-					</Button>
-				{/if}
+				<RoomEffects {roomEffect} />
+				<div class="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
+					{#if !scrollService.isNearBottom}
+						<Button
+							class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
+							onclick={() => scrollService.scrollToBottom()}
+						>
+							<ArrowDown />
+						</Button>
+					{/if}
 
-				<Button
-					onclick={() => {
-						websocketService.sendRaw({
-							eventType: EventType.ROOM_ACTIVITY,
-							activity: RoomActivityType.MOONCAKE,
-							sender: {
-								displayName: currentUser.displayName
-							}
-						});
-					}}
-					variant="link"
-					class="group absolute right-5 bottom-24 z-50
-					flex rounded-full p-0
-					transition-transform duration-300
-					hover:scale-110
-					active:scale-95"
-				>
-					<img
-						src="https://minio.dbt19.site/mchat-public/images/f893f220-062a-474f-96ed-ca4f29af5688.png"
-						alt="mooncake"
-						class="h-12 w-12
-							drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]
-							floating
-							transition-all duration-300
-							group-hover:rotate-6
-							group-hover:drop-shadow-[0_6px_14px_rgba(0,0,0,0.35)]"
+					<CheerButton
+						onclick={() => {
+							websocketService.sendRaw({
+								eventType: EventType.ROOM_ACTIVITY,
+								activity: RoomActivityType.CHEER,
+								sender: {
+									displayName: currentUser.displayName
+								}
+							});
+						}}
 					/>
-				</Button>
-				{#if isDragging}
+					{#if isDragging}
+						<div
+							class="flex-center absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 pointer-events-none"
+						>
+							<p class="text-xl font-semibold text-blue-400 animate-pulse">
+								Drop image here to send...
+							</p>
+						</div>
+					{/if}
+
+					<RoomHeader
+						sendRaw={websocketService.sendRaw}
+						selectedRoomEffect={roomEffect}
+						{roomId}
+						bind:sidebarOpen
+						onlineUsers={websocketService.onlineUsers}
+					/>
+
 					<div
-						class="flex-center absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 pointer-events-none"
+						use:scrollService.use
+						class="flex flex-1 flex-col min-h-0 gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
 					>
-						<p class="text-xl font-semibold text-blue-400 animate-pulse">
-							Drop image here to send...
-						</p>
+						{#each messages as message, i (i)}
+							<MessageItem
+								{message}
+								isLastMessage={i === messages.length - 1}
+								onImageLoad={scrollService.scrollToBottom}
+								{openReactionId}
+								setOpenReactionId={(id) => (openReactionId = id)}
+								handleReply={(msg) => (repliedToMessage = msg)}
+								{handleDelete}
+								sendReact={handleSendReact}
+								{onOpenLightbox}
+							/>
+						{/each}
+						<TypingIndicator typingUsers={websocketService.typingUsers} />
 					</div>
-				{/if}
 
-				<RoomHeader
-					sendRaw={websocketService.sendRaw}
-					selectedRoomEffect={roomEffect}
-					{roomId}
-					bind:sidebarOpen
-					onlineUsers={websocketService.onlineUsers}
-				/>
-
-				<div
-					use:scrollService.use
-					class="flex flex-1 flex-col min-h-0 gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
-				>
-					{#each messages as message, i (i)}
-						<MessageItem
-							{message}
-							isLastMessage={i === messages.length - 1}
-							onImageLoad={scrollService.scrollToBottom}
-							{openReactionId}
-							setOpenReactionId={(id) => (openReactionId = id)}
-							handleReply={(msg) => (repliedToMessage = msg)}
-							{handleDelete}
-							sendReact={handleSendReact}
-							{onOpenLightbox}
-						/>
-					{/each}
-					<TypingIndicator typingUsers={websocketService.typingUsers} />
+					<ChatInput
+						{roomId}
+						bind:repliedToMessage
+						{onSendMessage}
+						onTypingStateChange={websocketService.sendTyping}
+						onFileUploadRequested={processFile}
+					/>
 				</div>
-
-				<ChatInput
-					{roomId}
-					bind:repliedToMessage
-					{onSendMessage}
-					onTypingStateChange={websocketService.sendTyping}
-					onFileUploadRequested={processFile}
-				/>
-			</div>
 			</SpinActivityLayer>
-			<MooncakeActivity bind:this={mooncakeActivity} />
+			<CheerActivity bind:this={cheerActivity} />
 		</main>
 	{/if}
 </div>
 <svelte:window onclick={() => (openReactionId = null)} />
 
 <style>
-	.floating {
-		animation: float 3s ease-in-out infinite;
-	}
 	.room-buzzing {
 		animation: buzz 1.4s ease-in-out;
 	}
