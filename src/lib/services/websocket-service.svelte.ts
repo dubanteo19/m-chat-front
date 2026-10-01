@@ -39,6 +39,11 @@ function createWebsocketService() {
 		socket = new WebSocket(`${PUBLIC_BASE_URL}/chat/${roomId}/${currentUser.username}`);
 		socket.onopen = () => {
 			connected = true;
+			sendRaw({
+				eventType: EventType.ROOM_EFFECT_STATE_REQUEST,
+				roomId: roomId,
+				sender: currentUser
+			});
 			pingInterval = setInterval(() => {
 				sendRaw({ eventType: EventType.PING });
 			}, 30000);
@@ -91,7 +96,10 @@ function createWebsocketService() {
 	}
 
 	function sendRaw(payload: unknown) {
-		if (socket?.readyState !== WebSocket.OPEN) return;
+		if (socket?.readyState !== WebSocket.OPEN) {
+			console.warn('WebSocket is not open. Cannot send message:', payload);
+			return;
+		}
 		socket.send(JSON.stringify(payload));
 	}
 

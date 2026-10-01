@@ -54,8 +54,8 @@ export function processIncomingMessage(rawMsg: any, currentUser: string): Messag
 }
 
 export function createRoomEffectMessage(options: {
-	sender: { displayName: string; username: string };
-	currentUsername: string;
+	sender: UserInfo;
+	isMine: boolean;
 	effect: string;
 }): Message {
 	const id = Date.now(); // Generate a unique ID based on the current timestamp
@@ -64,9 +64,8 @@ export function createRoomEffectMessage(options: {
 		(effect) => effect.type === options.effect
 	);
 
-	const isMine = options.sender.username === options.currentUsername;
 
-	const senderName = isMine
+	const senderName = options.isMine
 		? 'You'
 		: options.sender.displayName;
 
@@ -75,7 +74,7 @@ export function createRoomEffectMessage(options: {
 	if (!effect) {
 		content = `${senderName} activated a room effect.`;
 	} else if (effect.type === 'disco-fever') {
-		const subject = isMine
+		const subject = options.isMine
 			? "You're"
 			: `${options.sender.displayName} is`;
 
@@ -93,6 +92,22 @@ export function createRoomEffectMessage(options: {
 
 	return {
 		id: id,
+		content,
+		type: MessageType.SYSTEM,
+		sender: options.sender,
+		sentAt: new Date().toISOString(),
+		isDeleted: false
+	};
+}
+
+export function createAnonymousActivityMessage(options: {
+	sender: UserInfo;
+	activity: string;
+}): Message {
+	const anynonymousName = options.sender.displayName.substring(0, Math.min(4, options.sender.displayName.length)) + '...';
+	const content = `${anynonymousName} performed ${options.activity}.`;
+	return {
+		id: Date.now(),
 		content,
 		type: MessageType.SYSTEM,
 		sender: options.sender,

@@ -27,6 +27,7 @@
 	import { RoomActivityType } from '$lib/types/room-activity';
 	import type { UserInfo } from '$lib/types/user';
 	import {
+		createAnonymousActivityMessage,
 		createMessagePayload,
 		createOptimisticMessage,
 		createRoomEffectMessage,
@@ -166,12 +167,11 @@
 						scrollService.onIncomingMessage();
 						if (message.type !== MessageType.SYSTEM)
 							readRoomService.scheduleReadRoom(currentRoomId, message.seq);
+						if (currentUser.allowNotify) notificationService.triggerPush(message, currentRoomId);
 					}
-					if (!message.isMine && currentUser.allowNotify)
-						notificationService.triggerPush(message, currentRoomId);
 				},
 				onReaction(payload) {
-					if (payload.action === 'ADDED') messages = updateMessageReactions(messages, payload);
+					messages = updateMessageReactions(messages, payload);
 				},
 				onDeleteMessage(payload) {
 					const targetId = Number(payload.messageId);
@@ -185,21 +185,45 @@
 					});
 				},
 				onRoomEvent(payload) {
+					if (payload.eventType === EventType.ROOM_EFFECT_STATE_RESPONSE) {
+						if (payload.effect) roomEffect = payload.effect;
+						return;
+					}
+					if (payload.eventType === EventType.ROOM_EFFECT_STATE_REQUEST) {
+						if (roomEffect)
+							websocketService.sendRaw({
+								eventType: EventType.ROOM_EFFECT_STATE_RESPONSE,
+								roomId: currentRoomId,
+								sender: currentUser,
+								effect: roomEffect
+							});
+						return;
+					}
 					if (payload.eventType === EventType.ROOM_ACTIVITY) {
-						if (payload.activity === RoomActivityType.CHEER) cheerActivity?.play();
+						if (payload.activity === RoomActivityType.CHEER) {
+							cheerActivity?.play();
+							return;
+						}
 						if (payload.activity === RoomActivityType.BUZZ) playBuzz();
 						if (payload.activity === RoomActivityType.REVERSE) isReversing = !isReversing;
-						spinActivity?.playPayload(payload);
+						if (payload.activity === RoomActivityType.SPIN) spinActivity?.playPayload(payload);
+						const activityMsg = createAnonymousActivityMessage({
+							sender: payload.sender,
+							activity: payload.activity
+						});
+						messages = [...messages, activityMsg];
 					}
 					if (payload.eventType === EventType.ROOM_EFFECT) {
 						roomEffect = payload.effect;
 						const effectMsg = createRoomEffectMessage({
 							sender: payload.sender,
-							currentUsername: currentUser.username,
+							isMine: payload.sender.username === currentUser.username,
 							effect: payload.effect
 						});
 						messages = [...messages, effectMsg];
 					}
+
+					scrollService.onIncomingMessage();
 				}
 			});
 		});
@@ -350,7 +374,6 @@
 
 	export function parseCommand(content: string): string | null {
 		const match = content.trim().match(/^\/([a-zA-Z0-9_-]+)\s*$/);
-
 		return match?.[1].toLowerCase() ?? null;
 	}
 
