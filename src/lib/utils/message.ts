@@ -82,8 +82,13 @@ export function createRoomEffectMessage(options: {
 			`The ${effect.icon} disco floor is lit! ` +
 			`${subject} getting the party started.`;
 	} else if (effect.type === 'halloween-night') {
+		const subject = options.isMine
+			? 'You have'
+			: `${options.sender.displayName} has`;
+
 		content =
-			`${senderName} brought ${effect.icon} ${effect.label} into the room. The corridor is no longer empty.`
+			`The circle is open. ${subject} called beyond the veil... ` +
+			`and something has answered. Do not break the circle.`;
 	} else {
 		content =
 			`${senderName} activated the ${effect.icon} ${effect.label} effect.`;
