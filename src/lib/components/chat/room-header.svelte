@@ -64,14 +64,14 @@
 			{/each}
 		</div>
 		<div class="flex gap-2 items-center">
-			<Button variant="default" onclick={() => (openAiDialog = true)} size="icon" class="animate-pulse">
+			<!-- <Button variant="default" onclick={() => (openAiDialog = true)} size="icon" class="animate-pulse">
 				<Bot />
-			</Button>
+			</Button> -->
 			<RoomMembersPopover {roomId} {onlineUsers} />
 			<RoomEffectPicker {selectedRoomEffect} onselect={onRoomEffectSelect} />
 		</div>
 	</div>
 
-	<AiDiaglog bind:open={openAiDialog} />
+	<!-- <AiDiaglog bind:open={openAiDialog} /> -->
 	<RoomDetailDiaglog open={selectedRoom !== null} />
 </header>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { CreateStickerPackageRequest } from '$lib/api/sticker';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -12,7 +13,7 @@
 		onCancel
 	}: {
 		package: StickerPackage | null;
-		onSave: (pkg: StickerPackage) => void;
+		onSave: (pkg: CreateStickerPackageRequest) => void;
 		onCancel: () => void;
 	} = $props();
 
@@ -31,8 +32,9 @@
 		if (!files) return;
 		for (const file of Array.from(files)) {
 			if (!file.type.startsWith('image/')) continue;
+
 			const sticker: Sticker = {
-				id: crypto.randomUUID(),
+				id: Date.now(),
 				url: URL.createObjectURL(file),
 				name: file.name
 			};
@@ -42,13 +44,13 @@
 	}
 
 	function save() {
-		const pkg: StickerPackage = {
+		const request: CreateStickerPackageRequest = {
 			name: name.trim(),
 			description: description.trim(),
-			visibility,
+			visibility
 		};
 
-		onSave(pkg);
+		onSave(request);
 	}
 </script>
 

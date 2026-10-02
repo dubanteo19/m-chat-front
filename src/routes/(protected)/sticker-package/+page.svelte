@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { stickerService, type CreateStickerPackageRequest } from '$lib/api/sticker';
 	import StickerPackageCard from '$lib/components/sticker/sticker-package-card.svelte';
 	import StickerPackageEditor from '$lib/components/sticker/sticker-package-editor.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -8,7 +9,6 @@
 	import { Plus } from '@lucide/svelte';
 
 	let packages = $state<StickerPackage[]>([...MOCK_STICKER_PACKAGES]);
-
 	let editingPackage = $state<StickerPackage | null>(null);
 	let isCreating = $state(false);
 
@@ -27,8 +27,15 @@
 		isCreating = false;
 	}
 
-	function savePackage(pkg: StickerPackage) {
-
+	async function savePackage(request: CreateStickerPackageRequest) {
+		try {
+			const response = await stickerService.save(request);
+			if (response.id) {
+				editingPackage = response;
+			}
+		} catch (error) {
+			console.error('Error saving sticker package:', error);
+		}
 	}
 
 	function deletePackage(id: string) {
@@ -51,7 +58,7 @@
 				</Button>
 			</Dialog.Trigger>
 			<Dialog.Content class="sm:max-w-4xl">
-				<StickerPackageEditor package={null} onSave={savePackage} onCancel={closeEditor} />
+				<StickerPackageEditor package={editingPackage} onSave={savePackage} onCancel={closeEditor} />
 			</Dialog.Content>
 		</Dialog.Root>
 	</div>

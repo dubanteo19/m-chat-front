@@ -1,5 +1,4 @@
-import type { Message } from '$lib/types/message';
-import type { RoomInfo, RoomMemberInfo } from '$lib/types/room';
+import type { StickerPackage } from '$lib/types/sticker';
 import { apiClient } from './client';
 
 export type CreateStickerPackageRequest = {
@@ -8,7 +7,7 @@ export type CreateStickerPackageRequest = {
 	visibility: 'PUBLIC' | 'PRIVATE';
 };
 export const stickerService = {
-	createStickerPackage: async (request: CreateStickerPackageRequest): Promise<RoomInfo> => {
+	save: async (request: CreateStickerPackageRequest): Promise<StickerPackage> => {
 		return apiClient.post(`/sticker-packages`, request);
 	},
 };

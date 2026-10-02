@@ -14,7 +14,7 @@ const CACHE_TTL = 60 * 60 * 1000;
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const token = event.cookies.get('m_user');
-
+	console.log("token from cookie: ", token);
 	if (!token) {
 		event.locals.user = null;
 		return resolve(event);
@@ -27,6 +27,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return resolve(event);
 	}
 	const res = await event.fetch(`${PUBLIC_BASE_URL}/auth/me`);
+	console.log("response from /auth/me: ", res);
 	if (res.ok) {
 		const user = (await res.json()) as CurrentUserInfo;
 		sessionCache.set(token, {
@@ -45,8 +46,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	if (request.url.startsWith(PUBLIC_BASE_URL)) {
 		const cookie = event.request.headers.get('cookie');
-
+		return globalThis.fetch(request);
 		if (cookie) {
+			console.log("cookie present set in request headers");
 			request.headers.set('cookie', cookie);
 		}
 		if (import.meta.env.DEV) {
