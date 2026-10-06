@@ -3,11 +3,29 @@
 	import { animationClassMap } from '$lib/constants/animations';
 	import { FRAMED_BADGE_STYLES } from '$lib/constants/animations';
 
-	let { user } = $props<{
+	type BadgeVariant = 'default' | 'compact';
+	type AnimationMode = 'always' | 'interaction' | 'none';
+
+	let {
+		user,
+		textSize,
+		variant = 'default',
+		animationMode = 'always'
+	} = $props<{
 		user: Partial<UserInfo> & { title?: string; titleStyle?: TitleStyle };
 		textSize?: string;
+		variant?: BadgeVariant;
+		animationMode?: AnimationMode;
 	}>();
 	const isFramed = $derived(FRAMED_BADGE_STYLES.has(user.titleStyle?.animationVibe || 'none'));
+	const isCompact = $derived(variant === 'compact');
+	const animationStateClass = $derived(
+		animationMode === 'interaction'
+			? 'badge-animate-interaction'
+			: animationMode === 'none'
+				? 'badge-animation-none'
+				: ''
+	);
 
 	const textShadowMap: Record<string, string> = {
 		none: 'none',
@@ -28,7 +46,8 @@
 
 {#if user.title && isFramed}
 	<span
-		class="framed-badge"
+		class="framed-badge {animationStateClass}"
+		class:badge-compact={isCompact}
 		title={user.title}
 		class:obsidian={user.titleStyle?.animationVibe === 'obsidian'}
 		class:pleiku={user.titleStyle?.animationVibe === 'pleiku-rain'}
@@ -51,9 +70,9 @@
 	</span>
 {:else if user.title}
 	<span
-		class={`relative inline-block overflow-hidden font-bold text-[12px] px-1.5  rounded uppercase tracking-wide transition-all ${
-			animationClassMap[user.titleStyle?.animationVibe || 'none']
-		}`}
+		class={`relative inline-block overflow-hidden rounded px-1.5 font-bold uppercase tracking-wide text-ellipsis whitespace-nowrap transition-all ${
+			isCompact ? 'badge-compact max-w-[7.5rem] text-[9px] leading-4' : textSize || 'text-[12px]'
+		} ${animationClassMap[user.titleStyle?.animationVibe || 'none']} ${animationStateClass}`}
 		style:color={user.titleStyle?.textColor || '#7e22ce'}
 		style:background-color={backgroundControlledAnimations.has(
 			user.titleStyle?.animationVibe || 'none'

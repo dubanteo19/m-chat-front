@@ -132,6 +132,41 @@ button:focus:not(:focus-visible) {
 	justify-content: center;
 	align-items: center;
 }
+
+.chat-shell {
+	--background: #0d0e11;
+	--foreground: #e6e8ec;
+	--card: #15171c;
+	--card-foreground: #e6e8ec;
+	--popover: #15171c;
+	--popover-foreground: #e6e8ec;
+	--primary: #7c5cff;
+	--primary-foreground: #f7f7fb;
+	--secondary: #20232b;
+	--secondary-foreground: #e6e8ec;
+	--muted: #1d2027;
+	--muted-foreground: #9097a3;
+	--accent: #292642;
+	--accent-foreground: #f0edff;
+	--destructive: #f06a6a;
+	--border: #292c33;
+	--input: #292c33;
+	--ring: #8b7cf6;
+	--sidebar: #111318;
+	--sidebar-foreground: #e6e8ec;
+	--sidebar-primary: #8b7cf6;
+	--sidebar-primary-foreground: #ffffff;
+	--sidebar-accent: #24213a;
+	--sidebar-accent-foreground: #f0edff;
+	--sidebar-border: #292c33;
+	--sidebar-ring: #8b7cf6;
+	background: #0d0e11;
+	color: #e6e8ec;
+}
+
+.chat-shell ::selection {
+	background: rgb(139 124 246 / 35%);
+}
 .dark {
 	--background: oklch(0.145 0.008 326);
 	--foreground: oklch(0.985 0 0);

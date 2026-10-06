@@ -32,43 +32,76 @@
 	}
 </script>
 
-<div class="flex-center h-screen">
-	<div class="w-full max-w-md p-8 rounded-xl shadow-2xl border">
-		<h2 class="text-2xl font-bold text-center mb-1">Create Account</h2>
-		<p class="text-sm text-center mb-6">Register to start chatting</p>
+<svelte:head><title>Create account | M Chat</title></svelte:head>
 
-		{#if errorMessage}
-			<div class="mb-4 p-3 bg-destructive text-white text-sm rounded-md text-center font-medium">
-				{errorMessage}
+<div class="chat-shell flex min-h-dvh items-center justify-center bg-background px-4 py-8">
+	<div
+		class="w-full max-w-[360px] overflow-hidden rounded-lg border border-border bg-card shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+	>
+		<header class="border-b border-border bg-[#111318] px-4 py-3">
+			<div class="flex items-center gap-2 text-[13px] font-semibold">
+				<span class="text-primary">&gt;_</span><span>M Chat</span>
 			</div>
-		{/if}
+			<p class="mt-1 text-xs text-muted-foreground">Create your workspace identity</p>
+		</header>
+		<div class="p-4">
+			{#if errorMessage}
+				<div
+					class="mb-3 rounded-md border border-destructive/30 bg-destructive/10 p-2.5 text-xs font-medium text-destructive"
+				>
+					{errorMessage}
+				</div>
+			{/if}
 
-		<form onsubmit={handleRegister} class="space-y-4">
-			<div class="w-full max-w-md">
-				<Field.Set>
-					<Field.Group>
-						<Field.Field>
-							<Field.Label for="displayName">Display Name</Field.Label>
-							<Input bind:value={displayName} id="displayName" type="text" placeholder="Join Doe" />
-						</Field.Field>
-						<Field.Field>
-							<Field.Label for="username">Username</Field.Label>
-							<Input bind:value={username} id="username" type="text" placeholder="dbt19" />
-						</Field.Field>
-						<Field.Field>
-							<Field.Label for="password">Password</Field.Label>
-							<Input bind:value={password} id="password" type="password" placeholder="••••••••" />
-						</Field.Field>
-					</Field.Group>
-				</Field.Set>
+			<form onsubmit={handleRegister} class="space-y-3">
+				<div class="w-full max-w-md">
+					<Field.Set>
+						<Field.Group>
+							<Field.Field>
+								<Field.Label for="displayName" class="text-xs">Display name</Field.Label>
+								<Input
+									bind:value={displayName}
+									id="displayName"
+									type="text"
+									placeholder="Jane Doe"
+									class="h-8 rounded-md border-border bg-background/70 text-xs"
+								/>
+							</Field.Field>
+							<Field.Field>
+								<Field.Label for="username" class="text-xs">Username</Field.Label>
+								<Input
+									bind:value={username}
+									id="username"
+									type="text"
+									placeholder="dbt19"
+									class="h-8 rounded-md border-border bg-background/70 text-xs"
+								/>
+							</Field.Field>
+							<Field.Field>
+								<Field.Label for="password" class="text-xs">Password</Field.Label>
+								<Input
+									bind:value={password}
+									id="password"
+									type="password"
+									placeholder="••••••••"
+									class="h-8 rounded-md border-border bg-background/70 text-xs"
+								/>
+							</Field.Field>
+						</Field.Group>
+					</Field.Set>
+				</div>
+
+				<Button type="submit" size="sm" class="mt-1 h-8 w-full rounded-md">Sign Up</Button>
+			</form>
+
+			<div
+				class="mt-4 flex justify-center gap-1.5 border-t border-border pt-3 text-xs text-muted-foreground"
+			>
+				<span>Already have an account?</span>
+				<a href={resolve('/login')} class="font-medium text-[#a99cff] hover:text-[#c6bdff]"
+					>Sign in</a
+				>
 			</div>
-
-			<Button type="submit" class="w-full mt-2 ">Sign Up</Button>
-		</form>
-
-		<div class="flex justify-center gap-1.5 mt-6 text-sm">
-			<span>Already have an account?</span>
-			<a href={resolve('/login')} class=" font-medium underline"> Log in here </a>
 		</div>
 	</div>
 </div>

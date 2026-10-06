@@ -25,27 +25,27 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="sm:max-w-[825px]">
-		<Dialog.Header>
-			<Dialog.Title>AI Assistant</Dialog.Title>
-			<Dialog.Description>
+	<Dialog.Content class="gap-4 rounded-lg border-border bg-popover p-4 sm:max-w-[620px]">
+		<Dialog.Header class="gap-1 border-b border-border pb-3">
+			<Dialog.Title class="text-[14px] font-semibold">AI Assistant</Dialog.Title>
+			<Dialog.Description class="text-xs">
 				How can I assist you today? You can ask questions, get information, or seek help with
 				various topics.
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<div class="relative mt-4 w-full overflow-hidden">
+		<div class="relative w-full overflow-hidden">
 			<Textarea
 				placeholder="Type your prompt here..."
 				bind:value={prompt}
 				rows={5}
-				class="w-full max-w-full break-words min-h-[140px] resize-none pr-14 pb-12"
+				class="min-h-[104px] w-full max-w-full resize-none rounded-md border-border bg-background/70 pr-11 pb-10 text-[13px] break-words focus-visible:ring-2"
 				onkeydown={handleKeydown}
 			/>
 			<Button
 				variant="default"
 				size="icon"
-				class="absolute bottom-3 right-3 h-8 w-8 rounded-full"
+				class="absolute right-2.5 bottom-2.5 size-8 rounded-md"
 				onclick={handleSubmit}
 				disabled={!prompt.trim()}
 				aria-label="Submit prompt"

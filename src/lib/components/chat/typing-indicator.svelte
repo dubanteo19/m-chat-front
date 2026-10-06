@@ -1,35 +1,32 @@
 <script lang="ts">
 	import type { UserInfo } from '$lib/types/user';
-	import UserAvatar from '../common/user-avatar.svelte';
 	let { typingUsers }: { typingUsers: UserInfo[] } = $props();
 </script>
 
-<div class="h-6 p-2 text-xs text-slate-400 italic flex items-center gap-1">
+<div
+	class="ml-[3.75rem] flex h-6 items-center gap-1 border-l border-[#20232a] px-4 text-[11px] text-muted-foreground italic"
+>
 	{#if typingUsers.length > 0}
 		{#if typingUsers.length === 1}
-			<UserAvatar user={typingUsers[0]} />
-			<span class="font-medium text-blue-400">{typingUsers[0].displayName}</span> is typing
+			<span class="font-medium text-[#8b7cf6]">@{typingUsers[0].displayName}</span> is typing
 		{:else if typingUsers.length === 2}
-			<UserAvatar user={typingUsers[0]} />
-			<span class="font-medium text-blue-400">{typingUsers[0].displayName}</span>
-			<UserAvatar user={typingUsers[1]} />
-			<span class="font-medium text-blue-400">{typingUsers[1].displayName}</span> are typing
+			<span class="font-medium text-[#8b7cf6]">@{typingUsers[0].displayName}</span>
+			<span class="font-medium text-[#8b7cf6]">@{typingUsers[1].displayName}</span> are typing
 		{:else if typingUsers.length > 2}
-			<UserAvatar user={typingUsers[0]} />
-			<span class="font-medium text-blue-400">{typingUsers[0].displayName}</span>,
-			<UserAvatar user={typingUsers[1]} />
-			<span class="font-medium text-blue-400">{typingUsers[1].displayName}</span>,
-			<span class="font-medium text-blue-400">{typingUsers.length - 2} others</span> are typing
+			<span class="font-medium text-[#8b7cf6]">@{typingUsers[0].displayName}</span>,
+			<span class="font-medium text-[#8b7cf6]">@{typingUsers[1].displayName}</span>,
+			<span class="font-medium text-[#8b7cf6]">{typingUsers.length - 2} others</span> are typing
 		{/if}
 
 		<!-- Single reusable animated dots block -->
 		<span class="inline-flex items-center gap-1 ml-0.5 not-italic">
-			<span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-typing-wave inline-block"></span>
-			<span
-				class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-typing-wave animation-delay-200 inline-block"
+			<span class="w-1 h-1 rounded-full bg-muted-foreground animate-typing-wave inline-block"
 			></span>
 			<span
-				class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-typing-wave animation-delay-400 inline-block"
+				class="w-1 h-1 rounded-full bg-muted-foreground animate-typing-wave animation-delay-200 inline-block"
+			></span>
+			<span
+				class="w-1 h-1 rounded-full bg-muted-foreground animate-typing-wave animation-delay-400 inline-block"
 			></span>
 		</span>
 	{/if}

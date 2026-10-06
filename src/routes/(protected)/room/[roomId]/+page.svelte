@@ -426,19 +426,35 @@
 	}
 </script>
 
-<div class="flex flex-1 min-h-0 overflow-hidden">
+<div class="chat-shell flex min-h-0 flex-1 overflow-hidden">
 	<Sidebar bind:sidebarOpen {roomId} />
 
 	{#if roomId === 'hall'}
-		<div class="flex-center h-full w-full flex-col">
-			<Button onclick={() => (sidebarOpen = true)} aria-label="Open sidebar">☰</Button>
-			<p class="text-lg text-slate-400">Select a room to start chatting</p>
+		<div class="flex-center h-full w-full flex-col gap-3 bg-background text-center">
+			<div
+				class="grid size-10 place-items-center rounded-md border border-border bg-card text-primary"
+			>
+				#
+			</div>
+			<div>
+				<p class="text-sm font-medium text-foreground">No room selected</p>
+				<p class="mt-1 text-xs text-muted-foreground">
+					Choose a room from the explorer to start chatting.
+				</p>
+			</div>
+			<Button
+				size="sm"
+				variant="outline"
+				class="h-8 rounded-md md:hidden"
+				onclick={() => (sidebarOpen = true)}
+				aria-label="Open sidebar">Open rooms</Button
+			>
 		</div>
 	{/if}
 
 	{#if roomId !== 'hall'}
 		<main
-			class="relative min-h-0 min-w-0 flex flex-col flex-1 overflow-hidden transition-transform duration-500"
+			class="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background transition-transform duration-500"
 			class:room-buzzing={isBuzzing}
 			class:rotate-180={isReversing}
 			onpaste={handlePaste}
@@ -454,7 +470,9 @@
 				<div class="relative z-10 flex flex-col flex-1 min-h-0 overflow-hidden">
 					{#if !scrollService.isNearBottom}
 						<Button
-							class="absolute left-[50%] -translate-x-1/2 bottom-24 z-50 flex"
+							variant="outline"
+							size="icon-sm"
+							class="absolute bottom-[4.75rem] left-1/2 z-30 size-8 -translate-x-1/2 rounded-md border-border bg-[#15171c]/95 shadow-lg backdrop-blur-sm"
 							onclick={() => scrollService.scrollToBottom()}
 						>
 							<ArrowDown />
@@ -474,10 +492,12 @@
 					/>
 					{#if isDragging}
 						<div
-							class="flex-center absolute inset-0 bg-blue-600/20 backdrop-blur-sm border-2 border-dashed border-blue-500 z-50 pointer-events-none"
+							class="flex-center pointer-events-none absolute inset-2 z-50 rounded-md border border-dashed border-[#8b7cf6] bg-[#8b7cf6]/10 backdrop-blur-[2px]"
 						>
-							<p class="text-xl font-semibold text-blue-400 animate-pulse">
-								Drop image here to send...
+							<p
+								class="rounded-md border border-[#6257a8] bg-[#15171c] px-3 py-2 text-xs font-medium text-[#c6bdff] shadow-xl"
+							>
+								Drop image to send
 							</p>
 						</div>
 					{/if}
@@ -492,11 +512,12 @@
 
 					<div
 						use:scrollService.use
-						class="flex flex-1 flex-col min-h-0 gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
+						class="flex min-h-0 w-full flex-1 flex-col overflow-y-auto py-2 [&::-webkit-scrollbar]:hidden"
 					>
 						{#each messages as message, i (i)}
 							<MessageItem
 								{message}
+								lineNumber={i + 1}
 								isLastMessage={i === messages.length - 1}
 								onImageLoad={scrollService.scrollToBottom}
 								{openReactionId}

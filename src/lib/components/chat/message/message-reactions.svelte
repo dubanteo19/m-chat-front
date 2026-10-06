@@ -1,5 +1,4 @@
 <script lang="ts">
-	import UserAvatar from '$lib/components/common/user-avatar.svelte';
 	import UserBadge from '$lib/components/common/user-badge.svelte';
 	import * as HoverCard from '$lib/components/ui/hover-card/index.js';
 	import { Button } from '$lib/components/ui/button';
@@ -28,21 +27,19 @@
 </script>
 
 {#if !message.isDeleted && message.reactions && groupedReactions().length > 0}
-	<div
-		class="absolute -bottom-3 left-0 flex gap-1 {message.isMine ? 'justify-end' : 'justify-start'}"
-	>
+	<div class="mt-1 flex flex-wrap gap-1">
 		{#each groupedReactions() as reaction (reaction.type)}
 			<HoverCard.Root openDelay={150} closeDelay={100}>
 				<HoverCard.Trigger>
 					<Button
 						variant="ghost"
 						size="icon-sm"
-						class="border-primary "
+						class="h-6 min-w-8 gap-1 rounded-md border border-border bg-[#171a20] px-1.5 text-xs hover:border-[#6257a8] hover:bg-muted"
 						onclick={() => sendReact?.(message.id, reaction.type)}
 					>
 						{reaction.type}
 						{#if reaction.count > 1}
-							<span class="text-[10px] font-bold text-slate-400">{reaction.count}</span>
+							<span class="text-[10px] font-medium text-muted-foreground">{reaction.count}</span>
 						{/if}
 					</Button>
 				</HoverCard.Trigger>
@@ -50,7 +47,7 @@
 					side="bottom"
 					align={message.isMine ? 'end' : 'start'}
 					sideOffset={8}
-					class="w-fit p-2"
+					class="w-fit rounded-md border-border bg-popover p-2"
 				>
 					<div class="text-xs font-medium mb-2">
 						{reaction.type}
@@ -58,10 +55,7 @@
 
 					<div class="max-h-36 overflow-y-auto flex flex-col gap-1">
 						{#each message.reactions.filter((r: ReactionInfo) => r.type === reaction.type) as r (r.id)}
-							<div
-								class="flex items-center gap-2 px-1 py-1 rounded hover:bg-muted transition-colors"
-							>
-								<UserAvatar user={r.sender} />
+							<div class="flex items-center rounded px-1.5 py-1 hover:bg-muted transition-colors">
 								<UserBadge user={r.sender} />
 							</div>
 						{/each}

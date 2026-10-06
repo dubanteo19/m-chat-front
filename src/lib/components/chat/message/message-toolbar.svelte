@@ -29,18 +29,17 @@
 
 {#if !message.isDeleted}
 	<div
-		class="absolute -top-6 z-20 flex items-center gap-1 bg-secondary color-accent border-primary border shadow-2xs rounded-xl px-2 py-1 transition-all fade-in
-	{message.isMine ? 'right-2' : 'left-2'}
+		class="absolute top-0 right-3 z-20 items-center gap-0.5 rounded-md border border-border bg-popover px-1 py-0.5 text-popover-foreground shadow-lg transition-all fade-in
 	{isVisible ? 'flex' : 'hidden md:group-hover:flex'}"
 	>
-		<div class="relative flex items-center gap-0.5 border-r border-slate-200 pr-1.5 mr-0.5">
+		<div class="relative mr-0.5 flex items-center gap-0.5 border-r border-border pr-1">
 			{#each visibleEmojis as emoji (emoji)}
 				<Button
 					onclick={(e) => {
 						e.stopPropagation();
 						selectEmoji(emoji);
 					}}
-					class="hover:scale-125 active:scale-90 rounded-full"
+					class="size-7 rounded hover:scale-110 active:scale-90"
 					size="icon-sm"
 					variant="ghost"
 					title="React with {emoji}"
@@ -51,8 +50,8 @@
 
 			<Popover.Root bind:open={isPopoverOpen}>
 				<Popover.Trigger>
-					<Button size="icon" variant="link" title="More reactions">
-						<Ellipsis />
+					<Button size="icon-sm" variant="ghost" title="More reactions">
+						<Ellipsis size={15} />
 					</Button>
 				</Popover.Trigger>
 				<Popover.Content>
@@ -74,13 +73,13 @@
 			</Popover.Root>
 		</div>
 
-		<Button onclick={() => handleReply?.(message)} size="icon" variant="link" title="Reply">
-			<ReplyIcon />
+		<Button onclick={() => handleReply?.(message)} size="icon-sm" variant="ghost" title="Reply">
+			<ReplyIcon size={15} />
 		</Button>
 
 		{#if message.isMine}
-			<Button onclick={() => handleDelete?.(message)} size="sm" variant="link" title="Delete">
-				<TrashIcon />
+			<Button onclick={() => handleDelete?.(message)} size="icon-sm" variant="ghost" title="Delete">
+				<TrashIcon size={15} />
 			</Button>
 		{/if}
 	</div>

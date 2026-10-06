@@ -51,20 +51,19 @@
 >
 	<Popover.Trigger>
 		{#snippet child({ props })}
-			<Button {...props} variant="secondary" class="w-full"
-				><UserPlus size={16} />Add members</Button
+			<Button {...props} variant="secondary" size="sm" class="h-8 w-full rounded-md"
+				><UserPlus size={16} />Invite member</Button
 			>
 		{/snippet}
 	</Popover.Trigger>
 	<Popover.Content
 		align="end"
 		sideOffset={8}
-		class="w-[min(92vw,24rem)] gap-3 rounded-3xl p-3 sm:p-4"
+		class="w-[min(92vw,22rem)] gap-2 rounded-lg border-border bg-popover p-2.5"
 	>
 		<Popover.Header class="gap-1 px-1">
-			<Popover.Title class="flex items-center gap-2 text-base"
-				><span
-					class="flex size-7 items-center justify-center rounded-full bg-primary/10 text-primary"
+			<Popover.Title class="flex items-center gap-2 text-[13px]"
+				><span class="flex size-6 items-center justify-center rounded-md bg-primary/10 text-primary"
 					><UserPlus size={15} /></span
 				>Add members</Popover.Title
 			>
@@ -75,6 +74,7 @@
 			type="search"
 			placeholder="Search by display name…"
 			aria-label="Search people by display name"
+			class="h-8 rounded-md border-border bg-background/70 text-xs"
 		/>
 		<div class="max-h-[min(45dvh,20rem)] overflow-y-auto overscroll-contain p-1">
 			{#if !query.trim()}
@@ -93,7 +93,7 @@
 			{:else}
 				<ul class="space-y-1">
 					{#each userQuery.data ?? [] as user (user.username)}
-						<li class="flex items-center gap-3 rounded-2xl p-2 hover:bg-muted/60">
+						<li class="flex min-h-11 items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/60">
 							<UserAvatar {user} />
 							<div class="min-w-0 flex-1">
 								<p class="truncate text-sm font-medium" title={user.displayName}>
@@ -106,7 +106,7 @@
 							{:else}
 								<Button
 									variant="default"
-									class="min-h-11"
+									class="h-7 min-h-0 rounded-md px-2 text-xs"
 									disabled={addingUsername !== null}
 									aria-label={'Add ' + user.displayName + ' to the room'}
 									onclick={() => addUser(user)}

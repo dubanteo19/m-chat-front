@@ -38,37 +38,44 @@
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="sm:max-w-[425px]">
-		<Dialog.Header>
-			<Dialog.Title>Add New Room</Dialog.Title>
-			<Dialog.Description>
-				Enter the details for the new room here. Click save when you're done.
+	<Dialog.Content class="gap-4 rounded-lg border-border bg-popover p-4 sm:max-w-[400px]">
+		<Dialog.Header class="gap-1 border-b border-border pb-3">
+			<Dialog.Title class="text-[14px] font-semibold">New room</Dialog.Title>
+			<Dialog.Description class="text-xs">
+				Create a workspace for a focused conversation.
 			</Dialog.Description>
 		</Dialog.Header>
 
-		<form onsubmit={handleSubmit} class="grid gap-4 py-4">
+		<form onsubmit={handleSubmit} class="grid gap-3">
 			<div class="w-full max-w-md">
 				<Field.Set>
 					<Field.Group>
 						<Field.Field>
-							<Field.Label for="name">Name</Field.Label>
+							<Field.Label for="name" class="text-xs">Room name</Field.Label>
 							<Input
 								required
 								bind:value={name}
 								id="name"
 								type="text"
-								placeholder="Room Name"
+								placeholder="e.g. product-updates"
 								disabled={isSubmitting}
+								class="h-8 rounded-md border-border bg-background/70 text-xs"
 							/>
 						</Field.Field>
 					</Field.Group>
 				</Field.Set>
 			</div>
-			<Dialog.Footer class="mt-4">
+			<Dialog.Footer class="mt-1 gap-2 border-t border-border pt-3">
 				<Dialog.Close>
-					<Button type="button" variant="destructive" disabled={isSubmitting}>Cancel</Button>
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						class="h-8 rounded-md"
+						disabled={isSubmitting}>Cancel</Button
+					>
 				</Dialog.Close>
-				<Button type="submit" disabled={isSubmitting}>
+				<Button type="submit" size="sm" class="h-8 rounded-md" disabled={isSubmitting}>
 					{isSubmitting ? 'Saving...' : 'Save Room'}
 				</Button>
 			</Dialog.Footer>

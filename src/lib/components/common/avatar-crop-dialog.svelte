@@ -59,11 +59,11 @@
 	}}
 >
 	<Dialog.Content
-		class="max-h-[90dvh] overflow-y-auto border border-slate-700 bg-slate-950 text-slate-100"
+		class="max-h-[90dvh] gap-4 overflow-y-auto rounded-lg border border-[#292c33] bg-[#15171c] p-4 text-[#e6e8ec] sm:max-w-[420px]"
 	>
-		<Dialog.Header>
-			<Dialog.Title>Adjust photo</Dialog.Title>
-			<Dialog.Description class="text-slate-400"
+		<Dialog.Header class="gap-1 border-b border-[#292c33] pb-3">
+			<Dialog.Title class="text-[14px] font-semibold">Adjust photo</Dialog.Title>
+			<Dialog.Description class="text-xs text-[#9097a3]"
 				>Choose the area to keep. Your avatar will appear as a circle.</Dialog.Description
 			>
 		</Dialog.Header>
@@ -79,8 +79,8 @@
 			<canvas bind:this={canvas} width="512" height="512" aria-label="Cropped avatar preview"
 			></canvas>
 		</div>
-		{#if error}<p role="alert" class="text-sm text-red-300">{error}</p>{/if}
-		<fieldset disabled={!loaded || applying} class="grid gap-4">
+		{#if error}<p role="alert" class="text-xs text-[#f06a6a]">{error}</p>{/if}
+		<fieldset disabled={!loaded || applying} class="grid gap-3">
 			<label>Zoom <input type="range" min="1" max="3" step="0.01" bind:value={zoom} /></label>
 			<label
 				>Horizontal position <input type="range" min="0" max="100" bind:value={horizontal} /></label
@@ -88,21 +88,29 @@
 			<label>Vertical position <input type="range" min="0" max="100" bind:value={vertical} /></label
 			>
 		</fieldset>
-		<Dialog.Footer>
-			<Button variant="ghost" onclick={oncancel}>Cancel</Button>
-			<Button disabled={!loaded || applying || !!error} onclick={apply}>Use photo</Button>
+		<Dialog.Footer class="gap-2 border-t border-[#292c33] pt-3">
+			<Button variant="ghost" size="sm" class="h-8 rounded-md text-xs" onclick={oncancel}
+				>Cancel</Button
+			>
+			<Button
+				size="sm"
+				class="h-8 rounded-md bg-[#7c5cff] text-xs text-white hover:bg-[#6f52e8]"
+				disabled={!loaded || applying || !!error}
+				onclick={apply}>Use photo</Button
+			>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
 
 <style>
 	.crop-preview {
-		width: min(100%, 240px);
+		width: min(100%, 200px);
 		margin: auto;
 		aspect-ratio: 1;
 		overflow: hidden;
 		border-radius: 50%;
-		background: #1e293b;
+		border: 1px solid #292c33;
+		background: #0d0e11;
 	}
 	canvas {
 		width: 100%;
@@ -111,11 +119,12 @@
 	label {
 		display: grid;
 		gap: 4px;
-		font-size: 14px;
+		color: #c5cad3;
+		font-size: 12px;
 	}
 	input {
 		width: 100%;
 		min-height: 32px;
-		accent-color: #38bdf8;
+		accent-color: #8b7cf6;
 	}
 </style>
