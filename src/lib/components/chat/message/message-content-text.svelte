@@ -4,6 +4,7 @@
 	import { parseMessage } from '$lib/utils/message-parser';
 	import type { MessageToken } from '$lib/utils/message-parser';
 	import { truncateText } from '$lib/utils/text';
+	import { ExternalLink } from '@lucide/svelte';
 	import { getContext } from 'svelte';
 
 	const roomState = getContext<RoomState>(ROOM_MEMBERS_KEY);
@@ -35,51 +36,62 @@
 			@{getDisplayName(token.userId)}
 		</span>
 	{:else if token.type === 'merge_request'}
-		<div class="mr-card-wrapper">
+		<div class="rich-link-wrapper">
 			<a
 				href={token.url}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="mt-2 mb-1 p-[10px_14px] bg-slate-50 border border-slate-200 border-l-4 border-l-[#fc6d26] rounded-lg flex flex-col gap-0.5 max-w-[480px] !no-underline transition-colors hover:bg-slate-100"
+				class="group/rich-link grid min-h-12 w-full max-w-[25rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 rounded-md border border-border border-l-2 border-l-[#fc6d26] bg-[#13161b] px-3 py-1.5 !no-underline transition-colors hover:border-[#fc6d26]/40 hover:bg-muted/70"
 			>
-				<div class="flex items-center gap-1.5 font-semibold text-sm text-[#fc6d26] !no-underline">
-					{@render gitlabIcon(18)}
-					<span>MERGE REQUEST !{token.mrId}</span>
+				<div class="flex size-7 shrink-0 items-center justify-center" aria-hidden="true">
+					{@render gitlabIcon(19)}
 				</div>
-				<span class="text-[0.8125rem] text-slate-500 !no-underline">
-					{token.projectPath}
+				<span class="min-w-0">
+					<span
+						class="block truncate text-[11px] leading-4 font-semibold tracking-wide text-[#fc6d26] !no-underline uppercase"
+					>
+						Merge Request !{token.mrId}
+					</span>
+					<span class="block truncate text-[11px] leading-4 text-muted-foreground !no-underline">
+						{token.projectPath}
+					</span>
 				</span>
+				<ExternalLink
+					size={14}
+					class="text-muted-foreground transition-colors group-hover/rich-link:text-[#fc6d26]"
+					aria-hidden="true"
+				/>
 			</a>
 		</div>
 	{:else if token.type === 'backlog'}
-		{#if tokens.length > 1}
+		<div class="rich-link-wrapper">
 			<a
 				href={token.url}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="!text-[#2fa67c] !underline hover:opacity-80"
+				class="group/rich-link grid min-h-12 w-full max-w-[25rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2.5 rounded-md border border-border border-l-2 border-l-[#4ecea1] bg-[#13161b] px-3 py-1.5 !no-underline transition-colors hover:border-[#4ecea1]/40 hover:bg-muted/70"
 			>
-				Backlog · {token.issueKey}
+				<span
+					class="flex size-7 shrink-0 items-center justify-center rounded bg-[#4ecea1]/10 text-sm font-bold text-[#4ecea1]"
+					aria-hidden="true">B</span
+				>
+				<span class="min-w-0">
+					<span
+						class="block truncate text-[11px] leading-4 font-semibold tracking-wide text-[#4ecea1] !no-underline uppercase"
+					>
+						Backlog · {token.issueKey}
+					</span>
+					<span class="block truncate text-[11px] leading-4 text-muted-foreground !no-underline">
+						{token.commentId ? 'View comment' : 'View ticket'}
+					</span>
+				</span>
+				<ExternalLink
+					size={14}
+					class="text-muted-foreground transition-colors group-hover/rich-link:text-[#4ecea1]"
+					aria-hidden="true"
+				/>
 			</a>
-		{/if}
-
-		<a
-			href={token.url}
-			target="_blank"
-			rel="noopener noreferrer"
-			class="mt-2 mb-1 p-[10px_14px] bg-slate-50 border border-slate-200 border-l-4 border-l-[#4ecea1] rounded-lg flex flex-col gap-0.5 max-w-[480px] !no-underline transition-colors hover:bg-slate-100"
-		>
-			<span class="font-semibold text-sm text-[#4ecea1] !no-underline">
-				Backlog · {token.issueKey}
-			</span>
-			<span class="text-[0.8125rem] text-slate-500 !no-underline">
-				{#if token.commentId}
-					Liên kết đến comment
-				{:else}
-					Xem ticket
-				{/if}
-			</span>
-		</a>
+		</div>
 	{:else if token.type === 'link'}
 		<a href={token.url} target="_blank" rel="noopener noreferrer" class="message-link">
 			{truncateText(token.url)}
@@ -132,8 +144,8 @@
 		background-color: rgba(255, 0, 0, 0.2) !important;
 	}
 	.mention-chip {
-		color: #60a5fa;
-		background-color: #e0f2fe;
+		color: #a99cff;
+		background-color: rgb(139 124 246 / 14%);
 		font-weight: 600;
 		padding: 1px 4px;
 		border-radius: 4px;
@@ -141,12 +153,11 @@
 	}
 
 	.message-link {
-		color: #2563eb;
+		color: #9b8cff;
 		text-decoration: underline;
 		word-break: break-all;
 	}
-	.mr-card-wrapper {
-		margin: 6px 0;
+	.rich-link-wrapper {
+		margin: 4px 0;
 	}
-
 </style>

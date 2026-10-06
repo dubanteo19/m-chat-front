@@ -191,10 +191,7 @@
 	}
 
 	async function uploadAvatar(file: File): Promise<string> {
-		const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(
-			file.name,
-			'AVATAR'
-		);
+		const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(file.name, 'AVATAR');
 		await storageService.uploadFileToMinio(uploadUrl, file);
 		return downloadUrl;
 	}
@@ -256,40 +253,41 @@
 {/if}
 
 <div
-	class="flex min-h-0 flex-1 flex-col bg-slate-950 font-[var(--font-body)] text-slate-100 motion-reduce:[&_*]:animate-none! motion-reduce:[&_*]:transition-none! motion-reduce:[&_*::after]:animate-none! motion-reduce:[&_*::before]:animate-none!"
+	class="chat-shell profile-editor flex min-h-0 flex-1 flex-col bg-background text-foreground motion-reduce:[&_*]:animate-none! motion-reduce:[&_*]:transition-none! motion-reduce:[&_*::after]:animate-none! motion-reduce:[&_*::before]:animate-none!"
 >
 	<div class="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable]">
-		<div class="mx-auto w-full max-w-[1160px] px-5 pt-4 pb-8 sm:px-10 sm:pt-7 sm:pb-16">
-			<nav class="flex items-center gap-4 text-[13px] text-slate-500" aria-label="Breadcrumb">
+		<div class="mx-auto w-full max-w-[980px] px-4 pt-3 pb-8 sm:px-6 sm:pt-4 sm:pb-12">
+			<nav
+				class="flex h-8 items-center gap-2 text-[11px] text-muted-foreground"
+				aria-label="Breadcrumb"
+			>
 				<button
 					type="button"
-					class="inline-flex min-h-11 items-center gap-2 border-0 bg-transparent text-slate-300 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
+					class="inline-flex h-7 items-center gap-1.5 rounded px-1 text-foreground/80 hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
 					onclick={() => history.back()}><ArrowLeft size={16} /> Back</button
 				>
 				<span aria-hidden="true">/</span><span>Profile</span>
 			</nav>
-			<header class="border-b border-slate-800 py-6 sm:pt-7 sm:pb-9">
-				<h1
-					class="m-0 text-left text-[clamp(28px,4vw,36px)] leading-[1.2] font-[650] tracking-[-0.035em]"
-				>
+			<header class="border-b border-border py-4">
+				<h1 class="m-0 text-left text-lg leading-6 font-semibold tracking-[-0.01em]">
 					{isOwner ? 'Your profile' : 'Profile'}
 				</h1>
-				{#if isOwner}<p class="mt-2.5 text-sm text-slate-400">
+				{#if isOwner}<p class="mt-1 text-xs text-muted-foreground">
 						Manage how you appear in chat.
 					</p>{/if}
 			</header>
 			<div
 				class={isOwner
-					? 'grid grid-cols-1 items-start gap-8 pt-6 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-7 sm:pt-9 min-[961px]:grid-cols-[240px_minmax(0,1fr)] min-[961px]:gap-14'
-					: 'grid grid-cols-[minmax(0,480px)] items-start justify-center pt-6 sm:pt-9'}
+					? 'grid grid-cols-1 items-start gap-5 pt-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-5'
+					: 'grid grid-cols-[minmax(0,360px)] items-start justify-center pt-4'}
 			>
 				<aside
-					class="grid min-w-0 grid-cols-[80px_minmax(0,1fr)] gap-x-6 rounded-[20px] border border-slate-800 bg-slate-900 p-6 text-left sm:block sm:px-5 sm:py-8 sm:text-center"
+					class="grid min-w-0 grid-cols-[64px_minmax(0,1fr)] gap-x-3 rounded-lg border border-border bg-card p-3 text-left sm:block sm:text-center"
 					aria-label="Profile information"
 				>
-					<div class="relative row-span-3 m-0 w-[72px] self-center sm:mx-auto sm:mb-5 sm:w-24">
+					<div class="relative row-span-3 m-0 w-16 self-center sm:mx-auto sm:mb-3">
 						<div
-							class="grid size-[72px] place-items-center overflow-hidden rounded-full bg-slate-700 text-2xl font-semibold shadow-[0_0_0_5px_#1e293b] sm:size-24 sm:text-[28px]"
+							class="grid size-16 place-items-center overflow-hidden rounded-full border border-border bg-muted text-lg font-semibold shadow-[0_0_0_3px_#15171c]"
 						>
 							{#if avatarUrl && !imageFailed}
 								<img
@@ -302,7 +300,7 @@
 						</div>
 						{#if isOwner}
 							<label
-								class="absolute -right-[7px] -bottom-[7px] grid size-11 cursor-pointer place-items-center rounded-full border-4 border-slate-900 bg-slate-200 text-slate-950 hover:bg-white focus-within:outline-2 focus-within:outline-offset-3 focus-within:outline-sky-400"
+								class="absolute -right-1 -bottom-1 grid size-7 cursor-pointer place-items-center rounded-md border border-border bg-secondary text-foreground hover:bg-accent focus-within:outline-2 focus-within:outline-ring"
 								class:pointer-events-none={isSaving}
 								class:opacity-50={isSaving}
 							>
@@ -317,29 +315,28 @@
 							</label>
 						{/if}
 					</div>
-					<h2 class="self-end text-lg font-semibold [overflow-wrap:anywhere]">{previewName}</h2>
-					<p class="mt-1.5 text-[13px] text-slate-400 [overflow-wrap:anywhere]">
+					<h2 class="self-end text-sm font-semibold [overflow-wrap:anywhere]">{previewName}</h2>
+					<p class="mt-1 text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
 						@{profile.username}
 					</p>
 					{#if previewUser.title}<div class="mt-2 [overflow-wrap:anywhere] sm:mt-3.5">
-							<TitleBadge user={previewUser} />
+							<TitleBadge user={previewUser} variant="compact" animationMode="interaction" />
 						</div>{/if}
 					{#if isOwner}
 						<p
-							class="col-span-full mt-3 border-t border-slate-800 pt-3 text-xs leading-[1.8] text-slate-400 sm:mt-7 sm:pt-[22px]"
+							class="col-span-full mt-3 border-t border-border pt-2.5 text-[10px] leading-4 text-muted-foreground sm:mt-4"
 						>
 							JPG, PNG or WebP. Up to 5 MB.
 						</p>
-						{#if selectedAvatarFile}<div class="col-span-full mt-3 text-xs text-sky-300">
+						{#if selectedAvatarFile}<div class="col-span-full mt-2 text-[11px] text-[#a99cff]">
 								New photo selected <button
 									type="button"
 									disabled={isSaving}
 									onclick={undoPhoto}
-									class="mt-1 block min-h-11 underline underline-offset-4 sm:mx-auto"
-									>Undo photo</button
+									class="mt-1 block h-7 underline underline-offset-4 sm:mx-auto">Undo photo</button
 								>
 							</div>{/if}
-						{#if photoError}<p class="col-span-full mt-3 text-[13px] text-red-300" role="alert">
+						{#if photoError}<p class="col-span-full mt-2 text-xs text-destructive" role="alert">
 								{photoError}
 							</p>{/if}
 					{/if}
@@ -348,26 +345,24 @@
 					<form id="profile-form" class="min-w-0" onsubmit={handleProfileUpdate}>
 						<fieldset class="min-w-0 border-0 p-0" disabled={isSaving}>
 							<section aria-labelledby="details-heading">
-								<div class="mb-7 flex items-center gap-3">
+								<div class="mb-4 flex items-center gap-2">
 									<span
-										class="grid size-10 shrink-0 place-items-center rounded-xl border border-slate-800 text-slate-400"
-										><UserRound size={19} /></span
+										class="grid size-7 shrink-0 place-items-center rounded-md border border-border text-muted-foreground"
+										><UserRound size={14} /></span
 									>
 									<div>
-										<h2 id="details-heading" class="text-base font-semibold tracking-[-0.015em]">
-											Personal details
-										</h2>
-										<p class="mt-1 text-[13px] text-slate-400">
+										<h2 id="details-heading" class="text-[13px] font-semibold">Personal details</h2>
+										<p class="mt-0.5 text-[11px] text-muted-foreground">
 											Your name and title are visible in your rooms.
 										</p>
 									</div>
 								</div>
 								<div
-									class="mt-6 grid grid-cols-1 items-start gap-2.5 min-[961px]:grid-cols-[180px_minmax(0,1fr)] min-[961px]:gap-5"
+									class="mt-3 grid grid-cols-1 items-start gap-1.5 min-[760px]:grid-cols-[145px_minmax(0,1fr)] min-[760px]:gap-4"
 								>
 									<div>
-										<label for="displayName" class="block text-sm font-medium">Display name</label>
-										<p class="mt-1.5 text-xs text-slate-400">What others call you.</p>
+										<label for="displayName" class="block text-xs font-medium">Display name</label>
+										<p class="mt-1 text-[10px] text-muted-foreground">What others call you.</p>
 									</div>
 									<Input
 										id="displayName"
@@ -375,18 +370,19 @@
 										maxlength={50}
 										autocomplete="name"
 										required
-										class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
+										class="h-8 min-h-0 cursor-text rounded-md border-border bg-background/70 text-xs text-foreground shadow-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 									/>
 								</div>
 								<div
-									class="mt-6 grid grid-cols-1 items-start gap-2.5 min-[961px]:grid-cols-[180px_minmax(0,1fr)] min-[961px]:gap-5"
+									class="mt-3 grid grid-cols-1 items-start gap-1.5 min-[760px]:grid-cols-[145px_minmax(0,1fr)] min-[760px]:gap-4"
 								>
 									<div>
-										<label for="title" class="block text-sm font-medium"
-											>Title <span class="ml-1.5 text-xs font-normal text-slate-400">Optional</span
+										<label for="title" class="block text-xs font-medium"
+											>Title <span class="ml-1 text-[10px] font-normal text-muted-foreground"
+												>Optional</span
 											></label
 										>
-										<p id="title-help" class="mt-1.5 text-xs text-slate-400">
+										<p id="title-help" class="mt-1 text-[10px] text-muted-foreground">
 											Shown beside your name.
 										</p>
 									</div>
@@ -397,111 +393,114 @@
 											maxlength={30}
 											placeholder="Add a short title"
 											aria-describedby="title-help"
-											class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
-										/><span class="mt-[7px] block text-right text-xs text-slate-400 tabular-nums"
+											class="h-8 min-h-0 cursor-text rounded-md border-border bg-background/70 text-xs text-foreground shadow-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
+										/><span
+											class="mt-1 block text-right text-[10px] text-muted-foreground tabular-nums"
 											>{badgeForm.title.length}/30</span
 										>
 									</div>
 								</div>
 							</section>
 							<section
-								class="mt-8 rounded-[14px] border border-slate-700 bg-slate-900 p-5 pt-8"
+								class="mt-5 rounded-lg border border-border bg-card p-3"
 								aria-labelledby="preview-heading"
 							>
-								<div class="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-									<h2 id="preview-heading" class="text-sm font-semibold">Chat preview</h2>
-									<span class="text-[13px] text-slate-400">Only visible to you until saved</span>
-								</div>
-								<div class="flex items-start gap-3">
-									<div
-										class="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-700 text-sm"
+								<div class="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+									<h2 id="preview-heading" class="text-xs font-semibold">Chat preview</h2>
+									<span class="text-[10px] text-muted-foreground"
+										>Only visible to you until saved</span
 									>
-										{#if avatarUrl && !imageFailed}<img
-												src={avatarUrl}
-												alt=""
-												class="size-full object-cover"
-											/>{:else}{avatarInitials}{/if}
+								</div>
+								<div
+									class="grid grid-cols-[2.5rem_minmax(0,1fr)] overflow-hidden rounded-md border border-border bg-background/60"
+								>
+									<div
+										class="border-r border-border py-2.5 pr-2 text-right text-[10px] text-muted-foreground/60 tabular-nums"
+									>
+										01
 									</div>
-									<div class="min-w-0">
-										<div class="flex flex-wrap items-center gap-2 [overflow-wrap:anywhere]">
-											<strong class="text-sm">{previewName}</strong><TitleBadge
-												user={previewUser}
-											/>
+									<div class="min-w-0 px-3 py-2">
+										<div class="flex min-w-0 items-center gap-2 text-[11px] leading-4">
+											<strong class="truncate text-[#8b7cf6]">@{previewName}</strong>
+											<TitleBadge user={previewUser} variant="compact" animationMode="always" />
+											<span class="text-muted-foreground/60">·</span>
+											<span class="shrink-0 text-muted-foreground tabular-nums">03:20 PM</span>
 										</div>
-										<p class="mt-2 text-sm text-slate-300">This is how you appear in chat.</p>
+										<p class="mt-0.5 text-xs leading-5 text-foreground/85">
+											This is how you appear in chat.
+										</p>
 									</div>
 								</div>
 							</section>
-							<section class="mt-8 border-t border-slate-800 pt-8" aria-labelledby="style-heading">
-								<div class="mb-7 flex items-center gap-3">
+							<section class="mt-5 border-t border-border pt-5" aria-labelledby="style-heading">
+								<div class="mb-4 flex items-center gap-2">
 									<span
-										class="grid size-10 shrink-0 place-items-center rounded-xl border border-slate-800 text-slate-400"
-										><Palette size={19} /></span
+										class="grid size-7 shrink-0 place-items-center rounded-md border border-border text-muted-foreground"
+										><Palette size={14} /></span
 									>
 									<div>
-										<h2 id="style-heading" class="text-base font-semibold tracking-[-0.015em]">
-											Title appearance
-										</h2>
-										<p class="mt-1 text-[13px] text-slate-400">
+										<h2 id="style-heading" class="text-[13px] font-semibold">Title appearance</h2>
+										<p class="mt-0.5 text-[11px] text-muted-foreground">
 											Choose a style or set your own colors.
 										</p>
 									</div>
 								</div>
 								{#if !badgeForm.title.trim()}
 									<div
-										class="flex flex-wrap items-center gap-4 rounded-xl border border-dashed border-slate-700 p-5"
+										class="flex flex-wrap items-center gap-3 rounded-md border border-dashed border-border p-3"
 									>
-										<p class="min-w-[180px] flex-1 text-sm text-slate-400">
+										<p class="min-w-[180px] flex-1 text-xs text-muted-foreground">
 											Add a title to personalize how you appear beside your name.
 										</p>
 										<Button
 											type="button"
 											variant="outline"
-											class="focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
+											class="h-8 rounded-md text-xs focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-ring"
 											onclick={() => document.getElementById('title')?.focus()}>Add a title</Button
 										>
 									</div>
 								{:else}
 									<Tabs.Root value={badgeMode} onValueChange={handleTabChange}>
-										<Tabs.List
-											class="min-h-11 w-fit rounded-[10px] border border-slate-800 bg-slate-900 p-1"
+										<Tabs.List class="h-8 w-fit rounded-md border border-border bg-card p-0.5"
 											><Tabs.Trigger
 												value="presets"
-												class="min-h-9 rounded-[7px] px-3 text-[13px] text-slate-400 data-active:bg-slate-700 data-active:text-slate-50 sm:px-[18px]"
+												class="h-7 rounded px-2.5 text-[11px] text-muted-foreground data-active:bg-muted data-active:text-foreground"
 												>Choose a style</Tabs.Trigger
 											><Tabs.Trigger
 												value="custom"
-												class="min-h-9 rounded-[7px] px-3 text-[13px] text-slate-400 data-active:bg-slate-700 data-active:text-slate-50 sm:px-[18px]"
+												class="h-7 rounded px-2.5 text-[11px] text-muted-foreground data-active:bg-muted data-active:text-foreground"
 												>Advanced</Tabs.Trigger
 											></Tabs.List
 										>
-										<Tabs.Content value="presets" class="mt-5 focus-visible:outline-none">
-											<div class="grid grid-cols-2 gap-3 min-[961px]:grid-cols-3">
+										<Tabs.Content value="presets" class="mt-3 focus-visible:outline-none">
+											<div class="grid grid-cols-2 gap-2 min-[961px]:grid-cols-3">
 												{#each BADGE_PRESETS as preset (preset.id)}
 													<button
 														type="button"
 														class={isPresetSelected(preset)
-															? "min-w-0 overflow-hidden rounded-xl border border-sky-400 bg-slate-900 p-0 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*]:[animation-play-state:paused]! [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*::after]:[animation-play-state:paused]! [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*::before]:[animation-play-state:paused]!"
-															: "min-w-0 overflow-hidden rounded-xl border border-slate-800 bg-slate-900 p-0 text-left transition-colors hover:border-slate-500 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*]:[animation-play-state:paused]! [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*::after]:[animation-play-state:paused]! [&:not(:hover):not(:focus-visible):not([aria-pressed='true'])_*::before]:[animation-play-state:paused]!"}
+															? 'group min-w-0 overflow-hidden rounded-md border border-[#8b7cf6] bg-[#24213a] p-0 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8b7cf6]'
+															: 'group min-w-0 overflow-hidden rounded-md border border-border bg-card p-0 text-left transition-colors hover:border-[#6257a8] hover:bg-muted/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8b7cf6]'}
 														aria-pressed={isPresetSelected(preset)}
 														aria-label={preset.name}
 														onclick={() => applyBadgePreset(preset)}
 													>
 														<span
-															class="flex min-h-[76px] items-center justify-center px-2 py-3 [overflow-wrap:anywhere]"
+															class="flex min-h-10 items-center justify-center px-2 py-1.5 [overflow-wrap:anywhere]"
 															><TitleBadge
 																user={{
 																	title: badgeForm.title.trim() || preset.title,
 																	titleStyle: preset.style
 																}}
+																variant="compact"
+																animationMode={isPresetSelected(preset) ? 'always' : 'interaction'}
 															/></span
 														>
 														<span
-															class="flex items-center justify-between gap-1.5 border-t border-slate-800 p-3 text-xs text-slate-300"
+															class="flex min-h-7 items-center justify-between gap-1.5 border-t border-border px-2 py-1 text-[10px] text-muted-foreground"
 															>{preset.name}<span
 																class={isPresetSelected(preset)
-																	? 'grid size-4 shrink-0 place-items-center rounded-full border border-sky-400 bg-sky-400 text-slate-950'
-																	: 'grid size-4 shrink-0 place-items-center rounded-full border border-slate-600'}
+																	? 'grid size-4 shrink-0 place-items-center rounded-full border border-[#8b7cf6] bg-[#8b7cf6] text-white'
+																	: 'grid size-4 shrink-0 place-items-center rounded-full border border-border'}
 																aria-hidden="true"
 																>{#if isPresetSelected(preset)}<Check size={12} />{/if}</span
 															></span
@@ -510,11 +509,11 @@
 												{/each}
 											</div>
 										</Tabs.Content>
-										<Tabs.Content value="custom" class="mt-5 focus-visible:outline-none">
-											<p class="mb-5 text-[13px] text-slate-400">
+										<Tabs.Content value="custom" class="mt-3 focus-visible:outline-none">
+											<p class="mb-3 text-xs text-muted-foreground">
 												Advanced customization — adjust colors, shape and effects.
 											</p>
-											{#if isFramed}<p class="mb-4 text-sm text-slate-400">
+											{#if isFramed}<p class="mb-3 text-xs text-muted-foreground">
 													This frame uses fixed corners and a static finish. You can change its text
 													and border colors.
 												</p>{/if}
@@ -526,11 +525,11 @@
 															id="textColor"
 															type="color"
 															bind:value={badgeForm.textColor}
-															class="h-[46px] min-h-[46px] w-9 shrink-0 cursor-pointer rounded-[10px] border-slate-700 bg-transparent p-0 shadow-none focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
+															class="h-8 min-h-0 w-8 shrink-0 cursor-pointer rounded-md border-border bg-transparent p-0 shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 														/><Input
 															bind:value={badgeForm.textColor}
 															aria-label="Text color hex value"
-															class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
+															class="h-8 min-h-0 cursor-text rounded-md border-border bg-background/70 text-xs text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 														/>
 													</div></Field.Field
 												>
@@ -542,12 +541,12 @@
 															type="color"
 															bind:value={badgeForm.backgroundColor}
 															disabled={isBackgroundControlled}
-															class="h-[46px] min-h-[46px] w-9 shrink-0 cursor-pointer rounded-[10px] border-slate-700 bg-transparent p-0 shadow-none focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
+															class="h-8 min-h-0 w-8 shrink-0 cursor-pointer rounded-md border-border bg-transparent p-0 shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 														/><Input
 															bind:value={badgeForm.backgroundColor}
 															disabled={isBackgroundControlled}
 															aria-label="Background color hex value"
-															class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
+															class="h-8 min-h-0 cursor-text rounded-md border-border bg-background/70 text-xs text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 														/>
 													</div>
 													{#if isBackgroundControlled}<p class="text-xs text-amber-200">
@@ -561,7 +560,7 @@
 														bind:value={badgeForm.borderRadius}
 														><Select.Trigger
 															id="radius"
-															class="min-h-[46px] w-full rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
+															class="h-8 min-h-0 w-full rounded-md border-border bg-background/70 text-xs text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 															>{{
 																'0px': 'Square',
 																'4px': 'Slightly rounded',
@@ -584,7 +583,7 @@
 														bind:value={badgeForm.borderStyle}
 														><Select.Trigger
 															id="borderStyle"
-															class="min-h-[46px] w-full rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
+															class="h-8 min-h-0 w-full rounded-md border-border bg-background/70 text-xs text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 															>{BORDER_STYLE_OPTIONS.find(
 																(option) => option.value === badgeForm.borderStyle
 															)?.label ?? 'Choose a border'}</Select.Trigger
@@ -603,12 +602,12 @@
 															type="color"
 															bind:value={badgeForm.borderColor}
 															disabled={!isFramed && badgeForm.borderStyle === 'none'}
-															class="h-[46px] min-h-[46px] w-9 shrink-0 cursor-pointer rounded-[10px] border-slate-700 bg-transparent p-0 shadow-none focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400"
+															class="h-8 min-h-0 w-8 shrink-0 cursor-pointer rounded-md border-border bg-transparent p-0 shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 														/><Input
 															bind:value={badgeForm.borderColor}
 															disabled={!isFramed && badgeForm.borderStyle === 'none'}
 															aria-label="Border color hex value"
-															class="min-h-[46px] cursor-text rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none placeholder:text-slate-400 focus-visible:border-slate-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
+															class="h-8 min-h-0 cursor-text rounded-md border-border bg-background/70 text-xs text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 														/>
 													</div></Field.Field
 												>
@@ -619,7 +618,7 @@
 														bind:value={badgeForm.textEffect}
 														><Select.Trigger
 															id="textEffect"
-															class="min-h-[46px] w-full rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
+															class="h-8 min-h-0 w-full rounded-md border-border bg-background/70 text-xs text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 															>{TEXT_EFFECT_OPTIONS.find(
 																(option) => option.value === badgeForm.textEffect
 															)?.label ?? 'Choose a text effect'}</Select.Trigger
@@ -636,7 +635,7 @@
 														bind:value={badgeForm.animationVibe}
 														><Select.Trigger
 															id="vibe"
-															class="min-h-[46px] w-full rounded-[10px] border-slate-700 bg-slate-900 text-base text-slate-100 shadow-none focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:text-sm"
+															class="h-8 min-h-0 w-full rounded-md border-border bg-background/70 text-xs text-foreground shadow-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
 															>{BADGE_ANIMATIONS.find(
 																(animation) => animation.value === badgeForm.animationVibe
 															)?.label ?? 'Choose a style'}</Select.Trigger
@@ -660,10 +659,10 @@
 	</div>
 	{#if isOwner && (hasChanges || isSaving)}
 		<footer
-			class="shrink-0 border-t border-slate-800 bg-slate-950 px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-10 sm:pt-4 sm:pb-[max(16px,env(safe-area-inset-bottom))]"
+			class="shrink-0 border-t border-border bg-[#111318] px-4 pt-2.5 pb-[max(10px,env(safe-area-inset-bottom))] sm:px-6"
 		>
 			<div
-				class="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-2.5 sm:flex-nowrap sm:gap-5"
+				class="mx-auto flex max-w-[940px] flex-wrap items-center justify-between gap-2 sm:flex-nowrap"
 			>
 				<div class="min-w-0 empty:hidden sm:empty:block" aria-live="polite">
 					{#if feedbackMessage.text}<p
@@ -679,14 +678,14 @@
 					<Button
 						type="button"
 						variant="ghost"
-						class="h-11 flex-1 rounded-[10px] px-2.5 text-slate-300 hover:bg-slate-800 hover:text-white focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:flex-none sm:px-5"
+						class="h-8 flex-1 rounded-md px-3 text-xs text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/20 sm:flex-none"
 						disabled={isSaving || !hasChanges}
 						onclick={discardChanges}>Discard changes</Button
 					>
 					<Button
 						type="submit"
 						form="profile-form"
-						class="h-11 flex-1 rounded-[10px] bg-sky-600 px-2.5 font-medium text-white hover:bg-sky-700 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-sky-400 sm:flex-none sm:px-6"
+						class="h-8 flex-1 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-[#6f52e8] focus-visible:ring-2 focus-visible:ring-ring/30 sm:flex-none"
 						disabled={isSaving || isUploading || !hasChanges || !badgeForm.displayName.trim()}
 						>{#if isSaving}<LoaderCircle class="animate-spin" />{/if}{isUploading
 							? 'Uploading photo...'

@@ -3,7 +3,7 @@
 
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { MessageType, type MessagePayload } from '$lib/types/message';
-	import { Send } from '@lucide/svelte';
+	import { Paperclip, Send, Smile } from '@lucide/svelte';
 	import { useRoom } from '../room/room-state.svelte';
 	import { Button } from '../ui/button';
 	import ChatEditor from './chat-input/chat-editor.svelte';
@@ -107,8 +107,8 @@
 	}
 </script>
 
-<footer class="p-3 md:p-4 border-t border-slate-700 bg-slate-800/30">
-	<form onsubmit={handleSubmit} class="flex gap-2 md:gap-3 items-end">
+<footer class="shrink-0 border-t border-border bg-[#101216] p-2.5 md:px-4">
+	<form onsubmit={handleSubmit} class="flex items-end gap-2">
 		<input
 			bind:this={fileInputRef}
 			type="file"
@@ -120,9 +120,15 @@
 			}}
 		/>
 
-		<div class="relative flex gap-1 shrink-0">
-			<Button onclick={() => fileInputRef?.click()} class="p-3  h-11.5" title="Upload Asset">
-				📎
+		<div class="relative flex shrink-0 gap-1">
+			<Button
+				onclick={() => fileInputRef?.click()}
+				variant="outline"
+				size="icon"
+				class="size-10 border-border bg-[#15181e] text-muted-foreground hover:text-foreground"
+				title="Upload asset"
+			>
+				<Paperclip size={17} />
 			</Button>
 
 			<Popover.Root
@@ -130,12 +136,19 @@
 				onOpenChange={(open) => (showExpressionPicker = open)}
 			>
 				<Popover.Trigger>
-					<Button class="p-3 h-11" title="Send a Sticker">🎭</Button>
+					<Button
+						variant="outline"
+						size="icon"
+						class="size-10 border-border bg-[#15181e] text-muted-foreground hover:text-foreground"
+						title="Send a sticker"
+					>
+						<Smile size={17} />
+					</Button>
 				</Popover.Trigger>
 				<Popover.Content
 					align="start"
 					sideOffset={5}
-					class="w-[520px] rounded-xl p-2.5 bg-[#1e1e1e] text-white shadow-lg"
+					class="w-[min(520px,calc(100vw-2rem))] rounded-md border-border bg-popover p-2.5 text-popover-foreground shadow-xl"
 				>
 					<ExpressionPicker onClickItem={sendSticker} />
 				</Popover.Content>
@@ -143,7 +156,7 @@
 		</div>
 
 		<div
-			class="relative flex-1 bg-background border-secondary/20 border rounded-2xl transition-colors min-h-11 max-h-36"
+			class="relative min-h-10 max-h-36 flex-1 overflow-hidden rounded-md border border-border bg-[#15181e] transition-colors focus-within:border-[#6257a8]"
 		>
 			{#if repliedToMessage}
 				<ReplyPreview {repliedToMessage} onCancelReply={() => (repliedToMessage = null)} />
@@ -158,8 +171,13 @@
 			/>
 		</div>
 
-		<Button type="submit" class=" h-11  font-medium rounded-lg   whitespace-nowrap">
-			<Send />
+		<Button
+			type="submit"
+			size="icon"
+			class="size-10 shrink-0 rounded-md bg-[#6d4aff] text-white shadow-[0_0_12px_rgba(109,74,255,0.25)] hover:bg-[#7c5cff]"
+			title="Send message"
+		>
+			<Send size={17} />
 		</Button>
 	</form>
 </footer>

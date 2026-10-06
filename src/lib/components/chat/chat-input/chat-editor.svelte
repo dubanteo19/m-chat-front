@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import { Crown } from '@lucide/svelte';
+	import { AtSign } from '@lucide/svelte';
 	import { Editor } from '@tiptap/core';
 	import StarterKit from '@tiptap/starter-kit';
 	import Link from '@tiptap/extension-link';
@@ -27,7 +27,6 @@
 	let mentionQuery = $state('');
 	let selectedMentionIndex = $state(0);
 	let mentionList = $state<HTMLDivElement>();
-	let failedAvatars = $state<string[]>([]);
 
 	const mentionId = $props.id();
 	let editorRoot: HTMLDivElement;
@@ -322,14 +321,21 @@
 <div bind:this={editorRoot} class="relative w-full">
 	{#if showMentionMenu}
 		<div
-			class="absolute bottom-full left-0 z-50 mb-2 w-80 max-w-full overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-lg"
+			class="absolute bottom-full left-0 z-50 mb-1.5 w-80 max-w-full overflow-hidden rounded-md border border-[#30333a] bg-[#181a1f] text-[#e6e8ec] shadow-[0_12px_32px_rgba(0,0,0,0.42)]"
 		>
-			<div class="px-3 py-2 text-xs font-medium text-muted-foreground">Mention someone</div>
+			<div
+				class="flex h-7 items-center gap-2 border-b border-[#292c33] px-2.5 text-[10px] text-[#8b919d]"
+			>
+				<span class="font-medium text-[#aeb4bf]">Members</span>
+				<span class="ml-auto max-w-[65%] truncate font-mono text-[#666d78]">
+					@{mentionQuery}
+				</span>
+			</div>
 			<div
 				bind:this={mentionList}
 				id={mentionId}
 				style:max-height={`${availableHeight}px`}
-				class="mention-list max-h-60 overflow-y-auto overscroll-contain p-1 pt-0"
+				class="mention-list max-h-60 overflow-y-auto overscroll-contain p-1"
 				role="listbox"
 				aria-label="Mention suggestions"
 			>
@@ -343,69 +349,48 @@
 						tabindex="-1"
 						data-mention-index={index}
 						aria-label={`${displayName}, @${member.user.username}${member.role === 'MASTER' ? ', Room owner' : ''}`}
-						class="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
-							{index === selectedMentionIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/60'}"
+						class="flex min-h-10 w-full items-center gap-2 rounded-sm px-2 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#5d6470]
+							{index === selectedMentionIndex
+							? 'bg-[#2a2d34] text-[#f1f2f4]'
+							: 'text-[#c5cad3] hover:bg-[#22252b]'}"
 						onmousedown={(event) => event.preventDefault()}
 						onclick={() => selectMention(index)}
 						onmouseenter={() => (selectedMentionIndex = index)}
 					>
 						<span
-							class="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-xs font-semibold text-muted-foreground"
-							aria-hidden="true"
+							class="flex size-5 shrink-0 items-center justify-center text-[#8f96a3]"
+							aria-hidden="true"><AtSign class="size-3.5" /></span
 						>
-							{displayName
-								.trim()
-								.split(/\s+/)
-								.slice(0, 2)
-								.map((part) => part[0])
-								.join('')
-								.toUpperCase()}
-							{#if member.user.avatarUrl && !failedAvatars.includes(member.user.avatarUrl)}
-								<img
-									src={member.user.avatarUrl}
-									alt=""
-									class="absolute inset-0 size-full object-cover"
-									onerror={() => {
-										failedAvatars = [...failedAvatars, member.user.avatarUrl!];
-									}}
-								/>
-							{/if}
-						</span>
 						<span class="min-w-0 flex-1">
-							<span class="flex items-center gap-1.5">
-								<span
-									class="truncate font-medium leading-5 {index === selectedMentionIndex
-										? 'text-accent-foreground'
-										: 'text-popover-foreground'}">{displayName}</span
-								>
-								{#if member.role === 'MASTER'}
-									<span
-										title="Room owner"
-										class="inline-flex size-5 shrink-0 items-center justify-center {index ===
-										selectedMentionIndex
-											? 'text-amber-200'
-											: 'text-amber-500'}"><Crown class="size-3.5" aria-hidden="true" /></span
-									>
-								{/if}
+							<span class="block truncate text-[11px] font-medium text-[#e1e4e8]">
+								@{member.user.username}
 							</span>
-							<span
-								class="block truncate text-xs {index === selectedMentionIndex
-									? 'text-accent-foreground'
-									: 'text-muted-foreground'}">@{member.user.username}</span
-							>
+							<span class="block truncate text-[10px] leading-4 text-[#777e89]">
+								{displayName}{member.role === 'MASTER' ? ' · Room owner' : ''}
+							</span>
 						</span>
 					</button>
 				{/each}
 			</div>
 			{#if !filteredMembers.length}
-				<p class="px-3 py-4 text-sm text-muted-foreground" role="status">No members found</p>
+				<p class="px-3 py-5 text-center text-[11px] text-[#777e89]" role="status">
+					No matching members
+				</p>
 			{/if}
+			<div
+				class="flex h-7 items-center gap-3 border-t border-[#292c33] px-2.5 text-[9px] text-[#666d78]"
+				aria-hidden="true"
+			>
+				<span><kbd>↑↓</kbd> Navigate</span>
+				<span><kbd>Enter</kbd> Select</span>
+				<span class="ml-auto"><kbd>Esc</kbd> Close</span>
+			</div>
 		</div>
 	{/if}
 
 	<div
 		bind:this={editorElement}
-		class="w-full min-h-11 max-h-36 overflow-y-auto outline-none"
+		class="min-h-10 max-h-36 w-full overflow-y-auto outline-none"
 	></div>
 </div>
 
@@ -447,10 +432,10 @@
 	}
 
 	:global(.ProseMirror) {
-		min-height: 44px;
+		min-height: 38px;
 		max-height: 144px;
 		overflow-y: auto;
-		padding: 12px;
+		padding: 9px 12px;
 		outline: none;
 		white-space: pre-wrap;
 		word-break: break-word;
@@ -465,9 +450,11 @@
 	}
 
 	:global(.mention) {
-		color: #60a5fa;
+		color: #a99cff;
+		background: rgb(139 124 246 / 14%);
 		font-weight: 600;
 		border-radius: 4px;
+		padding: 1px 3px;
 	}
 	:global(.ProseMirror a) {
 		color: #2563eb;
