@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { Tabs, TabsList, TabsTrigger, TabsContent } from '$lib/components/ui/tabs';
+	import { MessageType } from '$lib/types/message';
 	import GifPicker from './gif-picker.svelte';
 	import StickerPicker from './sticker-picker.svelte';
 
-	let { onClickItem }: { onClickItem: (payload: string) => void } = $props();
+	let { onClickItem }: { onClickItem: (url: string, type: MessageType) => void } = $props();
 </script>
 
 <Tabs value="sticker" class="w-full">
@@ -13,10 +14,10 @@
 	</TabsList>
 
 	<TabsContent value="sticker">
-		<StickerPicker sendSticker={onClickItem} />
+		<StickerPicker sendSticker={(url) => onClickItem(url, MessageType.STICKER)} />
 	</TabsContent>
 
 	<TabsContent value="gif">
-		<GifPicker onSelectGif={onClickItem} />
+		<GifPicker onSelectGif={(url) => onClickItem(url, MessageType.IMAGE)} />
 	</TabsContent>
 </Tabs>

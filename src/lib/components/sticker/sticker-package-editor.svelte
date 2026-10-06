@@ -6,7 +6,10 @@
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import type { Sticker, StickerPackage, StickerVisibility } from '$lib/types/sticker';
-	import { Globe, Lock } from '@lucide/svelte';
+	import { Globe, Lock, Trash2 } from '@lucide/svelte';
+	import FileUploader from '../common/file-uploader.svelte';
+	import { storageService } from '$lib/api/storage';
+	import { stickerService } from '$lib/api/sticker-service';
 	let {
 		package: initialPackage,
 		onSave,
@@ -17,32 +20,46 @@
 		onCancel: () => void;
 	} = $props();
 
-	const isEditing = initialPackage !== null;
+	const isEditing = $derived(initialPackage !== null);
 
 	let name = $state(initialPackage?.name ?? '');
 	let description = $state(initialPackage?.description ?? '');
 	let visibility = $state<StickerVisibility>(initialPackage?.visibility ?? 'PRIVATE');
 
-	let stickers = $state<Sticker[]>(initialPackage ? [...initialPackage.stickers] : []);
-	function removeSticker(id: string) {
-		stickers = stickers.filter((sticker) => sticker.id !== id);
-	}
+	let stickers = $derived(initialPackage?.stickers ?? []);
 
-	function handleFiles(files: FileList | null) {
+	async function handleFiles(files: FileList | null) {
 		if (!files) return;
 		for (const file of Array.from(files)) {
 			if (!file.type.startsWith('image/')) continue;
-
-			const sticker: Sticker = {
-				id: Date.now(),
-				url: URL.createObjectURL(file),
-				name: file.name
-			};
-
-			stickers.push(sticker);
+			await processSticker(file);
 		}
 	}
-
+	async function processSticker(file: File) {
+		try {
+			if (initialPackage?.id) {
+				const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(
+					file.name,
+					'STICKER'
+				);
+				await storageService.uploadFile(uploadUrl, file);
+				const createStickerRequest = {
+					name: file.name,
+					url: downloadUrl
+				};
+				const res = await stickerService.addStickerToPackage(
+					initialPackage?.id,
+					createStickerRequest
+				);
+				if (res) {
+					stickers.push(res);
+				}
+			}
+		} catch (error) {
+			console.error('Error processing sticker:', error);
+			throw error;
+		}
+	}
 	function save() {
 		const request: CreateStickerPackageRequest = {
 			name: name.trim(),
@@ -126,35 +143,40 @@
 	</div>
 
 	<!-- Stickers -->
-	<!-- <div class="rounded-xl border p-6">
-		<div class="mb-4">
-			<h2 class="font-medium">Stickers</h2>
+	{#if isEditing}
+		<div class="rounded-xl border p-6">
+			<div class="mb-4">
+				<h2 class="font-medium">Stickers</h2>
 
-			<p class="text-sm text-muted-foreground">
-				Add stickers and arrange them in the order you want.
-			</p>
+				<p class="text-sm text-muted-foreground">
+					Add stickers and arrange them in the order you want.
+				</p>
+			</div>
+
+			<div class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+				{#each stickers as sticker (sticker.id)}
+					<div class="group relative aspect-square rounded-lg border bg-muted p-2">
+						<img
+							src={sticker.url}
+							alt={sticker.name ?? 'Sticker'}
+							class="size-full object-contain"
+						/>
+
+						<Button
+							class="absolute flex-center right-0 top-0 hidden rounded-full  group-hover:block"
+							// onclick={() => removeSticker(sticker.id)}
+							size="icon-sm"
+							variant="destructive"
+						>
+							<Trash2 />
+						</Button>
+					</div>
+				{/each}
+
+				<FileUploader label="Add stickers" onFilesChanged={handleFiles} />
+			</div>
 		</div>
-
-		<div class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-			{#each stickers as sticker (sticker.id)}
-				<div class="group relative aspect-square rounded-lg border bg-muted p-2">
-					<img src={sticker.url} alt={sticker.name ?? 'Sticker'} class="size-full object-contain" />
-
-					<Button
-						class="absolute flex-center right-0 top-0 hidden rounded-full  group-hover:block"
-						onclick={() => removeSticker(sticker.id)}
-						size="icon-sm"
-						variant="destructive"
-					>
-						<Trash2 />
-					</Button>
-				</div>
-			{/each}
-
-			<FileUploader label="Add stickers" onFilesChanged={handleFiles} />
-		</div>
-	</div> -->
-
+	{/if}
 	<!-- Actions -->
 	<div class="flex justify-end gap-2">
 		<Button variant="destructive" onclick={onCancel}>Cancel</Button>

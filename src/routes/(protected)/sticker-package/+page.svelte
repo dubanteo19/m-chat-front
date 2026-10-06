@@ -1,30 +1,28 @@
 <script lang="ts">
-	import { stickerService, type CreateStickerPackageRequest } from '$lib/api/sticker';
+	import { stickerService, type CreateStickerPackageRequest } from '$lib/api/sticker-service';
 	import StickerPackageCard from '$lib/components/sticker/sticker-package-card.svelte';
 	import StickerPackageEditor from '$lib/components/sticker/sticker-package-editor.svelte';
 	import { Button } from '$lib/components/ui/button';
 
 	import * as Dialog from '$lib/components/ui/dialog';
-	import { MOCK_STICKER_PACKAGES, type StickerPackage } from '$lib/types/sticker';
+	import { Spinner } from '$lib/components/ui/spinner';
+	import { useUserStickersQuery } from '$lib/queries/use-user-sticker';
+	import { type StickerPackage } from '$lib/types/sticker';
 	import { Plus } from '@lucide/svelte';
-
-	let packages = $state<StickerPackage[]>([...MOCK_STICKER_PACKAGES]);
+	const { query } = useUserStickersQuery();
+	const { data: packages = [], isLoading } = $derived(query);
 	let editingPackage = $state<StickerPackage | null>(null);
-	let isCreating = $state(false);
-
+	let isEditing = $derived(editingPackage !== null);
 	function createPackage() {
-		isCreating = true;
 		editingPackage = null;
 	}
 
 	function editPackage(pkg: StickerPackage) {
 		editingPackage = pkg;
-		isCreating = false;
 	}
 
 	function closeEditor() {
 		editingPackage = null;
-		isCreating = false;
 	}
 
 	async function savePackage(request: CreateStickerPackageRequest) {
@@ -38,9 +36,9 @@
 		}
 	}
 
-	function deletePackage(id: string) {
-		packages = packages.filter((pkg) => pkg.id !== id);
-	}
+	// function deletePackage(id: number) {
+	// 	packages = packages.filter((pkg) => pkg.id !== id);
+	// }
 </script>
 
 <div class="mx-auto w-full max-w-4xl space-y-6 p-6">
@@ -50,7 +48,7 @@
 			<h1>My Stickers</h1>
 			<p class="text-sm">Create and manage your sticker packages.</p>
 		</div>
-		<Dialog.Root>
+		<Dialog.Root bind:open={isEditing}>
 			<Dialog.Trigger>
 				<Button onclick={createPackage}>
 					<Plus class="mr-2 size-4" />
@@ -58,23 +56,32 @@
 				</Button>
 			</Dialog.Trigger>
 			<Dialog.Content class="sm:max-w-4xl">
-				<StickerPackageEditor package={editingPackage} onSave={savePackage} onCancel={closeEditor} />
+				<StickerPackageEditor
+					package={editingPackage}
+					onSave={savePackage}
+					onCancel={closeEditor}
+				/>
 			</Dialog.Content>
 		</Dialog.Root>
 	</div>
-
-	<!-- Packages -->
-	<div class="grid gap-4 sm:grid-cols-2">
-		{#each packages as pkg (pkg.id)}
-			<StickerPackageCard
-				{pkg}
-				onEdit={() => editPackage(pkg)}
-				onDelete={() => deletePackage(pkg.id)}
-			/>
-		{/each}
-	</div>
-
-	{#if packages.length === 0}
+	{#if isLoading}
+		<div class="flex-center min-h-60">
+			<Spinner />
+		</div>
+	{/if}
+	{#if packages.length > 0}
+		<div class="grid gap-4 sm:grid-cols-2">
+			{#each packages as pkg (pkg.id)}
+				<StickerPackageCard
+					{pkg}
+					onEdit={() => editPackage(pkg)}
+					onDelete={() => {
+						// deletePackage(pkg.id);
+					}}
+				/>
+			{/each}
+		</div>
+	{:else}
 		<div class="flex-center min-h-60 flex-col rounded-lg border border-dashed">
 			<p class="text-sm text-muted-foreground">You don't have any sticker packages yet.</p>
 

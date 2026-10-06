@@ -30,14 +30,15 @@ self.addEventListener('notificationclick', (event) => {
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
             const url = event.notification.data?.url;
+            const absoluteUrl = `http://192.168.1.81:5173${url}`;
             for (const client of clientList) {
                 if ('focus' in client) {
-                    client.navigate(url);
+                    client.navigate(absoluteUrl);
                     return client.focus();
                 }
             }
 
-            if (clients.openWindow) return clients.openWindow(url);
+            if (clients.openWindow) return clients.openWindow(absoluteUrl);
         })
     );
 });

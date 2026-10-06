@@ -1,5 +1,5 @@
 import type { Handle, HandleFetch } from '@sveltejs/kit';
-import { PUBLIC_BASE_URL } from '$env/static/public';
+import { PUBLIC_BASE_URL, PUBLIC_FRONTEND_URL } from '$env/static/public';
 import type { CurrentUserInfo } from '$lib/types/user';
 
 type CacheEntry = {
@@ -46,10 +46,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 export const handleFetch: HandleFetch = async ({ event, request, fetch }) => {
 	if (request.url.startsWith(PUBLIC_BASE_URL)) {
 		const cookie = event.request.headers.get('cookie');
-		return globalThis.fetch(request);
 		if (cookie) {
-			console.log("cookie present set in request headers");
 			request.headers.set('cookie', cookie);
+			request.headers.set('origin', PUBLIC_FRONTEND_URL);
 		}
 		if (import.meta.env.DEV) {
 			return globalThis.fetch(request);

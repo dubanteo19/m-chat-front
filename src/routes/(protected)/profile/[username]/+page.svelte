@@ -195,7 +195,7 @@
 			file.name,
 			'AVATAR'
 		);
-		await storageService.uploadFileToMinio(uploadUrl, file);
+		await storageService.uploadFile(uploadUrl, file);
 		return downloadUrl;
 	}
 

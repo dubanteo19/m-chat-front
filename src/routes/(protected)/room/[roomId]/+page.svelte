@@ -313,7 +313,7 @@
 						file.name,
 						'IMAGE'
 					);
-					const uploadResponse = await storageService.uploadFileToMinio(uploadUrl, compressedFile);
+					const uploadResponse = await storageService.uploadFile(uploadUrl, compressedFile);
 
 					if (!uploadResponse.ok) throw new Error('MinIO image upload failed');
 					contentUrl = downloadUrl;

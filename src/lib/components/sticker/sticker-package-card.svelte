@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { Badge } from '$lib/components/ui/badge';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import type { StickerPackage } from '$lib/types/sticker';
-	import { Globe, Lock } from '@lucide/svelte';
+	import { Ellipsis, Globe, Lock, Pencil, Trash2 } from '@lucide/svelte';
+	import { Button } from '../ui/button';
 
 	let {
 		pkg,
@@ -13,7 +15,7 @@
 		onDelete: () => void;
 	} = $props();
 
-	const previewStickers = $derived(pkg.stickers.slice(0, 4));
+	const previewStickers = $derived(pkg.stickers ? pkg.stickers.slice(0, 4) : pkg.stickers);
 </script>
 
 <div class="group relative rounded-xl border bg-card/30 p-4">
@@ -40,10 +42,10 @@
 					</p>
 				</div>
 
-				<!-- <DropdownMenu.Root>
+				<DropdownMenu.Root>
 					<DropdownMenu.Trigger>
 						<Button variant="ghost" size="icon">
-							<MoreHorizontal class="size-4" />
+							<Ellipsis class="size-4" />
 						</Button>
 					</DropdownMenu.Trigger>
 
@@ -58,7 +60,7 @@
 							Delete
 						</DropdownMenu.Item>
 					</DropdownMenu.Content>
-				</DropdownMenu.Root> -->
+				</DropdownMenu.Root>
 			</div>
 
 			<div class="mt-3 flex items-center gap-2">
@@ -73,7 +75,7 @@
 				</Badge>
 
 				<span class="text-xs">
-					{pkg.stickers.length} stickers
+					{pkg.stickers ?? 0} stickers
 				</span>
 			</div>
 		</div>

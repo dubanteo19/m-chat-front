@@ -1,8 +1,8 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { STICKER_PACKS } from '$lib/constants/stickers';
 	import { SettingsIcon } from '@lucide/svelte';
-	import { resolve } from '$app/paths';
 	interface StickerPickerProps {
 		sendSticker: (stickerUrl: string) => void;
 	}

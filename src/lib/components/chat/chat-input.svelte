@@ -93,11 +93,11 @@
 		onFileUploadRequested?.(file);
 	}
 
-	function sendSticker(stickerUrl: string) {
+	function sendExpression(url: string, type: MessageType) {
 		const payload: MessagePayload = {
-			content: stickerUrl,
+			content: url,
 			replyTo: null,
-			type: MessageType.STICKER
+			type
 		};
 
 		onSendMessage(payload);
@@ -137,7 +137,7 @@
 					sideOffset={5}
 					class="w-[520px] rounded-xl p-2.5 bg-[#1e1e1e] text-white shadow-lg"
 				>
-					<ExpressionPicker onClickItem={sendSticker} />
+					<ExpressionPicker onClickItem={sendExpression} />
 				</Popover.Content>
 			</Popover.Root>
 		</div>

@@ -1,6 +1,6 @@
 export type StickerVisibility = 'PUBLIC' | 'PRIVATE';
 
-export interface Sticker {
+export interface StickerInfo {
     id: number;
     url: string;
     name?: string;
@@ -11,7 +11,7 @@ export interface StickerPackage {
     name: string;
     description: string;
     visibility: StickerVisibility;
-    stickers: Sticker[];
+    stickers: StickerInfo[];
     createdAt: string;
     updatedAt: string;
 }
