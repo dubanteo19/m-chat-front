@@ -38,14 +38,13 @@
 	async function processSticker(file: File) {
 		try {
 			if (initialPackage?.id) {
-				const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(
+				const { uploadUrl, objectKey } = await storageService.getPresignedUrl(
 					file.name,
 					'STICKER'
 				);
 				await storageService.uploadFile(uploadUrl, file);
 				const createStickerRequest = {
-					name: file.name,
-					url: downloadUrl
+					objectKey
 				};
 				const res = await stickerService.addStickerToPackage(
 					initialPackage?.id,

@@ -15,5 +15,6 @@ export interface AuthResponse {
 export interface PresignedUrlResponse {
 	uploadUrl: string;
 	downloadUrl: string;
+	objectKey: string;
 }
 

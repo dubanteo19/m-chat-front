@@ -8,8 +8,7 @@ export type CreateStickerPackageRequest = {
 };
 
 export type CreateStickerRequest = {
-	name?: string;
-	url: string;
+	objectKey: string;
 };
 export const stickerService = {
 	save: async (request: CreateStickerPackageRequest): Promise<StickerPackage> => {
