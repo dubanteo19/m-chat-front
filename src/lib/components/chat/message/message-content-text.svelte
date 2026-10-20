@@ -14,7 +14,6 @@
 	const useState = useUser();
 	function getDisplayName(userId: string) {
 		const member = roomState.members.find((m) => String(m.user.id) === userId);
-
 		return member?.user.displayName || member?.user.username || userId;
 	}
 </script>
@@ -148,5 +147,4 @@
 	.mr-card-wrapper {
 		margin: 6px 0;
 	}
-
 </style>

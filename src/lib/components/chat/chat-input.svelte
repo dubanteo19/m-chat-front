@@ -2,19 +2,23 @@
 	import { useUser } from '$lib/stores/auth.svelte';
 
 	import * as Popover from '$lib/components/ui/popover/index.js';
-	import { MessageType, type MessagePayload } from '$lib/types/message';
+	import {
+		MessageType,
+		type Message,
+		type MessagePayload
+	} from '$lib/types/message';
 	import { Send } from '@lucide/svelte';
 	import { useRoom } from '../room/room-state.svelte';
 	import { Button } from '../ui/button';
 	import ChatEditor from './chat-input/chat-editor.svelte';
-	import ReplyPreview from './chat-input/reply-preview.svelte';
 	import ExpressionPicker from './chat-input/expression-picker.svelte';
+	import ReplyingPreview from './chat-input/replying-preview.svelte';
 	interface ChatInputProps {
 		roomId: string | number;
 		onSendMessage: (payload: MessagePayload) => void;
 		onTypingStateChange: (isTyping: boolean) => void;
 		onFileUploadRequested: (file: File) => void;
-		repliedToMessage: any;
+		replyingToMessage: Message | null;
 	}
 
 	let {
@@ -22,7 +26,7 @@
 		onSendMessage,
 		onTypingStateChange,
 		onFileUploadRequested,
-		repliedToMessage = $bindable(null)
+		replyingToMessage = $bindable(null)
 	}: ChatInputProps = $props();
 
 	const { currentUser } = $derived(useUser());
@@ -35,7 +39,7 @@
 	let amITyping = false;
 	const roomState = useRoom();
 	$effect(() => {
-		if (repliedToMessage) {
+		if (replyingToMessage) {
 			chatEditorRef?.focus();
 		}
 	});
@@ -60,17 +64,17 @@
 		e.preventDefault();
 
 		const trimmed = inputMessage.trim();
-		if (!trimmed && !repliedToMessage) return;
+		if (!trimmed && !replyingToMessage) return;
 		const payload: MessagePayload = {
 			content: trimmed,
-			replyTo: repliedToMessage?.id || null,
+			replyTo: replyingToMessage?.id || null,
 			type: MessageType.TEXT
 		};
 
 		onSendMessage(payload);
 
 		inputMessage = '';
-		repliedToMessage = null;
+		replyingToMessage = null;
 		chatEditorRef?.clear();
 		if (amITyping) {
 			clearTimeout(typingTimeout);
@@ -103,7 +107,7 @@
 		onSendMessage(payload);
 
 		showExpressionPicker = false;
-		if (repliedToMessage) repliedToMessage = null;
+		if (replyingToMessage) repliedToMessage = null;
 	}
 </script>
 
@@ -112,14 +116,12 @@
 		<input
 			bind:this={fileInputRef}
 			type="file"
-			accept="image/*,video/*"
 			class="hidden"
 			onchange={(e) => {
 				const target = e.currentTarget;
 				if (target.files?.[0]) handleFileUpload(target.files[0]);
 			}}
 		/>
-
 		<div class="relative flex gap-1 shrink-0">
 			<Button onclick={() => fileInputRef?.click()} class="p-3  h-11.5" title="Upload Asset">
 				📎
@@ -145,8 +147,8 @@
 		<div
 			class="relative flex-1 bg-background border-secondary/20 border rounded-2xl transition-colors min-h-11 max-h-36"
 		>
-			{#if repliedToMessage}
-				<ReplyPreview {repliedToMessage} onCancelReply={() => (repliedToMessage = null)} />
+			{#if replyingToMessage}
+				<ReplyingPreview {replyingToMessage} onCancelReply={() => (replyingToMessage = null)} />
 			{/if}
 
 			<ChatEditor

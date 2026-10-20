@@ -1,6 +1,7 @@
 import { roomEffectsLabels } from '$lib/components/room-effects/effects/particles';
 import { MessageType, type Message, type RepliedMessageInfo } from '$lib/types/message';
 import type { UserInfo } from '$lib/types/user';
+import { truncateText } from './text';
 
 export interface CreateMessagePayloadOptions {
 	content: string;
@@ -119,4 +120,20 @@ export function createAnonymousActivityMessage(options: {
 		sentAt: new Date().toISOString(),
 		isDeleted: false
 	};
+}
+export function getRepliedMessageContent(content: string, type: MessageType): string {
+	switch (type) {
+		case MessageType.TEXT:
+			return truncateText(content);
+		case MessageType.IMAGE:
+			return '🖼️ Image';
+		case MessageType.STICKER:
+			return '🖼️ Sticker';
+		case MessageType.VIDEO:
+			return '🎥 Video';
+		case MessageType.FILE:
+			return '📎 File';
+		default:
+			return '';
+	}
 }

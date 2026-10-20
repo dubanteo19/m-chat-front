@@ -2,19 +2,24 @@
 	import { Button } from '$lib/components/ui/button';
 	import { downloadService } from '$lib/services/download-service.svelte';
 	import { MessageType, type Message } from '$lib/types/message';
-	import { RefreshCwIcon } from '@lucide/svelte';
+	import { DownloadIcon, FileIcon, RefreshCwIcon } from '@lucide/svelte';
 	import MessageContentText from './message-content-text.svelte';
+	import MessageFile from './message-file.svelte';
 	let imgElement = $state<HTMLImageElement>();
 	let refreshKey = $state(0);
 
 	function refreshVideo() {
 		refreshKey++;
 	}
-	let { message, onImageLoad, onOpenLightbox } = $props<{
+	let {
+		message,
+		onImageLoad,
+		onOpenLightbox
+	}: {
 		message: Message;
 		onImageLoad?: () => void;
 		onOpenLightbox?: (selectedMsg: Message, imgElement: HTMLImageElement | undefined) => void;
-	}>();
+	} = $props();
 </script>
 
 {#if message.isDeleted}
@@ -84,6 +89,8 @@
 			<RefreshCwIcon />
 		</Button>
 	</div>
+{:else if message.type === MessageType.FILE}
+	<MessageFile content={message.content} />
 {/if}
 
 <style>

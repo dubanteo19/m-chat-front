@@ -18,7 +18,7 @@
 		openReactionId,
 		setOpenReactionId,
 		onOpenLightbox
-	} = $props<{
+	}: {
 		message: Message;
 		isLastMessage: boolean;
 		onImageLoad?: () => void;
@@ -28,7 +28,7 @@
 		openReactionId: number | null;
 		setOpenReactionId: (id: number | null) => void;
 		onOpenLightbox?: (message: Message, imgElement?: HTMLImageElement) => void;
-	}>();
+	} = $props();
 
 	const isSystem = $derived(message.type === 'SYSTEM');
 
@@ -87,7 +87,7 @@
 		{/if}
 
 		{#if message.repliedTo}
-			<MessageReply {message} />
+			<MessageReply repliedTo={message.repliedTo} />
 		{/if}
 		{#if isSystem}
 			<div

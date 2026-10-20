@@ -39,7 +39,8 @@
 		extractImageFromPaste,
 		extractImageUrlFromPaste,
 		fetchFile,
-		validateAndExtractMediaFile
+		validateAndExtractMediaFile,
+		validateFileSize
 	} from '$lib/utils/upload';
 	import { ArrowDown, Bot } from '@lucide/svelte';
 	import PhotoSwipe from 'photoswipe';
@@ -54,7 +55,7 @@
 	const { currentUser } = $derived(useUser());
 	let openReactionId: number | null = $state(null);
 	let roomEffect = $state<RoomEffect | null>(null);
-	let repliedToMessage = $state<Message | null>(null);
+	let replyingToMessage = $state<Message | null>(null);
 	let messages = $state<Message[]>([]);
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
@@ -279,7 +280,11 @@
 	async function processFile(file: File) {
 		const fileType = validateAndExtractMediaFile(file);
 		if (!fileType) {
-			alert('Only images and videos are allowed!');
+			alert('Invalid file type');
+			return;
+		}
+		if (!validateFileSize(file, fileType)) {
+			alert('File size exceeds the limit.');
 			return;
 		}
 		try {
@@ -296,11 +301,11 @@
 				});
 				const saved = await messageService.sendMessage(roomId, payload);
 				messages = [...messages, { ...saved, status: 'sent', isMine: true }];
-			} else if (fileType === 'IMAGE') {
+			} else if (fileType === 'IMAGE' || fileType === 'FILE') {
 				const previewUrl = URL.createObjectURL(file);
 				const optimistic = createOptimisticMessage(
 					previewUrl,
-					MessageType.IMAGE,
+					fileType === 'IMAGE' ? MessageType.IMAGE : MessageType.FILE,
 					currentUser,
 					null
 				);
@@ -308,15 +313,17 @@
 				scrollService.onIncomingMessage();
 
 				try {
-					const compressedFile = file.type === 'image/gif' ? file : await compressImage(file);
-					const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(
+					const shouldCompress = file.type.startsWith('image/') && file.type !== 'image/gif';
+					const compressedFile = shouldCompress ? await compressImage(file) : file;
+					const { uploadUrl, downloadUrl, objectKey } = await storageService.getPresignedUrl(
 						file.name,
-						'IMAGE'
+						fileType
 					);
 					const uploadResponse = await storageService.uploadFile(uploadUrl, compressedFile);
 
 					if (!uploadResponse.ok) throw new Error('MinIO image upload failed');
-					contentUrl = downloadUrl;
+					contentUrl =
+						fileType === 'IMAGE' ? downloadUrl : `<file|${compressedFile.name}|${objectKey}>`;
 
 					const payload = createMessagePayload({
 						content: contentUrl,
@@ -401,7 +408,7 @@
 			payload.content,
 			payload.type,
 			currentUser,
-			repliedToMessage
+			replyingToMessage
 		);
 		messages = [...messages, optimistic];
 		scrollService.onIncomingMessage();
@@ -501,7 +508,7 @@
 								onImageLoad={scrollService.scrollToBottom}
 								{openReactionId}
 								setOpenReactionId={(id) => (openReactionId = id)}
-								handleReply={(msg) => (repliedToMessage = msg)}
+								handleReply={(msg) => (replyingToMessage = msg)}
 								{handleDelete}
 								sendReact={handleSendReact}
 								{onOpenLightbox}
@@ -512,7 +519,7 @@
 
 					<ChatInput
 						{roomId}
-						bind:repliedToMessage
+						bind:replyingToMessage
 						{onSendMessage}
 						onTypingStateChange={websocketService.sendTyping}
 						onFileUploadRequested={processFile}

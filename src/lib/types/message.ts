@@ -5,7 +5,8 @@ export const MessageType = {
 	IMAGE: 'IMAGE',
 	VIDEO: 'VIDEO',
 	SYSTEM: 'SYSTEM',
-	STICKER: 'STICKER'
+	STICKER: 'STICKER',
+	FILE: 'FILE'
 } as const;
 
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];

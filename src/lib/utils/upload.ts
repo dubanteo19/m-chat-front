@@ -1,4 +1,7 @@
 import imageCompression from 'browser-image-compression';
+
+const MAX_MEDIA_SIZE = 200 * 1024 * 1024; // 200MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 export function extractImageFromPaste(event: ClipboardEvent): File | null {
 	const items = event.clipboardData?.items;
 	if (!items) return null;
@@ -35,15 +38,28 @@ export function extractFileFromDrop(event: DragEvent): File | null {
 	return files && files.length > 0 ? files[0] : null;
 }
 
-export function validateAndExtractMediaFile(file: File): 'IMAGE' | 'VIDEO' | null {
-	const isImage = file.type.startsWith('image/');
-	const isVideo = file.type.startsWith('video/');
-
-	if (!isImage && !isVideo) {
+export function validateAndExtractMediaFile(file: File): 'IMAGE' | 'VIDEO' | 'FILE' | null {
+	const fileName = file.name.toLowerCase();
+	if (fileName.endsWith('.exe')) {
+		// Reject executable files
 		return null;
 	}
-	return isVideo ? 'VIDEO' : 'IMAGE';
+	const isImage = file.type.startsWith('image/');
+	const isVideo = file.type.startsWith('video/');
+	if (isImage) return 'IMAGE';
+	if (isVideo) return 'VIDEO';
+	return 'FILE';
 }
+export function validateFileSize(
+	file: File,
+	fileType: 'IMAGE' | 'VIDEO' | 'FILE',
+): boolean {
+	if (fileType === 'IMAGE' || fileType === 'VIDEO') {
+		return file.size <= MAX_MEDIA_SIZE;
+	}
+	return file.size <= MAX_FILE_SIZE;
+}
+
 export function compressImage(file: File): Promise<File> {
 	return imageCompression(file, {
 		maxSizeMB: 2,

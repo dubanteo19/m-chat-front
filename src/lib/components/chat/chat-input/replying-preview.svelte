@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
-	import { truncateText } from '$lib/utils/text';
-	interface ReplyPreviewProps {
-		repliedToMessage: any;
+	import type { Message } from '$lib/types/message';
+	import { getRepliedMessageContent } from '$lib/utils/message';
+	interface ReplyingPreviewProps {
+		replyingToMessage: Message;
 		onCancelReply: () => void;
 	}
-	let { repliedToMessage, onCancelReply }: ReplyPreviewProps = $props();
+	let { replyingToMessage, onCancelReply }: ReplyingPreviewProps = $props();
 </script>
 
 <div
@@ -13,18 +14,10 @@
 >
 	<div class="min-w-0 flex-1 mr-4">
 		<span class="font-semibold text-indigo-400 text-[11px] block">
-			Replying to {repliedToMessage.sender.displayName}
+			Replying to {replyingToMessage.sender.displayName}
 		</span>
 		<div class="mt-0.5 text-sm">
-			{#if repliedToMessage.type === 'IMAGE'}
-				🖼️ Photo
-			{:else if repliedToMessage.type === 'STICKER'}
-				🖼️ Sticker
-			{:else if repliedToMessage.type === 'VIDEO'}
-				🎥 Video
-			{:else}
-				{truncateText(repliedToMessage.content)}
-			{/if}
+			{getRepliedMessageContent(replyingToMessage.content, replyingToMessage.type)}
 		</div>
 	</div>
 	<Button size="sm" variant="ghost" onclick={onCancelReply} class="shrink-0" title="Cancel reply"

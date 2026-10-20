@@ -8,7 +8,8 @@ export const UploadType = {
     AVATAR: 'AVATAR',
     IMAGE: 'IMAGE',
     VIDEO: 'VIDEO',
-    STICKER: 'STICKER'
+    STICKER: 'STICKER',
+    FILE: 'FILE'
 }
 export type UploadType = keyof typeof UploadType;
 
@@ -20,7 +21,13 @@ export const storageService = {
         const params = new URLSearchParams({ filename, type });
         return apiClient.get(`/storage/presigned-url?${params.toString()}`);
     },
-
+    getDownloadUrl: (
+        objectKey: string,
+        fileName: string
+    ): Promise<string> => {
+        const params = new URLSearchParams({ objectKey, fileName });
+        return apiClient.get(`/storage/download?${params.toString()}`);
+    },
     uploadFile: async (uploadUrl: string, file: File): Promise<Response> => {
         return fetch(uploadUrl, {
             method: 'PUT',
