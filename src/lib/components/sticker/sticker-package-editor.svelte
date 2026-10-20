@@ -1,32 +1,40 @@
 <script lang="ts">
-	import type { CreateStickerPackageRequest } from '$lib/api/sticker';
+	import { stickerService, type CreateStickerPackageRequest } from '$lib/api/sticker-service';
+	import { storageService } from '$lib/api/storage';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import type { Sticker, StickerPackage, StickerVisibility } from '$lib/types/sticker';
+	import type { StickerInfo, StickerPackage, StickerVisibility } from '$lib/types/sticker';
 	import { Globe, Lock, Trash2 } from '@lucide/svelte';
 	import FileUploader from '../common/file-uploader.svelte';
-	import { storageService } from '$lib/api/storage';
-	import { stickerService } from '$lib/api/sticker-service';
 	let {
-		package: initialPackage,
+		stickerPackage: initialPackage,
 		onSave,
 		onCancel
 	}: {
-		package: StickerPackage | null;
+		stickerPackage: StickerPackage | null;
 		onSave: (pkg: CreateStickerPackageRequest) => void;
 		onCancel: () => void;
 	} = $props();
 
 	const isEditing = $derived(initialPackage !== null);
-
 	let name = $state(initialPackage?.name ?? '');
 	let description = $state(initialPackage?.description ?? '');
 	let visibility = $state<StickerVisibility>(initialPackage?.visibility ?? 'PRIVATE');
 
-	let stickers = $derived(initialPackage?.stickers ?? []);
+	let stickers = $state<StickerInfo[]>([]);
+
+	$effect(() => {
+		console.log('initialPackage:', initialPackage);
+		const fetchStickers = async () => {
+			if (initialPackage?.id) {
+				stickers = await stickerService.getStickers(initialPackage.id);
+			}
+		};
+		if (isEditing) fetchStickers();
+	});
 
 	async function handleFiles(files: FileList | null) {
 		if (!files) return;
@@ -38,10 +46,7 @@
 	async function processSticker(file: File) {
 		try {
 			if (initialPackage?.id) {
-				const { uploadUrl, objectKey } = await storageService.getPresignedUrl(
-					file.name,
-					'STICKER'
-				);
+				const { uploadUrl, objectKey } = await storageService.getPresignedUrl(file.name, 'STICKER');
 				await storageService.uploadFile(uploadUrl, file);
 				const createStickerRequest = {
 					objectKey
