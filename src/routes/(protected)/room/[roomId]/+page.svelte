@@ -7,10 +7,11 @@
 	import RoomHeader from '$lib/components/chat/room-header.svelte';
 	import Sidebar from '$lib/components/chat/side-panel.svelte';
 	import TypingIndicator from '$lib/components/chat/typing-indicator.svelte';
+	import CheerButton from '$lib/components/common/cheer-button.svelte';
+	import CheerActivity from '$lib/components/room-activity/cheer-activity.svelte';
+	import SpinActivityLayer from '$lib/components/room-activity/spin/spin-activity.svelte';
 	import type { RoomEffect } from '$lib/components/room-effects/effects/particles';
 	import RoomEffects from '$lib/components/room-effects/room-effects.svelte';
-	import SpinActivityLayer from '$lib/components/room-activity/spin/spin-activity.svelte';
-	import { isSpinCommand } from '$lib/components/room-activity/spin/spin';
 	import { ROOM_MEMBERS_KEY, RoomState } from '$lib/components/room/room-state.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { useUserRoomsQuery } from '$lib/queries/use-user-room';
@@ -26,6 +27,7 @@
 	} from '$lib/types/message';
 	import { RoomActivityType } from '$lib/types/room-activity';
 	import type { UserInfo } from '$lib/types/user';
+	import { createAnimationTrigger } from '$lib/utils/debounce';
 	import {
 		createAnonymousActivityMessage,
 		createMessagePayload,
@@ -42,13 +44,10 @@
 		validateAndExtractMediaFile,
 		validateFileSize
 	} from '$lib/utils/upload';
-	import { ArrowDown, Bot } from '@lucide/svelte';
+	import { ArrowDown } from '@lucide/svelte';
 	import PhotoSwipe from 'photoswipe';
 	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
-	import { createAnimationTrigger } from '$lib/utils/debounce';
-	import CheerActivity from '$lib/components/room-activity/cheer-activity.svelte';
-	import CheerButton from '$lib/components/common/cheer-button.svelte';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
@@ -469,6 +468,7 @@
 					{/if}
 
 					<CheerButton
+						{roomId}
 						onclick={() => {
 							websocketService.sendRaw({
 								eventType: EventType.ROOM_ACTIVITY,
@@ -526,7 +526,7 @@
 					/>
 				</div>
 			</SpinActivityLayer>
-			<CheerActivity bind:this={cheerActivity} />
+			<CheerActivity bind:this={cheerActivity} {roomId} />
 		</main>
 	{/if}
 </div>

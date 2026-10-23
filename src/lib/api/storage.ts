@@ -21,6 +21,12 @@ export const storageService = {
         const params = new URLSearchParams({ filename, type });
         return apiClient.get(`/storage/presigned-url?${params.toString()}`);
     },
+    getPresignedUrlByObjectKey: (
+        objectKey: string,
+    ): Promise<PresignedUrlResponse> => {
+        const params = new URLSearchParams({ objectKey });
+        return apiClient.get(`/storage/presigned-url-by-object-key?${params.toString()}`);
+    },
     getDownloadUrl: (
         objectKey: string,
         fileName: string

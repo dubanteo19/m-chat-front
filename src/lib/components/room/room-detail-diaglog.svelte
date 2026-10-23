@@ -1,9 +1,7 @@
 <script lang="ts">
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 
-	let { open = $bindable(false) } = $props<{
-		open: boolean;
-	}>();
+	let { open = $bindable(false) }: { open: boolean } = $props();
 </script>
 
 <Dialog.Root bind:open>

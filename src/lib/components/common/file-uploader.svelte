@@ -2,10 +2,13 @@
 	import { Upload } from '@lucide/svelte';
 	let {
 		label,
-		onFilesChanged
+		onFilesChanged,
+		multiple = true
+
 	}: {
 		label: string;
 		onFilesChanged: (files: FileList | null) => void;
+		multiple?: boolean;
 	} = $props();
 
 	function handleDrop(event: DragEvent) {
@@ -25,7 +28,7 @@
 	<input
 		type="file"
 		accept="image/*"
-		multiple
+		multiple={multiple}
 		class="hidden"
 		onchange={(event) => onFilesChanged(event.currentTarget.files)}
 	/>

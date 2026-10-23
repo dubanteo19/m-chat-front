@@ -57,7 +57,7 @@
 			</Dialog.Trigger>
 			<Dialog.Content class="sm:max-w-4xl">
 				<StickerPackageEditor
-					package={editingPackage}
+					stickerPackage={editingPackage}
 					onSave={savePackage}
 					onCancel={closeEditor}
 				/>

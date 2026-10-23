@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { getCheerUrl } from '$lib/utils/cheer';
+
 	type cheerImage = {
 		id: number;
 		x: number;
@@ -6,11 +8,10 @@
 		rotation: number;
 		scale: number;
 	};
-
+	let { roomId }: { roomId: string } = $props();
 	let cheerImages = $state<cheerImage[]>([]);
 
-	const CHEER_URL =
-		'https://minio.dbt19.site/mchat-public/images/fe7aceca-528b-4cd7-97f5-fdcefab21f34.png';
+	const CHEER_URL = getCheerUrl(roomId);
 
 	function play() {
 		const id = Date.now() + Math.random();
@@ -54,5 +55,4 @@
 		transform: translate(-50%, -50%);
 		animation: cheer-pop 2.2s ease-out forwards;
 	}
-
 </style>

@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { getCheerUrl } from '$lib/utils/cheer';
 	import Button from '../ui/button/button.svelte';
-	const CHEER_URL =
-		'https://minio.dbt19.site/mchat-public/images/fe7aceca-528b-4cd7-97f5-fdcefab21f34.png';
 	interface CheerButtonProps {
 		onclick: () => void;
+		roomId: string;
 	}
-	let { onclick }: CheerButtonProps = $props();
+	let { onclick, roomId }: CheerButtonProps = $props();
+	const CHEER_URL = getCheerUrl(roomId);
 </script>
 
 <Button
