@@ -20,6 +20,9 @@ export const stickerService = {
 	getMyStickerPackages: async (): Promise<StickerPackage[]> => {
 		return apiClient.get(`/sticker-packages/my`);
 	},
+	getPublicStickerPackages: async (): Promise<StickerPackage[]> => {
+		return apiClient.get(`/sticker-packages`);
+	},
 	addStickerToPackage: async (packageId: number, request: CreateStickerRequest): Promise<StickerInfo> => {
 		return apiClient.post(`/sticker-packages/${packageId}/stickers`, request);
 	}

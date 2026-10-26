@@ -5,7 +5,7 @@ function createDownloadService() {
     }
     const downloadVideo = async (src: string) => {
         const fileName = parseFileName(src);
-        const API = `http://192.168.1.81:5000`;
+        const API = `http://192.168.20.5:5000`;
         const url = `${API}/download-video/general/${encodeURIComponent(fileName)}`;
 
         try {

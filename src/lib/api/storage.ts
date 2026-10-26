@@ -2,7 +2,7 @@
 import { apiClient } from './client';
 import type { PresignedUrlResponse } from './types';
 
-const VIDEO_STORAGE_URL = 'http://192.168.1.81:5000';
+const VIDEO_STORAGE_URL = 'http://192.168.20.5:5000';
 
 export const UploadType = {
     AVATAR: 'AVATAR',

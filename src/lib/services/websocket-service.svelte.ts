@@ -12,6 +12,9 @@ export const EventType = {
 	ROOM_ACTIVITY: 'ROOM_ACTIVITY',
 	ROOM_EFFECT_STATE_REQUEST: 'ROOM_EFFECT_STATE_REQUEST',
 	ROOM_EFFECT_STATE_RESPONSE: 'ROOM_EFFECT_STATE_RESPONSE',
+	RTC_OFFER: 'RTC_OFFER',
+	RTC_ANSWER: 'RTC_ANSWER',
+	RTC_ICE_CANDIDATE: 'RTC_ICE_CANDIDATE'
 } as const;
 
 export type EventType =
@@ -22,6 +25,7 @@ type ChatEventHandlers = {
 	onReaction?: (payload: any) => void;
 	onDeleteMessage?: (payload: any) => void;
 	onRoomEvent?: (payload: any) => void;
+	onRtcSignal?: (payload: any) => void;
 };
 
 function createWebsocketService() {
@@ -59,6 +63,11 @@ function createWebsocketService() {
 			const parsed = JSON.parse(event.data);
 			const eventType = parsed.eventType as EventType;
 			switch (eventType) {
+				case EventType.RTC_OFFER:
+				case EventType.RTC_ANSWER:
+				case EventType.RTC_ICE_CANDIDATE:
+					handlers.onRtcSignal?.(parsed);
+					return;
 				case EventType.ONLINE_USERS:
 					onlineUsers = Array.isArray(parsed) ? parsed : parsed.users || [];
 					return;

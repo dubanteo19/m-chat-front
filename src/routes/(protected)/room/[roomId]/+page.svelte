@@ -48,6 +48,7 @@
 	import PhotoSwipe from 'photoswipe';
 	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
+	import { WebRTCConnection } from '$lib/webrtc/webrtc';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
@@ -62,6 +63,10 @@
 	let isReversing = $state(false);
 	let cheerActivity: CheerActivity | null = $state(null);
 	let spinActivity: SpinActivityLayer | null = $state(null);
+	let p2p: WebRTCConnection | undefined;
+
+	let p2pState = $state<RTCPeerConnectionState>('new');
+	let receivedMessage = $state('');
 	const { markRoomAsRead } = useUserRoomsQuery();
 	setContext(ROOM_MEMBERS_KEY, roomState);
 
@@ -224,8 +229,13 @@
 					}
 
 					scrollService.onIncomingMessage();
+				},
+				onRtcSignal(payload) {
+					if (payload.sender.username === currentUser.username) return;
+					p2p?.handleSignal(payload);
 				}
 			});
+			initP2P();
 		});
 
 		// Cleanup only when roomId changes or component unmounts
@@ -234,7 +244,24 @@
 			websocketService.disconnect();
 		};
 	});
-
+	const initP2P = () => {
+		if (p2p) return;
+		p2p = new WebRTCConnection({
+			sendSignal: (signal) => {
+				websocketService.sendRaw({
+					...signal,
+					sender: currentUser
+				});
+			},
+			onStateChange(state) {
+				p2pState = state;
+			},
+			onMessage(message) {
+				receivedMessage = message;
+				console.log('Received P2P message:', message);
+			}
+		});
+	};
 	const playBuzz = createAnimationTrigger((active) => (isBuzzing = active), 1400);
 
 	function handleDelete(message: Message) {
@@ -527,6 +554,9 @@
 				</div>
 			</SpinActivityLayer>
 			<CheerActivity bind:this={cheerActivity} {roomId} />
+			<!-- <Button onclick={() => p2p?.createOffer()}>Offer RTC</Button>
+			<Button onclick={() => p2p?.shareScreen()}>Share Screen</Button>
+			<p>p2pState: {p2pState}</p> -->
 		</main>
 	{/if}
 </div>

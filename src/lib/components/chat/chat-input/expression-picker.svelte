@@ -18,6 +18,6 @@
 	</TabsContent>
 
 	<TabsContent value="gif">
-		<GifPicker onSelectGif={(url) => onClickItem(url, MessageType.IMAGE)} />
+		<!-- <GifPicker onSelectGif={(url) => onClickItem(url, MessageType.IMAGE)} /> -->
 	</TabsContent>
 </Tabs>

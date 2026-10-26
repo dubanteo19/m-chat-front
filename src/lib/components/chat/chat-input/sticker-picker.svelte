@@ -1,69 +1,92 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import { STICKER_PACKS } from '$lib/constants/stickers';
+	import { Spinner } from '$lib/components/ui/spinner';
+	import { usePublicStickersQuery } from '$lib/queries/use-public-sticker';
+	import type { StickerInfo, StickerPackage } from '$lib/types/sticker';
 	import { SettingsIcon } from '@lucide/svelte';
 	interface StickerPickerProps {
 		sendSticker: (stickerUrl: string) => void;
 	}
 	let { sendSticker }: StickerPickerProps = $props();
-	const sickerPackages = [
-		{
-			name: 'Funny Stickers'
-		},
-		{
-			name: 'Cute Stickers'
-		},
-		{
-			name: 'Meme Stickers'
-		},
-		{
-			name: 'Animal Stickers'
-		},
-		{
-			name: 'Emoji Stickers'
+
+	const { query } = usePublicStickersQuery();
+	const { data: stickerPacks = [], isLoading } = $derived(query);
+	let selectedPackageId = $state<number | null>(null);
+
+	$effect(() => {
+		if (stickerPacks && stickerPacks.length > 0) {
+			selectedPackageId = stickerPacks[0].id;
 		}
-	];
-	let selectedPackage = $state(sickerPackages[0]);
+	});
+	$effect(() => {
+		if (selectedPackageId !== null) {
+			const selectedPack = stickerPacks.find((pack) => pack.id === selectedPackageId);
+			if (selectedPack) {
+				const element = document.getElementById(`sticker-pack-${selectedPack.id}`);
+				if (element) {
+					element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			}
+		}
+	});
 </script>
 
 <div>
-	<div class="flex items-center gap-2 px-4 py-2 border-b bg-slate-500">
-		{#each sickerPackages as stickerPackage, i (i)}
-			{@render stickerPackageItem(stickerPackage, () => {
-				selectedPackage = stickerPackage;
-			})}
-		{/each}
+	<div class="flex  items-center gap-2 px-4 py-2 border-b bg-slate-500">
+		{#if isLoading}
+			<Spinner />
+		{/if}
+		<div class="flex gap-2 flex-1 overflow-x-auto">
+			{#if stickerPacks.length > 0}
+				{#each stickerPacks as pack, i (i)}
+					{@render stickerPackageItem(pack, () => {
+						selectedPackageId = pack.id;
+					})}
+				{/each}
+			{/if}
+		</div>
 		<a href={resolve('/sticker-package')}>
 			<Button><SettingsIcon /></Button>
 		</a>
 	</div>
-	<div
-		class="grid h-[580px] w-[520px] content-start
-	       grid-cols-4 gap-2
-	       overflow-y-auto px-4 pt-4
-	       [&::-webkit-scrollbar]:hidden"
-	>
-		{#each STICKER_PACKS as sticker, i (i)}
-			{@render stickerItem(sticker, sendSticker)}
+
+	<div class="flex max-h-[700px] w-[520px] flex-col overflow-auto">
+		{#if !isLoading && stickerPacks.length === 0}
+			<p class="text-center text-sm text-muted-foreground">No sticker packages available.</p>
+		{/if}
+		{#if isLoading}
+			<Spinner />
+		{/if}
+
+		{#each stickerPacks as pack (pack.id)}
+			<div class="p-2" id={`sticker-pack-${pack.id}`}>
+				<p class="text-yellow-300">{pack.name}</p>
+				<div
+					class=" grid content-start
+                    grid-cols-4 gap-4 overflow-y-auto
+                    [&::-webkit-scrollbar]:hidden"
+				>
+					{#each pack.stickers as sticker (sticker.id)}
+						{@render stickerItem(sticker, sendSticker)}
+					{/each}
+				</div>
+			</div>
 		{/each}
 	</div>
 </div>
 
-{#snippet stickerPackageItem({ name }: { name: string }, onclick: () => void)}
+{#snippet stickerPackageItem(pack: StickerPackage, onclick: () => void)}
 	<button
 		class="px-3 py-1 rounded-md text-sm font-medium"
 		{onclick}
-		class:bg-blue-500={selectedPackage.name === name}
+		class:bg-blue-500={selectedPackageId === pack.id}
 	>
-		{name}
+		{pack.name}
 	</button>
 {/snippet}
 
-{#snippet stickerItem(
-	sticker: { name: string; id: string; url: string },
-	sendSticker: (stickerUrl: string) => void
-)}
+{#snippet stickerItem(sticker: StickerInfo, sendSticker: (stickerUrl: string) => void)}
 	<button
 		class="aspect-square w-full rounded-md flex-center
 			       transition-colors hover:bg-muted"
