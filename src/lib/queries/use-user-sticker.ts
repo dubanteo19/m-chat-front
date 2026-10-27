@@ -1,5 +1,5 @@
 
-import { stickerService } from '$lib/api/sticker-service';
+import { stickerService, type CreateStickerRequest } from '$lib/api/sticker-service';
 import type { StickerPackage } from '$lib/types/sticker';
 import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 
@@ -16,7 +16,8 @@ export function useUserStickersQuery() {
 
     return {
         query,
-        upsertStickerPackage: (stickerPackage: StickerPackage) => {
+        upsertStickerPackage: async (stickerPackage: StickerPackage) => {
+            await stickerService.save(stickerPackage)
             queryClient.setQueryData<StickerPackage[]>(USER_STICKERS_QUERY_KEY, (old) => {
                 if (!old) return [stickerPackage];
                 const index = old.findIndex((s) => s.id === stickerPackage.id);
@@ -27,6 +28,14 @@ export function useUserStickersQuery() {
                 }
                 return [stickerPackage, ...old];
             });
+        },
+        addStickerToPackage: async (packageId: number, request: CreateStickerRequest) => {
+            await stickerService.addStickerToPackage(packageId, request);
+            await queryClient.invalidateQueries({ queryKey: USER_STICKERS_QUERY_KEY });
+        },
+        removeSticker: async (stickerPackageId: number, stickerId: number) => {
+            await stickerService.removeStickerFromPackage(stickerPackageId, stickerId);
+            await queryClient.invalidateQueries({ queryKey: USER_STICKERS_QUERY_KEY });
         },
         invalidate: () => {
             queryClient.invalidateQueries({ queryKey: USER_STICKERS_QUERY_KEY });

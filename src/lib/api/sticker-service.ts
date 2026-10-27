@@ -11,19 +11,22 @@ export type CreateStickerRequest = {
 	objectKey: string;
 };
 export const stickerService = {
-	save: async (request: CreateStickerPackageRequest): Promise<StickerPackage> => {
-		return apiClient.post(`/sticker-packages`, request);
-	},
-	getStickers: async (packageId: number): Promise<StickerInfo[]> => {
-		return apiClient.get(`/sticker-packages/${packageId}/stickers`);
-	},
 	getMyStickerPackages: async (): Promise<StickerPackage[]> => {
 		return apiClient.get(`/sticker-packages/my`);
 	},
 	getPublicStickerPackages: async (): Promise<StickerPackage[]> => {
 		return apiClient.get(`/sticker-packages`);
 	},
+	save: async (request: CreateStickerPackageRequest): Promise<StickerPackage> => {
+		return apiClient.post(`/sticker-packages`, request);
+	},
+	delete: async (packageId: number): Promise<StickerPackage> => {
+		return apiClient.delete(`/sticker-packages/${packageId}`);
+	},
 	addStickerToPackage: async (packageId: number, request: CreateStickerRequest): Promise<StickerInfo> => {
 		return apiClient.post(`/sticker-packages/${packageId}/stickers`, request);
+	},
+	removeStickerFromPackage: async (packageId: number, stickerId: number): Promise<number> => {
+		return apiClient.delete(`/sticker-packages/${packageId}/stickers/${stickerId}`);
 	}
 };

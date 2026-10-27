@@ -10,7 +10,7 @@
 	import { type StickerPackage } from '$lib/types/sticker';
 	import { Plus } from '@lucide/svelte';
 	const { query } = useUserStickersQuery();
-	const { data: packages = [], isLoading } = $derived(query);
+	const { data: packs = [], isLoading } = $derived(query);
 	let editingPackage = $state<StickerPackage | null>(null);
 	let isEditing = $derived(editingPackage !== null);
 	function createPackage() {
@@ -69,9 +69,9 @@
 			<Spinner />
 		</div>
 	{/if}
-	{#if packages.length > 0}
+	{#if packs.length > 0}
 		<div class="grid gap-4 sm:grid-cols-2">
-			{#each packages as pkg (pkg.id)}
+			{#each packs as pkg (pkg.id)}
 				<StickerPackageCard
 					{pkg}
 					onEdit={() => editPackage(pkg)}

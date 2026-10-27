@@ -75,7 +75,7 @@
 				</Badge>
 
 				<span class="text-xs">
-					{pkg.stickers ?? 0} stickers
+					{pkg.stickers.length ?? 0} stickers
 				</span>
 			</div>
 		</div>

@@ -6,9 +6,10 @@
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import type { StickerInfo, StickerPackage, StickerVisibility } from '$lib/types/sticker';
+	import type { StickerPackage, StickerVisibility } from '$lib/types/sticker';
 	import { Globe, Lock, Trash2 } from '@lucide/svelte';
 	import FileUploader from '../common/file-uploader.svelte';
+	import { useUserStickersQuery } from '$lib/queries/use-user-sticker';
 	let {
 		stickerPackage: initialPackage,
 		onSave,
@@ -20,45 +21,39 @@
 	} = $props();
 
 	const isEditing = $derived(initialPackage !== null);
+	const { removeSticker, addStickerToPackage } = useUserStickersQuery();
 	let name = $state(initialPackage?.name ?? '');
 	let description = $state(initialPackage?.description ?? '');
 	let visibility = $state<StickerVisibility>(initialPackage?.visibility ?? 'PRIVATE');
 
-	let stickers = $state<StickerInfo[]>([]);
-
-	$effect(() => {
-		console.log('initialPackage:', initialPackage);
-		const fetchStickers = async () => {
-			if (initialPackage?.id) {
-				stickers = await stickerService.getStickers(initialPackage.id);
-			}
-		};
-		if (isEditing) fetchStickers();
-	});
-
 	async function handleFiles(files: FileList | null) {
+		if (!initialPackage) return;
 		if (!files) return;
-		for (const file of Array.from(files)) {
-			if (!file.type.startsWith('image/')) continue;
-			await processSticker(file);
+		if (files.length > 20) return alert('You can only upload up to 20 stickers at a time.');
+		const validFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
+		const MAX_STICKERS = 50;
+		const remaining = MAX_STICKERS - initialPackage.stickers.length;
+		if (validFiles.length > remaining)
+			return alert(`You can only add up to ${remaining} more stickers to this package.`);
+		const concurrentUploads = 5;
+		for (let i = 0; i < validFiles.length; i += concurrentUploads) {
+			const chunk = validFiles.slice(i, i + concurrentUploads);
+			await Promise.allSettled(chunk.map(processSticker));
 		}
 	}
+
 	async function processSticker(file: File) {
 		try {
-			if (initialPackage?.id) {
-				const { uploadUrl, objectKey } = await storageService.getPresignedUrl(file.name, 'STICKER');
-				await storageService.uploadFile(uploadUrl, file);
-				const createStickerRequest = {
-					objectKey
-				};
-				const res = await stickerService.addStickerToPackage(
-					initialPackage?.id,
-					createStickerRequest
-				);
-				if (res) {
-					stickers.push(res);
-				}
-			}
+			if (!initialPackage) return;
+			if (initialPackage.stickers.length >= 50)
+				return alert('You can only add up to 50 stickers per package.');
+
+			const { uploadUrl, objectKey } = await storageService.getPresignedUrl(file.name, 'STICKER');
+			await storageService.uploadFile(uploadUrl, file);
+			const createStickerRequest = {
+				objectKey
+			};
+			addStickerToPackage(initialPackage.id, createStickerRequest);
 		} catch (error) {
 			console.error('Error processing sticker:', error);
 			throw error;
@@ -73,9 +68,16 @@
 
 		onSave(request);
 	}
+	const onRemoveSticker = async (packageId: number, stickerId: number) => {
+		try {
+			await removeSticker(packageId, stickerId);
+		} catch (error) {
+			console.error('Error removing sticker:', error);
+		}
+	};
 </script>
 
-<div class="mx-auto w-full max-w-5xl space-y-4 p-6">
+<div class="mx-auto w-full max-h-[800px] max-w-5xl space-y-4 p-6 overflow-y-auto">
 	<div class="flex items-center gap-3">
 		<div>
 			<h1 class="text-2xl font-semibold">
@@ -158,25 +160,26 @@
 			</div>
 
 			<div class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
-				{#each stickers as sticker (sticker.id)}
-					<div class="group relative aspect-square rounded-lg border bg-muted p-2">
-						<img
-							src={sticker.url}
-							alt={sticker.name ?? 'Sticker'}
-							class="size-full object-contain"
-						/>
+				{#if initialPackage}
+					{#each initialPackage.stickers as sticker (sticker.id)}
+						<div class="group relative aspect-square rounded-lg border bg-muted p-2">
+							<img
+								src={sticker.url}
+								alt={sticker.name ?? 'Sticker'}
+								class="size-full object-contain"
+							/>
 
-						<Button
-							class="absolute flex-center right-0 top-0 hidden rounded-full  group-hover:block"
-							// onclick={() => removeSticker(sticker.id)}
-							size="icon-sm"
-							variant="destructive"
-						>
-							<Trash2 />
-						</Button>
-					</div>
-				{/each}
-
+							<Button
+								class="absolute flex-center right-0 top-0 hidden rounded-full  group-hover:block"
+								onclick={() => onRemoveSticker(initialPackage.id, sticker.id)}
+								size="icon-sm"
+								variant="destructive"
+							>
+								<Trash2 />
+							</Button>
+						</div>
+					{/each}
+				{/if}
 				<FileUploader label="Add stickers" onFilesChanged={handleFiles} />
 			</div>
 		</div>
