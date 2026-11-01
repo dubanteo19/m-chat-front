@@ -20,11 +20,14 @@
 	function editPackage(pkg: StickerPackage) {
 		editingPackage = pkg;
 	}
-
-	function closeEditor() {
-		editingPackage = null;
+	async function handleDownload(pack: StickerPackage) {
+		try {
+			const { downloadUrl } = await stickerService.download(pack.id);
+			window.open(downloadUrl, '_blank');
+		} catch (error) {
+			console.error('Error saving sticker package:', error);
+		}
 	}
-
 	async function savePackage(request: CreateStickerPackageRequest) {
 		try {
 			const response = await stickerService.save(request);
@@ -59,7 +62,7 @@
 				<StickerPackageEditor
 					stickerPackage={editingPackage}
 					onSave={savePackage}
-					onCancel={closeEditor}
+					onCancel={() => (editingPackage = null)}
 				/>
 			</Dialog.Content>
 		</Dialog.Root>
@@ -75,6 +78,7 @@
 				<StickerPackageCard
 					{pkg}
 					onEdit={() => editPackage(pkg)}
+					onDownload={() => handleDownload(pkg)}
 					onDelete={() => {
 						// deletePackage(pkg.id);
 					}}

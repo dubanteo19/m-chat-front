@@ -77,7 +77,9 @@
 	};
 </script>
 
-<div class="mx-auto w-full max-h-[800px] max-w-5xl space-y-4 p-6 overflow-y-auto">
+<div
+	class="mx-auto w-full md:max-h-[500px] 2xl:max-h-[800px] max-w-5xl space-y-4 p-6 overflow-y-auto"
+>
 	<div class="flex items-center gap-3">
 		<div>
 			<h1 class="text-2xl font-semibold">

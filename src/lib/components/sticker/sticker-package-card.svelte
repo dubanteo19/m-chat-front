@@ -2,17 +2,19 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import type { StickerPackage } from '$lib/types/sticker';
-	import { Ellipsis, Globe, Lock, Pencil, Trash2 } from '@lucide/svelte';
+	import { DownloadIcon, Ellipsis, Globe, Lock, Pencil, Trash2 } from '@lucide/svelte';
 	import { Button } from '../ui/button';
 
 	let {
 		pkg,
 		onEdit,
-		onDelete
+		onDelete,
+		onDownload
 	}: {
 		pkg: StickerPackage;
 		onEdit: () => void;
 		onDelete: () => void;
+		onDownload: () => void;
 	} = $props();
 
 	const previewStickers = $derived(pkg.stickers ? pkg.stickers.slice(0, 4) : pkg.stickers);
@@ -54,7 +56,10 @@
 							<Pencil class="mr-2 size-4" />
 							Edit
 						</DropdownMenu.Item>
-
+						<DropdownMenu.Item onclick={onDownload}>
+							<DownloadIcon class="mr-2 size-4" />
+							Download
+						</DropdownMenu.Item>
 						<DropdownMenu.Item class="text-destructive" onclick={onDelete}>
 							<Trash2 class="mr-2 size-4" />
 							Delete

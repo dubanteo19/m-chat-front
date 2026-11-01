@@ -33,7 +33,7 @@
 </script>
 
 <div>
-	<div class="flex  items-center gap-2 px-4 py-2 border-b bg-slate-500">
+	<div class="flex items-center gap-2 px-4 py-2 border-b bg-slate-500">
 		{#if isLoading}
 			<Spinner />
 		{/if}
@@ -51,7 +51,7 @@
 		</a>
 	</div>
 
-	<div class="flex max-h-[700px] w-[520px] flex-col overflow-auto">
+	<div class="flex md:max-h-[400px] 2xl:max-h-[700px] w-[520px] flex-col overflow-auto">
 		{#if !isLoading && stickerPacks.length === 0}
 			<p class="text-center text-sm text-muted-foreground">No sticker packages available.</p>
 		{/if}

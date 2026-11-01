@@ -1,3 +1,4 @@
+import type { PresignedUrlResponse } from '$lib/api/types';
 import type { StickerInfo, StickerPackage } from '$lib/types/sticker';
 import { apiClient } from './client';
 
@@ -23,7 +24,13 @@ export const stickerService = {
 	delete: async (packageId: number): Promise<StickerPackage> => {
 		return apiClient.delete(`/sticker-packages/${packageId}`);
 	},
-	addStickerToPackage: async (packageId: number, request: CreateStickerRequest): Promise<StickerInfo> => {
+	download: async (packageId: number): Promise<PresignedUrlResponse> => {
+		return apiClient.post(`/sticker-packages/${packageId}/download`);
+	},
+	addStickerToPackage: async (
+		packageId: number,
+		request: CreateStickerRequest
+	): Promise<StickerInfo> => {
 		return apiClient.post(`/sticker-packages/${packageId}/stickers`, request);
 	},
 	removeStickerFromPackage: async (packageId: number, stickerId: number): Promise<number> => {
