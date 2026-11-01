@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { stickerService, type CreateStickerPackageRequest } from '$lib/api/sticker-service';
+	import { type CreateStickerPackageRequest } from '$lib/api/sticker-service';
 	import { storageService } from '$lib/api/storage';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import * as Select from '$lib/components/ui/select';
 	import { Textarea } from '$lib/components/ui/textarea';
-	import type { StickerPackage, StickerVisibility } from '$lib/types/sticker';
+	import type { StickerInfo, StickerPackage, StickerVisibility } from '$lib/types/sticker';
 	import { Globe, Lock, Trash2 } from '@lucide/svelte';
 	import FileUploader from '../common/file-uploader.svelte';
 	import { useUserStickersQuery } from '$lib/queries/use-user-sticker';
@@ -25,7 +25,7 @@
 	let name = $state(initialPackage?.name ?? '');
 	let description = $state(initialPackage?.description ?? '');
 	let visibility = $state<StickerVisibility>(initialPackage?.visibility ?? 'PRIVATE');
-
+	let stickers = $state<StickerInfo[]>(initialPackage?.stickers);
 	async function handleFiles(files: FileList | null) {
 		if (!initialPackage) return;
 		if (!files) return;
@@ -43,6 +43,12 @@
 	}
 
 	async function processSticker(file: File) {
+		const blob = URL.createObjectURL(file);
+		const optimisticSticker: StickerInfo = {
+			id: Date.now(),
+			url: blob
+		};
+		stickers = [...stickers, { ...optimisticSticker }];
 		try {
 			if (!initialPackage) return;
 			if (initialPackage.stickers.length >= 50)
@@ -163,13 +169,9 @@
 
 			<div class="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
 				{#if initialPackage}
-					{#each initialPackage.stickers as sticker (sticker.id)}
+					{#each stickers as sticker (sticker.id)}
 						<div class="group relative aspect-square rounded-lg border bg-muted p-2">
-							<img
-								src={sticker.url}
-								alt={sticker.name ?? 'Sticker'}
-								class="size-full object-contain"
-							/>
+							<img src={sticker.url} alt={'Sticker'} class="size-full object-contain" />
 
 							<Button
 								class="absolute flex-center right-0 top-0 hidden rounded-full  group-hover:block"
