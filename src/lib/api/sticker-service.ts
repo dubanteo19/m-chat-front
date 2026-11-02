@@ -30,7 +30,7 @@ export const stickerService = {
 	addStickerToPackage: async (
 		packageId: number,
 		request: CreateStickerRequest
-	): Promise<StickerInfo> => {
+	): Promise<number> => {
 		return apiClient.post(`/sticker-packages/${packageId}/stickers`, request);
 	},
 	removeStickerFromPackage: async (packageId: number, stickerId: number): Promise<number> => {

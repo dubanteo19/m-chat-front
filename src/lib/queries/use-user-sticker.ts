@@ -1,5 +1,5 @@
 
-import { stickerService, type CreateStickerRequest } from '$lib/api/sticker-service';
+import { stickerService, type CreateStickerPackageRequest, type CreateStickerRequest } from '$lib/api/sticker-service';
 import type { StickerPackage } from '$lib/types/sticker';
 import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 
@@ -16,8 +16,8 @@ export function useUserStickersQuery() {
 
     return {
         query,
-        upsertStickerPackage: async (stickerPackage: StickerPackage) => {
-            await stickerService.save(stickerPackage)
+        upsertStickerPackage: async (request: CreateStickerPackageRequest) => {
+            const response = await stickerService.save(request);
             queryClient.setQueryData<StickerPackage[]>(USER_STICKERS_QUERY_KEY, (old) => {
                 if (!old) return [stickerPackage];
                 const index = old.findIndex((s) => s.id === stickerPackage.id);
@@ -28,10 +28,21 @@ export function useUserStickersQuery() {
                 }
                 return [stickerPackage, ...old];
             });
+            return response;
         },
         addStickerToPackage: async (packageId: number, request: CreateStickerRequest) => {
-            await stickerService.addStickerToPackage(packageId, request);
-            await queryClient.invalidateQueries({ queryKey: USER_STICKERS_QUERY_KEY });
+            const stickerId = await stickerService.addStickerToPackage(packageId, request);
+            await queryClient.invalidateQueries({
+                queryKey: USER_STICKERS_QUERY_KEY
+            });
+
+            return stickerId;
+        },
+        deletePackage: async (packageId: number) => {
+            await stickerService.delete(packageId);
+            queryClient.setQueryData<StickerPackage[]>(USER_STICKERS_QUERY_KEY, (old) =>
+                old?.filter((pkg) => pkg.id !== packageId) || []
+            );
         },
         removeSticker: async (stickerPackageId: number, stickerId: number) => {
             await stickerService.removeStickerFromPackage(stickerPackageId, stickerId);

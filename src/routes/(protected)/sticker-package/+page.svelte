@@ -9,9 +9,10 @@
 	import { useUserStickersQuery } from '$lib/queries/use-user-sticker';
 	import { type StickerPackage } from '$lib/types/sticker';
 	import { Plus } from '@lucide/svelte';
-	const { query } = useUserStickersQuery();
+	const { query, upsertStickerPackage, deletePackage } = useUserStickersQuery();
 	const { data: packs = [], isLoading } = $derived(query);
 	let editingPackage = $state<StickerPackage | null>(null);
+	let packToDelete = $state<number | null>(null);
 	let isEditing = $derived(editingPackage !== null);
 	function createPackage() {
 		editingPackage = null;
@@ -30,7 +31,8 @@
 	}
 	async function savePackage(request: CreateStickerPackageRequest) {
 		try {
-			const response = await stickerService.save(request);
+			if (editingPackage) return;
+			const response = await upsertStickerPackage(request);
 			if (response.id) {
 				editingPackage = response;
 			}
@@ -39,9 +41,14 @@
 		}
 	}
 
-	// function deletePackage(id: number) {
-	// 	packages = packages.filter((pkg) => pkg.id !== id);
-	// }
+	async function handleDelete(id: number) {
+		try {
+			await deletePackage(id);
+			packToDelete = null;
+		} catch (error) {
+			console.error('Error deleting sticker package:', error);
+		}
+	}
 </script>
 
 <div class="mx-auto w-full max-w-4xl space-y-6 p-6">
@@ -80,7 +87,7 @@
 					onEdit={() => editPackage(pkg)}
 					onDownload={() => handleDownload(pkg)}
 					onDelete={() => {
-						// deletePackage(pkg.id);
+						packToDelete = pkg.id;
 					}}
 				/>
 			{/each}
@@ -96,3 +103,28 @@
 		</div>
 	{/if}
 </div>
+
+<Dialog.Root
+	open={packToDelete !== null}
+	onOpenChange={(value) => {
+		if (!value) packToDelete = null;
+	}}
+>
+	<Dialog.Content onCloseAutoFocus={(event) => event.preventDefault()} class="rounded-3xl">
+		<Dialog.Header>
+			<Dialog.Title>Delete Pack?</Dialog.Title>
+			<Dialog.Description>
+				Are you sure you want to delete this sticker package? This action cannot be undone.
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer>
+			<Button variant="outline" onclick={() => (packToDelete = null)}>Cancel</Button>
+			<Button
+				variant="destructive"
+				onclick={() => {
+					if (packToDelete !== null) handleDelete(packToDelete);
+				}}>Delete Pack</Button
+			>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

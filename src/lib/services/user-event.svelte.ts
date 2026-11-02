@@ -1,21 +1,27 @@
 import { PUBLIC_BASE_URL } from '$env/static/public';
+import type { StickerStatus } from '$lib/types/sticker';
 
-export const UserEventType = {
+export const UserEvent = {
     ROOM_UNREAD_UPDATED: 'ROOM_UNREAD_UPDATED',
     ROOM_UPDATED: 'ROOM_UPDATED',
+    STICKER_STATUS_CHANGED: 'STICKER_STATUS_CHANGED',
     PING: 'PING'
 } as const;
 
-export type UserEventType =
-    (typeof UserEventType)[keyof typeof UserEventType];
+export type UserEvent =
+    (typeof UserEvent)[keyof typeof UserEvent];
 
 type RoomUnreadUpdated = {
     roomId: string;
     seq: number;
 };
-
+type StickerStatusChanged = {
+    stickerId: number;
+    status: StickerStatus;
+};
 type UserEventHandlers = {
     onRoomUnreadUpdated?: (event: RoomUnreadUpdated) => void;
+    onStickerStatusChanged?: (event: StickerStatusChanged) => void;
 };
 
 function createUserEventService() {
@@ -40,12 +46,13 @@ function createUserEventService() {
         };
 
         eventSource.addEventListener(
-            'ROOM_UNREAD_UPDATED',
-            (event) => {
-                const payload = JSON.parse(event.data);
+            UserEvent.ROOM_UNREAD_UPDATED,
+            (event) => handlers.onRoomUnreadUpdated?.(JSON.parse(event.data))
+        );
 
-                handlers.onRoomUnreadUpdated?.(payload);
-            }
+        eventSource.addEventListener(
+            UserEvent.STICKER_STATUS_CHANGED,
+            (event) => handlers.onStickerStatusChanged?.(JSON.parse(event.data))
         );
     }
 

@@ -26,7 +26,7 @@
 		<div class="grid size-24 shrink-0 grid-cols-2 gap-1 rounded-lg bg-muted p-2">
 			{#each previewStickers as sticker (sticker.id)}
 				<div class="flex items-center justify-center overflow-hidden rounded-md">
-					<img src={sticker.url} alt={sticker.name ?? 'Sticker'} class="size-full object-contain" />
+					<img src={sticker.url} alt={'Sticker'} class="size-full object-contain" />
 				</div>
 			{/each}
 		</div>
