@@ -5,10 +5,13 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 
-	let { open = $bindable(false), onsubmit } = $props<{
+	let {
+		open = $bindable(false),
+		onsubmit
+	}: {
 		open: boolean;
 		onsubmit: (data: CreateRoomRequest) => Promise<void> | void;
-	}>();
+	} = $props();
 
 	let name = $state('');
 	let description = $state('');

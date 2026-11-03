@@ -11,6 +11,10 @@ export interface CreateRoomRequest {
 	name: string;
 	description: string;
 }
+
+export interface CreateDmRequest {
+	peerId: number;
+}
 export interface readRoomRequest {
 	seq: number;
 }
@@ -20,6 +24,9 @@ export const roomService = {
 	},
 	getRoomInfo: async (roomId: string): Promise<RoomInfo> => {
 		return apiClient.get(`/rooms/${roomId}`);
+	},
+	createDm: async (request: CreateDmRequest): Promise<RoomInfo> => {
+		return apiClient.post(`/rooms/dm`, request);
 	},
 	createRoom: async (request: CreateRoomRequest): Promise<RoomInfo> => {
 		return apiClient.post(`/rooms`, request);

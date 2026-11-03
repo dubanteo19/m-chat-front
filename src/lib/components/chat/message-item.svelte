@@ -1,12 +1,16 @@
 <script lang="ts">
+	import * as HoverCard from '$lib/components/ui/hover-card/index.js';
 	import type { Message } from '$lib/types/message';
 	import { formatDate } from '$lib/utils/date';
 	import 'photoswipe/dist/photoswipe.css';
 	import UserAvatar from '../common/user-avatar.svelte';
 	import UserBadge from '../common/user-badge.svelte';
-	import { CircleAlert, CircleCheck, LoaderCircle } from '@lucide/svelte';
+	import { CircleAlert, CircleCheck, LoaderCircle, MessagesSquare } from '@lucide/svelte';
 
 	import { MessageContent, MessageReactions, MessageReply, MessageToolbar } from './message';
+	import Button from '../ui/button/button.svelte';
+	import { roomService } from '$lib/api/room';
+	import { toast } from 'svelte-sonner';
 
 	let {
 		message,
@@ -45,6 +49,10 @@
 	function handlePressEnd() {
 		clearTimeout(pressTimer);
 	}
+	async function handleCreateOrOpenDm() {
+		await roomService.createDm({ peerId: message.sender.id });
+		toast.success(`Direct message with ${message.sender.displayName} opened!`);
+	}
 </script>
 
 <div
@@ -55,7 +63,17 @@
 	class="flex gap-2 w-full my-0.5"
 >
 	{#if !isSystem && !message.isMine}
-		<UserAvatar user={message.sender} />
+		<HoverCard.Root openDelay={200} closeDelay={50}>
+			<HoverCard.Trigger>
+				<UserAvatar user={message.sender} />
+			</HoverCard.Trigger>
+			<HoverCard.Content side="bottom" class="w-fit">
+				<UserBadge user={message.sender} />
+				<Button onclick={handleCreateOrOpenDm} size="icon" variant="link" class="ml-2">
+					<MessagesSquare />
+				</Button>
+			</HoverCard.Content>
+		</HoverCard.Root>
 	{/if}
 	<div
 		onmousedown={(e) => {
