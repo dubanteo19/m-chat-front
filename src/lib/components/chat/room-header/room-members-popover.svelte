@@ -11,8 +11,9 @@
 	import { Crown, LoaderCircle, LogOut, Search, UserMinus, Users } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import AddUserPopover from './add-user-popover.svelte';
+	import type { RoomInfo } from '$lib/types/room';
 
-	let { roomId, onlineUsers }: { roomId: string; onlineUsers: UserInfo[] } = $props();
+	let { room, onlineUsers }: { room: RoomInfo; onlineUsers: UserInfo[] } = $props();
 	const roomState = useRoom();
 	const { currentUser } = $derived(useUser());
 	let open = $state(false);
@@ -40,7 +41,7 @@
 		const target = memberToRemove;
 		isRemoving = true;
 		try {
-			await roomMemberService.kickMember(roomId, target.username);
+			await roomMemberService.kickMember(room.id, target.username);
 			roomState.removeMember(target.username);
 			toast.success(`${target.displayName} was removed from the room.`);
 			memberToRemove = null;
@@ -52,7 +53,7 @@
 	}
 
 	async function inviteUser(user: UserInfo) {
-		const member = await roomMemberService.addMember(roomId, user.username);
+		const member = await roomMemberService.addMember(room.id, user.username);
 		roomState.addMember(member);
 		toast.success(`${user.displayName} was added to the room.`);
 	}

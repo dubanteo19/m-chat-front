@@ -6,12 +6,12 @@
 	import { Button } from '../ui/button';
 
 	import { useUser } from '$lib/stores/auth.svelte';
-	import type { RoomInfo } from '$lib/types/room';
+	import { RoomType, type RoomInfo } from '$lib/types/room';
 	import RoomEffectPicker from '../room-effects/room-effect-picker.svelte';
 	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
 	import RoomMembersPopover from './room-header/room-members-popover.svelte';
 	import { resolve } from '$app/paths';
-	let { sidebarOpen = $bindable(), roomId, onlineUsers, sendRaw, selectedRoomEffect } = $props();
+	let { sidebarOpen = $bindable(), room, onlineUsers, sendRaw, selectedRoomEffect } = $props();
 	let selectedRoom = $state<RoomInfo | null>(null);
 	const { currentUser } = $derived(useUser());
 
@@ -34,13 +34,8 @@
 	{/if}
 	<h2 class="text-lg font-bold tracking-wide truncate">
 		<span class="text-accent">#</span>
-		<Button
-			variant="link"
-			size="sm"
-			class="p-0 text-primary-foreground"
-			onclick={() => (selectedRoom = { id: roomId, name: roomId, lastSeq: 0, unreadCount: 0 })}
-		>
-			{roomId}
+		<Button variant="link" size="sm" class="p-0 text-primary-foreground">
+			{room.id}
 		</Button>
 	</h2>
 	<div class="flex-1 flex items-center justify-between gap-2">
@@ -62,10 +57,9 @@
 			{/each}
 		</div>
 		<div class="flex gap-2 items-center">
-			<Button variant="secondary">
-				<a href={resolve(`/setting/${roomId}`)}> Cheer up </a>
-			</Button>
-			<RoomMembersPopover {roomId} {onlineUsers} />
+			{#if room.type === RoomType.GROUP}
+				<RoomMembersPopover {room} {onlineUsers} />
+			{/if}
 			<RoomEffectPicker {selectedRoomEffect} onselect={onRoomEffectSelect} />
 		</div>
 	</div>

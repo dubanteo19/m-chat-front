@@ -519,7 +519,7 @@
 					<RoomHeader
 						sendRaw={websocketService.sendRaw}
 						selectedRoomEffect={roomEffect}
-						{roomId}
+						room={data.room}
 						bind:sidebarOpen
 						onlineUsers={websocketService.onlineUsers}
 					/>

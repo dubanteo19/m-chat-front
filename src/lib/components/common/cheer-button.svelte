@@ -6,7 +6,7 @@
 		roomId: string;
 	}
 	let { onclick, roomId }: CheerButtonProps = $props();
-	const CHEER_URL = getCheerUrl(roomId);
+	let cheerUrl = $state<string>(getCheerUrl(roomId));
 </script>
 
 <Button
@@ -19,8 +19,9 @@
 					active:scale-95"
 >
 	<img
-		src={CHEER_URL}
+		src={cheerUrl}
 		alt="cheer"
+		onerror={() => (cheerUrl = '/cheer.png')}
 		class="h-12 w-12
 							drop-shadow-[0_4px_8px_rgba(0,0,0,0.25)]
 							floating

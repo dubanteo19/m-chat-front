@@ -13,6 +13,7 @@
 	import Spinner from '../ui/spinner/spinner.svelte';
 	import { Badge } from '../ui/badge';
 	import { toast } from 'svelte-sonner';
+	import { RoomType } from '$lib/types/room';
 
 	let { sidebarOpen = $bindable(), roomId } = $props();
 	let isOpenRoomDialog = $state(false);
@@ -88,13 +89,20 @@
 		{:else}
 			{#each rooms as room (room.id)}
 				<div class="relative">
-					<a
-						href={resolve(`/room/${room.id}`)}
-						onclick={() => (sidebarOpen = false)}
-						class:bg-primary={room.id === roomId}
-						class="flex items-center px-3 py-2 rounded-md text-sm transition-colors hover:bg-slate-700/50 hover:text-slate-200"
-					>
-						# {room.name}
+					<a href={resolve(`/room/${room.id}`)} onclick={() => (sidebarOpen = false)}>
+						<div
+							class:bg-primary={room.id === roomId}
+							class="flex items-center px-3 py-2 rounded-md text-sm transition-colors hover:bg-slate-700/50 hover:text-slate-200"
+						>
+							{#if room.type == RoomType.DM}
+								<img
+									src={room.peerAvatarUrl}
+									alt={room.peerDisplayName}
+									class="size-6 rounded-full mr-2"
+								/>
+							{/if}
+							{room.type === RoomType.DM ? room.peerDisplayName : `# ${room.name}`}
+						</div>
 					</a>
 					{#if room.unreadCount > 0}
 						<Badge

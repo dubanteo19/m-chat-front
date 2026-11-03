@@ -11,7 +11,7 @@
 	let { roomId }: { roomId: string } = $props();
 	let cheerImages = $state<cheerImage[]>([]);
 
-	const CHEER_URL = getCheerUrl(roomId);
+	let cheerUrl = $state(getCheerUrl(roomId));
 
 	function play() {
 		const id = Date.now() + Math.random();
@@ -44,7 +44,12 @@
 				--scale: {cheer.scale};
 			"
 		>
-			<img src={CHEER_URL} alt="" class="h-24 w-24 drop-shadow-[0_8px_16px_rgba(0,0,0,0.25)]" />
+			<img
+				onerror={() => (cheerUrl = '/cheer.png')}
+				src={cheerUrl}
+				alt=""
+				class="h-24 w-24 drop-shadow-[0_8px_16px_rgba(0,0,0,0.25)]"
+			/>
 		</div>
 	{/each}
 </div>

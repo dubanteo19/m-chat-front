@@ -5,15 +5,21 @@
 	import type { Message } from '$lib/types/message';
 	import { Ellipsis, ReplyIcon, TrashIcon } from '@lucide/svelte';
 
-	let { message, openReactionId, setOpenReactionId, handleReply, handleDelete, sendReact } =
-		$props<{
-			message: Message;
-			openReactionId: number | null;
-			setOpenReactionId: (id: number | null) => void;
-			handleReply?: (message: Message) => void;
-			handleDelete?: (message: Message) => void;
-			sendReact?: (messageId: number, emoji: string) => void;
-		}>();
+	let {
+		message,
+		openReactionId,
+		setOpenReactionId,
+		handleReply,
+		handleDelete,
+		sendReact
+	}: {
+		message: Message;
+		openReactionId: number | null;
+		setOpenReactionId: (id: number | null) => void;
+		handleReply?: (message: Message) => void;
+		handleDelete?: (message: Message) => void;
+		sendReact?: (messageId: number, emoji: string) => void;
+	} = $props();
 
 	const visibleEmojis = ALL_EMOJIS.slice(0, 5);
 	const hiddenEmojis = ALL_EMOJIS.slice(5);

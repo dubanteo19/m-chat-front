@@ -37,7 +37,7 @@
 		{#if isLoading}
 			<Spinner />
 		{/if}
-		<div class="flex gap-2 flex-1 overflow-x-auto">
+		<div class="flex gap-1 flex-1 overflow-x-auto py-2">
 			{#if stickerPacks.length > 0}
 				{#each stickerPacks as pack, i (i)}
 					{@render stickerPackageItem(pack, () => {
@@ -51,36 +51,42 @@
 		</a>
 	</div>
 
-	<div class="flex md:max-h-[400px] 2xl:max-h-[700px] w-[520px] flex-col overflow-auto">
+	<div class="flex w-[520px] flex-col overflow-hidden md:max-h-[400px] 2xl:max-h-[600px]">
 		{#if !isLoading && stickerPacks.length === 0}
 			<p class="text-center text-sm text-muted-foreground">No sticker packages available.</p>
 		{/if}
+
 		{#if isLoading}
 			<Spinner />
 		{/if}
 
-		{#each stickerPacks as pack (pack.id)}
-			<div class="p-2" id={`sticker-pack-${pack.id}`}>
-				<p class="text-yellow-300">{pack.name}</p>
-				<div
-					class=" grid content-start
-                    grid-cols-4 gap-4 overflow-y-auto
-                    [&::-webkit-scrollbar]:hidden"
-				>
-					{#each pack.stickers as sticker (sticker.id)}
-						{@render stickerItem(sticker, sendSticker)}
-					{/each}
+		<div class="mr-2 min-h-0 flex-1 overflow-y-auto">
+			{#each stickerPacks as pack (pack.id)}
+				<div class="p-2" id={`sticker-pack-${pack.id}`}>
+					<p class="text-yellow-300">{pack.name}</p>
+
+					<div class="grid grid-cols-4 content-start gap-4">
+						{#each pack.stickers as sticker (sticker.id)}
+							{@render stickerItem(sticker, sendSticker)}
+						{/each}
+					</div>
 				</div>
-			</div>
-		{/each}
+			{/each}
+		</div>
 	</div>
 </div>
 
 {#snippet stickerPackageItem(pack: StickerPackage, onclick: () => void)}
 	<button
-		class="px-3 py-1 rounded-md text-sm font-medium"
+		class="shrink-0 rounded-lg px-3 py-1 text-sm font-medium
+               transition-colors duration-150
+               hover:bg-white/10
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+		class:bg-primary={selectedPackageId === pack.id}
+		class:text-white={selectedPackageId === pack.id}
+		class:text-gray-200={selectedPackageId !== pack.id}
+		class:shadow-sm={selectedPackageId === pack.id}
 		{onclick}
-		class:bg-blue-500={selectedPackageId === pack.id}
 	>
 		{pack.name}
 	</button>

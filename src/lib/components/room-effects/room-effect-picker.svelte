@@ -135,7 +135,7 @@
 
 		<div
 			bind:this={effectList}
-			class="effect-list min-h-0 flex-1 overflow-y-auto overscroll-contain p-1"
+			class="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1"
 			role="region"
 			aria-label="Room effects"
 		>
@@ -191,38 +191,3 @@
 		</div>
 	</Popover.Content>
 </Popover.Root>
-
-<style>
-	.effect-list {
-		scrollbar-gutter: stable;
-		scrollbar-width: thin;
-		scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, var(--popover)) var(--popover);
-		border-radius: 0.75rem;
-	}
-
-	@supports selector(::-webkit-scrollbar) {
-		.effect-list {
-			scrollbar-width: auto;
-			scrollbar-color: auto;
-		}
-		.effect-list::-webkit-scrollbar {
-			width: 6px;
-		}
-		.effect-list::-webkit-scrollbar-track {
-			background: var(--popover);
-		}
-		.effect-list::-webkit-scrollbar-thumb {
-			border: 1px solid var(--popover);
-			border-radius: 999px;
-			background: color-mix(in oklab, var(--muted-foreground) 45%, var(--popover));
-		}
-		.effect-list::-webkit-scrollbar-thumb:hover {
-			background: var(--muted-foreground);
-		}
-		.effect-list::-webkit-scrollbar-button {
-			display: none;
-			width: 0;
-			height: 0;
-		}
-	}
-</style>
