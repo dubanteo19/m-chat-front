@@ -6,6 +6,7 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { getCheerUrl } from '$lib/utils/cheer';
 	import { compressImage } from '$lib/utils/upload';
+	import { toast } from 'svelte-sonner';
 	let roomId = $derived(page.params.roomId);
 	let selectedFile = $state<File | null>(null);
 	let isCompressing = $state<boolean>(false);
@@ -27,7 +28,7 @@
 			const objectKey = `room/${roomId}/cheer.png`;
 			const res = await storageService.getPresignedUrlByObjectKey(objectKey);
 			await storageService.uploadFile(res.uploadUrl, selectedFile);
-			alert('File uploaded successfully!');
+			toast.success('File uploaded successfully!');
 		} catch (error) {
 			console.error('Error uploading file:', error);
 		}

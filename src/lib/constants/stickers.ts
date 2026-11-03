@@ -1,183 +1,55 @@
-export const STICKER_PACKS = [
-	{
-		id: 'silly_goose',
-		url: 'https://minio.dbt19.site/mchat-public/2daf319b-52c1-4642-a13b-9687da024023-image.png',
-		name: 'Goose'
-	},
-	{
-		id: 'silly_goose',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-1.webp',
-		name: 'Goose'
-	},
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-2.webp',
-		name: 'Dead'
-	},
+const BASE_PROMT = `
+Create a collection high-quality, animated cartoon-style chat stickers based on the uploaded reference photo. Preserve the person's recognizable facial features, hairstyle, glasses, and overall identity across all stickers, transforming the person into a polished 2D animated character.
+Art style: expressive anime-inspired cartoon illustration, smooth clean line art, bold outlines, soft cel shading, vibrant but natural colors, cute and exaggerated facial expressions, professional messaging app sticker aesthetic.
+Sticker design: Each sticker features a head-and-shoulders portrait of the same character, with a unique facial expression and pose matching a different emotion. Every sticker must have a thick, clean white die-cut sticker border surrounding the character and any decorative elements. Use small expressive accents where appropriate, such as hearts, tears, question marks, stars, or anger symbols.
+Emotions to include:
+<<emotions>>
+1. Tiny Rage — puffed cheeks, tiny fists raised, furious expression.
+Consistency: All 10 stickers must feature the same person, hairstyle, glasses (except when intentionally changed for the Cool expression), clothing, illustration style, proportions, outline thickness, and overall visual quality. Make each emotion immediately recognizable, with distinct expressions rather than minor variations of the same face.
+Background: Fully transparent PNG backgrounds with no background scenery, no white rectangular canvas, and no shadows outside the sticker borders. Each sticker must be isolated from the others.
+Composition and output: Generate individual sticker images, each with a square 250 × 250 px canvas. Center the character, keep the entire sticker border within the canvas, and ensure a clear silhouette that remains readable at small sizes.
+Output requirements: A single combined image, sticker sheet, grid, or collage. Use transparent PNG format, with no text, no labels, no watermarks, and no extra characters.
 
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-3.webp',
-		name: 'Dead'
-	},
-
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-4.webp',
-		name: 'Dead'
-	},
-
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-5.webp',
-		name: 'Dead'
-	},
-
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-6.webp',
-		name: 'Dead'
-	},
-
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-7.webp',
-		name: 'Dead'
-	},
-
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-8.webp',
-		name: 'Dead'
-	},
-
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-9.webp',
-		name: 'Dead'
-	},
-
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-10.webp',
-		name: 'Dead'
-	},
-
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-11.webp',
-		name: 'Dead'
-	},
-
-	{
-		id: 'skull_face',
-		url: 'https://minio.dbt19.site/mchat-public/nga/nga-12.webp',
-		name: 'Dead'
-	},
-];
-
-// export const STICKER_PACKS = [
-// 	{
-// 		id: 'silly_goose',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1fabf/512.webp',
-// 		name: 'Goose'
-// 	},
-// 	{
-// 		id: 'skull_face',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f480/512.webp',
-// 		name: 'Dead'
-// 	},
-// 	{
-// 		id: 'collapse_dizzy',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f635/512.webp',
-// 		name: 'Xỉu'
-// 	},
-// 	{
-// 		id: 'comic_boom',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f4a5/512.webp',
-// 		name: 'Boom'
-// 	},
-// 	{
-// 		id: 'pepe_dance',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f483/512.webp',
-// 		name: 'Dance'
-// 	},
-// 	{
-// 		id: 'doge_wow',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f436/512.webp',
-// 		name: 'Doge'
-// 	},
-// 	{
-// 		id: 'cat_heart',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f63b/512.webp',
-// 		name: 'Cat Love'
-// 	},
-// 	{
-// 		id: 'fire_hype',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f525/512.webp',
-// 		name: 'Fire Hype'
-// 	},
-// 	// --- EXTENDED EMOTIONAL STICKERS ---
-// 	{
-// 		id: 'blob_cry',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f62d/512.webp',
-// 		name: 'Sobbing'
-// 	},
-// 	{
-// 		id: 'laugh_tilt',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f923/512.webp',
-// 		name: 'ROFL'
-// 	},
-// 	{
-// 		id: 'mind_blown',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f92f/512.webp',
-// 		name: 'Mind Blown'
-// 	},
-// 	{
-// 		id: 'thinking_hm',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f914/512.webp',
-// 		name: 'Thinking'
-// 	},
-// 	// --- EXTENDED TECH & GEEK STICKERS ---
-// 	{
-// 		id: 'cyber_alien',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f47d/512.webp',
-// 		name: 'Alien'
-// 	},
-// 	{
-// 		id: 'party_wizard',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1e9d9_200d_2642_fe0f/512.webp',
-// 		name: 'Wizard'
-// 	},
-// 	{
-// 		id: 'cool_sunglasses',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f60e/512.webp',
-// 		name: 'Deal With It'
-// 	},
-// 	{
-// 		id: 'clown_fiesta',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f921/512.webp',
-// 		name: 'Clown'
-// 	},
-// 	// --- EXTENDED CELEBRATION & REACTION STICKERS ---
-// 	{
-// 		id: 'party_popper',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f389/512.webp',
-// 		name: 'Celebrate'
-// 	},
-// 	{
-// 		id: 'rocket_moon',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f680/512.webp',
-// 		name: 'To the Moon'
-// 	},
-// 	{
-// 		id: 'eyes_look',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f440/512.webp',
-// 		name: 'Suspicious'
-// 	},
-// 	{
-// 		id: 'ghost_boo',
-// 		url: 'https://fonts.gstatic.com/s/e/notoemoji/latest/1f47b/512.webp',
-// 		name: 'Ghost'
-// 	}
-// ];
+`
+const EMOTION_LIST = ` 
+Happy — cheerful smile and sparkling eyes.
+Sad — teary eyes and a trembling pout.
+Angry — furrowed eyebrows and puffed cheeks.
+Surprised — wide eyes and an open mouth.
+Laughing — eyes closed and a big joyful grin.
+Thinking — hand on chin and eyes looking upward.
+Tired — sleepy eyes and a drooping head.
+Shy — blushing cheeks and a bashful smile.
+Confused — uneven eyebrows and a puzzled expression.
+Cool — confident smirk and stylish sunglasses.
+Silly — tongue sticking out, one eye winking, goofy grin.
+Ugly Crying — mouth wide open, streams of oversized tears.
+Rolling Eyes — eyes looking dramatically upward, unimpressed expression.
+Facepalm — one hand covering the face in embarrassment.
+Nervous Laugh — awkward smile, sweat drops, trembling eyebrows.
+Dead Inside — blank eyes, lifeless expression, emotionless face.
+Mischievous — cheeky grin, raised eyebrow, plotting expression.
+Cackling — head tilted back, mouth wide open, tears of laughter.
+Panic Mode — bulging eyes, open mouth, sweating excessively.
+Brain Freeze — frozen expression, hands holding head.
+Dramatic Shock — jaw dropped, eyes popping out.
+Greedy — sparkling dollar-sign eyes, rubbing hands together.
+Hungry — drooling, puppy eyes, imagining delicious food.
+Sleepwalking — half-closed eyes, mouth open, arms stretched forward.
+Sassy — hand on hip, raised eyebrow, sarcastic smirk.
+Goblin Mode — mischievous wide grin, crazy eyes.
+Cringe — scrunched face, shoulders raised, awkward smile.
+Overthinking — messy hair, spiraling eyes, surrounded by question marks.
+Fake Smile — forced giant smile, dead eyes, nervous sweat.
+I Give Up — completely exhausted face, hands raised in surrender.
+Begging — puppy eyes, hands clasped together.
+Flirting — exaggerated wink, puckered lips, floating hearts.
+Evil Laugh — sinister grin, narrowed eyes, dramatic expression.
+Shocked Speechless — mouth covered with both hands.
+Sarcastic Clap — unimpressed smile, slowly clapping.
+Too Hot — fanning herself, tongue out, sweat everywhere.
+Too Cold — shivering, chattering teeth, wrapped in arms.
+Nosebleed — exaggerated anime embarrassment.
+Possessed — spiraling eyes, crazy grin, chaotic expression.
+Tiny Rage — puffed cheeks, tiny fists raised, furious expression.
+`

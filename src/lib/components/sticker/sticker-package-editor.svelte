@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { type CreateStickerPackageRequest } from '$lib/api/sticker-service';
+	import { type SaveStickerPackageRequest } from '$lib/api/sticker-service';
 	import { storageService } from '$lib/api/storage';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -17,13 +17,14 @@
 	import { useUserStickersQuery } from '$lib/queries/use-user-sticker';
 	import { userEventService } from '$lib/services/user-event.svelte';
 	import { onDestroy, onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	let {
 		stickerPackage: initialPackage,
 		onSave,
 		onCancel
 	}: {
 		stickerPackage: StickerPackage | null;
-		onSave: (pkg: CreateStickerPackageRequest) => void;
+		onSave: (pkg: SaveStickerPackageRequest) => void;
 		onCancel: () => void;
 	} = $props();
 
@@ -32,6 +33,7 @@
 	let name = $state(initialPackage?.name ?? '');
 	let description = $state(initialPackage?.description ?? '');
 	let visibility = $state<StickerVisibility>(initialPackage?.visibility ?? 'PRIVATE');
+	let id = $state(initialPackage?.id);
 	let stickers = $state<StickerInfo[]>(initialPackage?.stickers || []);
 
 	let optimisticIdCounter = 0;
@@ -50,12 +52,12 @@
 	async function handleFiles(files: FileList | null) {
 		if (!initialPackage) return;
 		if (!files) return;
-		if (files.length > 30) return alert('You can only upload up to 80 stickers at a time.');
+		if (files.length > 30) return toast.error('You can only upload up to 30 stickers at a time.');
 		const validFiles = Array.from(files).filter((file) => file.type.startsWith('image/'));
 		const MAX_STICKERS = 50;
 		const remaining = MAX_STICKERS - initialPackage.stickers.length;
 		if (validFiles.length > remaining)
-			return alert(`You can only add up to ${remaining} more stickers to this package.`);
+			return toast.error(`You can only add up to ${remaining} more stickers to this package.`);
 		const concurrentUploads = 5;
 		for (let i = 0; i < validFiles.length; i += concurrentUploads) {
 			const chunk = validFiles.slice(i, i + concurrentUploads);
@@ -76,8 +78,6 @@
 		stickers = [...stickers, { ...optimisticSticker }];
 		try {
 			if (!initialPackage) return;
-			if (initialPackage.stickers.length >= 50)
-				return alert('You can only add up to 50 stickers per package.');
 			const { uploadUrl, objectKey } = await storageService.getPresignedUrl(file.name, 'STICKER');
 			await storageService.uploadFile(uploadUrl, file);
 			const stickerId = await addStickerToPackage(initialPackage.id, { objectKey });
@@ -89,18 +89,19 @@
 		}
 	}
 	function save() {
-		const request: CreateStickerPackageRequest = {
+		const request: SaveStickerPackageRequest = {
+			id,
 			name: name.trim(),
 			description: description.trim(),
 			visibility
 		};
-
 		onSave(request);
 	}
 	const onRemoveSticker = async (packageId: number, stickerId: number) => {
 		try {
 			stickers = stickers.filter((sticker) => sticker.id !== stickerId);
 			await removeSticker(packageId, stickerId);
+			toast.success('Sticker removed successfully!');
 		} catch (error) {
 			console.error('Error removing sticker:', error);
 		}

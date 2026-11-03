@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { stickerService, type CreateStickerPackageRequest } from '$lib/api/sticker-service';
+	import { stickerService, type SaveStickerPackageRequest } from '$lib/api/sticker-service';
 	import StickerPackageCard from '$lib/components/sticker/sticker-package-card.svelte';
 	import StickerPackageEditor from '$lib/components/sticker/sticker-package-editor.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -8,7 +8,8 @@
 	import { Spinner } from '$lib/components/ui/spinner';
 	import { useUserStickersQuery } from '$lib/queries/use-user-sticker';
 	import { type StickerPackage } from '$lib/types/sticker';
-	import { Plus } from '@lucide/svelte';
+	import { ArrowLeftIcon, HouseIcon, Plus } from '@lucide/svelte';
+	import { toast } from 'svelte-sonner';
 	const { query, upsertStickerPackage, deletePackage } = useUserStickersQuery();
 	const { data: packs = [], isLoading } = $derived(query);
 	let editingPackage = $state<StickerPackage | null>(null);
@@ -18,9 +19,6 @@
 		editingPackage = null;
 	}
 
-	function editPackage(pkg: StickerPackage) {
-		editingPackage = pkg;
-	}
 	async function handleDownload(pack: StickerPackage) {
 		try {
 			const { downloadUrl } = await stickerService.download(pack.id);
@@ -29,22 +27,26 @@
 			console.error('Error saving sticker package:', error);
 		}
 	}
-	async function savePackage(request: CreateStickerPackageRequest) {
+
+	async function savePackage(request: SaveStickerPackageRequest) {
 		try {
-			if (editingPackage) return;
 			const response = await upsertStickerPackage(request);
-			if (response.id) {
-				editingPackage = response;
-			}
+			if (editingPackage === null && response.id)
+				editingPackage = response; // edit the package after creating
+			else editingPackage = null; // close the editor after updating
+
+			toast.success('Sticker package saved successfully!');
 		} catch (error) {
 			console.error('Error saving sticker package:', error);
 		}
 	}
 
-	async function handleDelete(id: number) {
+	async function handleDeletePack() {
 		try {
-			await deletePackage(id);
+			if (packToDelete === null) return;
+			await deletePackage(packToDelete);
 			packToDelete = null;
+			toast.success('Sticker package deleted successfully!');
 		} catch (error) {
 			console.error('Error deleting sticker package:', error);
 		}
@@ -55,7 +57,12 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between">
 		<div class="space-y-1">
-			<h1>My Stickers</h1>
+			<div class="flex items-center gap-2">
+				<Button onclick={() => history.back()} size="icon">
+					<ArrowLeftIcon />
+				</Button>
+				<h2>My Stickers</h2>
+			</div>
 			<p class="text-sm">Create and manage your sticker packages.</p>
 		</div>
 		<Dialog.Root bind:open={isEditing}>
@@ -84,7 +91,7 @@
 			{#each packs as pkg (pkg.id)}
 				<StickerPackageCard
 					{pkg}
-					onEdit={() => editPackage(pkg)}
+					onEdit={() => (editingPackage = pkg)}
 					onDownload={() => handleDownload(pkg)}
 					onDelete={() => {
 						packToDelete = pkg.id;
@@ -118,13 +125,8 @@
 			</Dialog.Description>
 		</Dialog.Header>
 		<Dialog.Footer>
-			<Button variant="outline" onclick={() => (packToDelete = null)}>Cancel</Button>
-			<Button
-				variant="destructive"
-				onclick={() => {
-					if (packToDelete !== null) handleDelete(packToDelete);
-				}}>Delete Pack</Button
-			>
+			<Button variant="secondary" onclick={() => (packToDelete = null)}>Cancel</Button>
+			<Button variant="destructive" onclick={handleDeletePack}>Delete Pack</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>

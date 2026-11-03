@@ -12,6 +12,7 @@
 	import CreateRoomDialog from '../room/create-room-dialog.svelte';
 	import Spinner from '../ui/spinner/spinner.svelte';
 	import { Badge } from '../ui/badge';
+	import { toast } from 'svelte-sonner';
 
 	let { sidebarOpen = $bindable(), roomId } = $props();
 	let isOpenRoomDialog = $state(false);
@@ -35,7 +36,7 @@
 			setUser(updatedUser);
 		} catch (error) {
 			console.error('Error toggling notifications:', error);
-			alert('Failed to toggle notifications.');
+			toast.error('Failed to toggle notifications.');
 		}
 	};
 </script>

@@ -1,5 +1,5 @@
 
-import { stickerService, type CreateStickerPackageRequest, type CreateStickerRequest } from '$lib/api/sticker-service';
+import { stickerService, type SaveStickerPackageRequest, type CreateStickerRequest } from '$lib/api/sticker-service';
 import type { StickerPackage } from '$lib/types/sticker';
 import { createQuery, useQueryClient } from '@tanstack/svelte-query';
 
@@ -16,17 +16,28 @@ export function useUserStickersQuery() {
 
     return {
         query,
-        upsertStickerPackage: async (request: CreateStickerPackageRequest) => {
-            const response = await stickerService.save(request);
+        upsertStickerPackage: async (request: SaveStickerPackageRequest) => {
+            let response = null;
+            if (request.id) response = await stickerService.update(request);
+            else response = await stickerService.save(request);
+
             queryClient.setQueryData<StickerPackage[]>(USER_STICKERS_QUERY_KEY, (old) => {
-                if (!old) return [stickerPackage];
-                const index = old.findIndex((s) => s.id === stickerPackage.id);
+                if (!old) return [response];
+                const index = old.findIndex((s) => s.id === response.id);
+                // update cache with the new package data while preserving the existing stickers array
                 if (index > -1) {
                     const updated = [...old];
-                    updated[index] = { ...updated[index], ...stickerPackage };
+                    const existingStickers = updated[index].stickers;
+                    updated[index] = {
+                        ...updated[index],
+                        ...response,
+                        stickers: existingStickers // Preserve the existing stickers array
+                    };
                     return updated;
+
                 }
-                return [stickerPackage, ...old];
+                // If the package is new, add it to the beginning of the list
+                return [response, ...old];
             });
             return response;
         },

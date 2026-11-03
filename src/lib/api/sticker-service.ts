@@ -1,8 +1,9 @@
 import type { PresignedUrlResponse } from '$lib/api/types';
-import type { StickerInfo, StickerPackage } from '$lib/types/sticker';
+import type { StickerPackage } from '$lib/types/sticker';
 import { apiClient } from './client';
 
-export type CreateStickerPackageRequest = {
+export type SaveStickerPackageRequest = {
+	id?: number;
 	name: string;
 	description?: string;
 	visibility: 'PUBLIC' | 'PRIVATE';
@@ -18,8 +19,11 @@ export const stickerService = {
 	getPublicStickerPackages: async (): Promise<StickerPackage[]> => {
 		return apiClient.get(`/sticker-packages`);
 	},
-	save: async (request: CreateStickerPackageRequest): Promise<StickerPackage> => {
+	save: async (request: SaveStickerPackageRequest): Promise<StickerPackage> => {
 		return apiClient.post(`/sticker-packages`, request);
+	},
+	update: async (request: SaveStickerPackageRequest): Promise<StickerPackage> => {
+		return apiClient.put(`/sticker-packages`, request);
 	},
 	delete: async (packageId: number): Promise<StickerPackage> => {
 		return apiClient.delete(`/sticker-packages/${packageId}`);
