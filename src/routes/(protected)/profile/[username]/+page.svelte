@@ -190,13 +190,10 @@
 		input.value = '';
 	}
 
-	async function uploadAvatar(file: File): Promise<string> {
-		const { uploadUrl, downloadUrl } = await storageService.getPresignedUrl(
-			file.name,
-			'AVATAR'
-		);
+	async function uploadAvatar(file: File) {
+		const { uploadUrl, objectKey } = await storageService.getPresignedUrl(file.name, 'AVATAR');
 		await storageService.uploadFile(uploadUrl, file);
-		return downloadUrl;
+		return objectKey;
 	}
 
 	async function handleProfileUpdate(event: SubmitEvent) {
@@ -205,16 +202,16 @@
 		feedbackMessage = { text: '', type: '' };
 		isSaving = true;
 		try {
-			let finalAvatarUrl = profile.avatarUrl;
+			let objectKey = null;
 			if (selectedAvatarFile) {
 				isUploading = true;
-				finalAvatarUrl = await uploadAvatar(selectedAvatarFile);
+				objectKey = await uploadAvatar(selectedAvatarFile);
 				isUploading = false;
 			}
 			const updated = await userService.updateUserProfile({
 				displayName: badgeForm.displayName.trim(),
 				title: badgeForm.title,
-				avatarUrl: finalAvatarUrl,
+				avatarUrl: objectKey,
 				titleStyle: {
 					textColor: badgeForm.textColor,
 					backgroundColor: badgeForm.backgroundColor,

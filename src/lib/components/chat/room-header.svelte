@@ -10,8 +10,22 @@
 	import RoomEffectPicker from '../room-effects/room-effect-picker.svelte';
 	import RoomDetailDiaglog from '../room/room-detail-diaglog.svelte';
 	import RoomMembersPopover from './room-header/room-members-popover.svelte';
-	import { resolve } from '$app/paths';
-	let { sidebarOpen = $bindable(), room, onlineUsers, sendRaw, selectedRoomEffect } = $props();
+	import type { UserInfo } from '$lib/types/user';
+	import type { RoomEffect } from '../room-effects/effects/particles';
+	type Props = {
+		sidebarOpen: boolean;
+		room: RoomInfo;
+		onlineUsers: UserInfo[];
+		sendRaw: (data: any) => void;
+		selectedRoomEffect: RoomEffect | null;
+	};
+	let {
+		sidebarOpen = $bindable(),
+		room,
+		onlineUsers,
+		sendRaw,
+		selectedRoomEffect
+	}: Props = $props();
 	let selectedRoom = $state<RoomInfo | null>(null);
 	const { currentUser } = $derived(useUser());
 
@@ -34,7 +48,12 @@
 	{/if}
 	<h2 class="text-lg font-bold tracking-wide truncate">
 		<span class="text-accent">#</span>
-		<Button variant="link" size="sm" class="p-0 text-primary-foreground">
+		<Button
+			onclick={() => (selectedRoom = room)}
+			variant="link"
+			size="sm"
+			class="p-0 text-primary-foreground"
+		>
 			{room.id}
 		</Button>
 	</h2>
@@ -64,5 +83,11 @@
 		</div>
 	</div>
 
-	<RoomDetailDiaglog open={selectedRoom !== null} />
+	<RoomDetailDiaglog
+		open={selectedRoom !== null}
+		{room}
+		onOpenChange={(value) => {
+			if (!value) selectedRoom = null;
+		}}
+	/>
 </header>

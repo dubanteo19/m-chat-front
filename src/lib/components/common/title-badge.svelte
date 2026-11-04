@@ -3,10 +3,10 @@
 	import { animationClassMap } from '$lib/constants/animations';
 	import { FRAMED_BADGE_STYLES } from '$lib/constants/animations';
 
-	let { user } = $props<{
-		user: Partial<UserInfo> & { title?: string; titleStyle?: TitleStyle };
-		textSize?: string;
-	}>();
+	type Props = {
+		user: Partial<UserInfo>;
+	};
+	let { user }: Props = $props();
 	const isFramed = $derived(FRAMED_BADGE_STYLES.has(user.titleStyle?.animationVibe || 'none'));
 
 	const textShadowMap: Record<string, string> = {

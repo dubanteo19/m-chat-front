@@ -4,6 +4,7 @@
 	import type { CreateRoomRequest } from '$lib/api/room';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
+	import { useUserRoomsQuery } from '$lib/queries/use-user-room';
 
 	let {
 		open = $bindable(false),
@@ -16,7 +17,7 @@
 	let name = $state('');
 	let description = $state('');
 	let isSubmitting = $state(false);
-
+	const { upsertRoom } = useUserRoomsQuery();
 	$effect(() => {
 		if (open) {
 			name = '';
@@ -30,7 +31,7 @@
 
 		try {
 			isSubmitting = true;
-			await onsubmit({ name, description });
+			await upsertRoom({ name, description });
 			open = false;
 		} catch (error) {
 			console.error('Failed to save room:', error);

@@ -17,7 +17,6 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 	console.log(`Fetching room data for roomId: ${roomId}`);
 	const response = await fetch(`${PUBLIC_BASE_URL}/rooms/${roomId}`);
 
-
 	if (response.status === 403) {
 		throw error(403, { message: 'You do not have access to this room' });
 	}

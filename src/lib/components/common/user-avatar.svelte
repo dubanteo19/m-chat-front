@@ -1,10 +1,11 @@
 <script lang="ts">
 	import type { UserInfo } from '$lib/types/user';
 	import { resolve } from '$app/paths';
-	let { user, class: className = '' } = $props<{
+	type Props = {
 		user: UserInfo;
 		class?: string;
-	}>();
+	};
+	let { user, class: className = '' }: Props = $props();
 
 	let imageFailed = $state(false);
 
@@ -23,7 +24,7 @@
 	href={resolve(`/profile/${user.username || user.id}`)}
 	target="_blank"
 	referrerpolicy="no-referrer"
-	class="shrink-0 size-8 rounded-full overflow-hidden select-none block hover:opacity-90 transition-opacity hover:no-underline! ${className}"
+	class="shrink-0 size-8 rounded-full overflow-hidden select-none block hover:opacity-90 transition-opacity hover:no-underline! {className}"
 >
 	{#if user.avatarUrl && !imageFailed}
 		<img

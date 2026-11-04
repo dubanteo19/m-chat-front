@@ -24,6 +24,9 @@ export class RoomState {
     get members(): RoomMemberInfo[] {
         return this.membersQuery.data ?? [];
     }
+    get roomId(): string {
+        return this.getRoomId();
+    }
 
     addMember(newMember: RoomMemberInfo) {
         this.queryClient.setQueryData<RoomMemberInfo[]>(

@@ -49,6 +49,8 @@
 	import { onMount, setContext, untrack } from 'svelte';
 	import type { PageData } from './$types';
 	import { WebRTCConnection } from '$lib/webrtc/webrtc';
+	import { goto } from '$app/navigation';
+	import { toast } from 'svelte-sonner';
 	let { data }: { data: PageData } = $props();
 	let roomId = $derived(data.room.id);
 	const roomState = new RoomState(() => roomId);
@@ -67,7 +69,7 @@
 
 	let p2pState = $state<RTCPeerConnectionState>('new');
 	let receivedMessage = $state('');
-	const { markRoomAsRead } = useUserRoomsQuery();
+	const { markRoomAsRead, createDm } = useUserRoomsQuery();
 	setContext(ROOM_MEMBERS_KEY, roomState);
 
 	function updateMessageReactions(
@@ -303,6 +305,21 @@
 		pswp.init();
 	}
 
+	async function onCreateOrOpenDm(peerId: number) {
+		try {
+			const roomInfo = await createDm({ peerId });
+
+			if (roomInfo) {
+				const shouldNavigate = roomInfo.id !== roomState.roomId;
+				if (shouldNavigate) {
+					goto(`/room/${roomInfo.id}`, { replaceState: false });
+				}
+			}
+		} catch (error) {
+			console.error('Error creating or opening DM:', error);
+			toast.error('Failed to open direct message. Please try again.');
+		}
+	}
 	async function processFile(file: File) {
 		const fileType = validateAndExtractMediaFile(file);
 		if (!fileType) {
@@ -523,7 +540,6 @@
 						bind:sidebarOpen
 						onlineUsers={websocketService.onlineUsers}
 					/>
-
 					<div
 						use:scrollService.use
 						class="flex flex-1 flex-col min-h-0 gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
@@ -539,6 +555,7 @@
 								{handleDelete}
 								sendReact={handleSendReact}
 								{onOpenLightbox}
+								{onCreateOrOpenDm}
 							/>
 						{/each}
 						<TypingIndicator typingUsers={websocketService.typingUsers} />

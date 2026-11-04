@@ -2,15 +2,20 @@
 	import * as HoverCard from '$lib/components/ui/hover-card/index.js';
 	import type { Message } from '$lib/types/message';
 	import { formatDate } from '$lib/utils/date';
+	import {
+		CircleAlert,
+		CircleCheck,
+		LoaderCircle,
+		MessagesSquare,
+		PhoneCallIcon
+	} from '@lucide/svelte';
 	import 'photoswipe/dist/photoswipe.css';
 	import UserAvatar from '../common/user-avatar.svelte';
 	import UserBadge from '../common/user-badge.svelte';
-	import { CircleAlert, CircleCheck, LoaderCircle, MessagesSquare } from '@lucide/svelte';
 
-	import { MessageContent, MessageReactions, MessageReply, MessageToolbar } from './message';
+	import { useRoom } from '../room/room-state.svelte';
 	import Button from '../ui/button/button.svelte';
-	import { roomService } from '$lib/api/room';
-	import { toast } from 'svelte-sonner';
+	import { MessageContent, MessageReactions, MessageReply, MessageToolbar } from './message';
 
 	let {
 		message,
@@ -21,7 +26,8 @@
 		sendReact,
 		openReactionId,
 		setOpenReactionId,
-		onOpenLightbox
+		onOpenLightbox,
+		onCreateOrOpenDm
 	}: {
 		message: Message;
 		isLastMessage: boolean;
@@ -32,8 +38,10 @@
 		openReactionId: number | null;
 		setOpenReactionId: (id: number | null) => void;
 		onOpenLightbox?: (message: Message, imgElement?: HTMLImageElement) => void;
+		onCreateOrOpenDm: (peerId: number) => Promise<void>;
 	} = $props();
 
+	const roomState = useRoom();
 	const isSystem = $derived(message.type === 'SYSTEM');
 
 	let pressTimer: ReturnType<typeof setTimeout>;
@@ -49,10 +57,6 @@
 	function handlePressEnd() {
 		clearTimeout(pressTimer);
 	}
-	async function handleCreateOrOpenDm() {
-		await roomService.createDm({ peerId: message.sender.id });
-		toast.success(`Direct message with ${message.sender.displayName} opened!`);
-	}
 </script>
 
 <div
@@ -67,11 +71,27 @@
 			<HoverCard.Trigger>
 				<UserAvatar user={message.sender} />
 			</HoverCard.Trigger>
-			<HoverCard.Content side="bottom" class="w-fit">
-				<UserBadge user={message.sender} />
-				<Button onclick={handleCreateOrOpenDm} size="icon" variant="link" class="ml-2">
-					<MessagesSquare />
-				</Button>
+			<HoverCard.Content side="bottom">
+				<div class="flex flex-col gap-2">
+					<div class="flex flex-col items-center gap-2">
+						<UserAvatar class="w-18 h-18" user={message.sender} />
+						<UserBadge user={message.sender} />
+						<span class="text-sm">@{message.sender.username}</span>
+					</div>
+					<div class="flex items-center gap-1 rounded-xl border">
+						<Button
+							onclick={() => onCreateOrOpenDm(message.sender.id)}
+							size="icon"
+							variant="secondary"
+							class="ml-2"
+						>
+							<MessagesSquare />
+						</Button>
+						<Button size="icon" variant="secondary" class="ml-2">
+							<PhoneCallIcon />
+						</Button>
+					</div>
+				</div>
 			</HoverCard.Content>
 		</HoverCard.Root>
 	{/if}

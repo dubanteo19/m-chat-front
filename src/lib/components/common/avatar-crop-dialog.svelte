@@ -59,7 +59,7 @@
 	}}
 >
 	<Dialog.Content
-		class="max-h-[90dvh] overflow-y-auto border border-slate-700 bg-slate-950 text-slate-100"
+		class="max-h-[90dvh] overflow-y-auto border border-slate-700 bg-slate-950 text-slate-400"
 	>
 		<Dialog.Header>
 			<Dialog.Title>Adjust photo</Dialog.Title>
