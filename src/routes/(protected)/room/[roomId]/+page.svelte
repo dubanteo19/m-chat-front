@@ -59,6 +59,7 @@
 	let roomEffect = $state<RoomEffect | null>(null);
 	let replyingToMessage = $state<Message | null>(null);
 	let messages = $state<Message[]>([]);
+	let nextCursor = $state<string>();
 	let isDragging = $state(false);
 	let sidebarOpen = $state(false);
 	let isBuzzing = $state(false);
@@ -145,8 +146,7 @@
 
 	const loadChatHistory = async (targetRoom: string) => {
 		try {
-			const data = await messageService.getRoomMessages(targetRoom);
-			messages = (data.data || []).map((msg) => processIncomingMessage(msg, currentUser.username));
+			await handleLoadMore();
 			const lastestSeq = messages.reduce((max, msg) => Math.max(max, msg.seq), 0);
 			await markRoomAsRead(targetRoom, lastestSeq);
 			scrollService.scrollToBottom();
@@ -474,6 +474,19 @@
 	function handleSendReact(messageId: number, emoji: string) {
 		messageService.sendReact({ messageId, roomId, emoji });
 	}
+	async function handleLoadMore() {
+		try {
+			const data = await messageService.getRoomMessages(roomId, nextCursor);
+			const nextMessages = (data.data || []).map((msg) =>
+				processIncomingMessage(msg, currentUser.username)
+			);
+			if (nextMessages.length) messages = [...nextMessages, ...messages];
+
+			if (data.hasMore && data.nextCursor) nextCursor = data.nextCursor;
+		} catch (error) {
+			console.error('failed to load messages', error);
+		}
+	}
 </script>
 
 <div class="flex flex-1 min-h-0 overflow-hidden">
@@ -544,11 +557,11 @@
 						use:scrollService.use
 						class="flex flex-1 flex-col min-h-0 gap-2 w-full p-4 overflow-y-auto [&::-webkit-scrollbar]:hidden"
 					>
+						<Button onclick={handleLoadMore}>More</Button>
 						{#each messages as message, i (i)}
 							<MessageItem
 								{message}
 								isLastMessage={i === messages.length - 1}
-								onImageLoad={scrollService.scrollToBottom}
 								{openReactionId}
 								setOpenReactionId={(id) => (openReactionId = id)}
 								handleReply={(msg) => (replyingToMessage = msg)}
