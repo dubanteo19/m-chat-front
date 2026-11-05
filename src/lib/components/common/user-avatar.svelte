@@ -21,7 +21,7 @@
 </script>
 
 <a
-	href={resolve(`/profile/${user.username || user.id}`)}
+	href={resolve(`/profile/${user.username}`)}
 	target="_blank"
 	referrerpolicy="no-referrer"
 	class="shrink-0 size-8 rounded-full overflow-hidden select-none block hover:opacity-90 transition-opacity hover:no-underline! {className}"

@@ -165,6 +165,7 @@
 
 		untrack(() => {
 			messages = [];
+			nextCursor = undefined;
 			loadChatHistory(currentRoomId);
 			websocketService.connect(currentRoomId, currentUser, {
 				onMessage(raw) {
@@ -562,6 +563,7 @@
 							<MessageItem
 								{message}
 								isLastMessage={i === messages.length - 1}
+								onImageLoad={scrollService.scrollToBottom}
 								{openReactionId}
 								setOpenReactionId={(id) => (openReactionId = id)}
 								handleReply={(msg) => (replyingToMessage = msg)}

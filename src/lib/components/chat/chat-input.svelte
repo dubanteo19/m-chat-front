@@ -2,11 +2,7 @@
 	import { useUser } from '$lib/stores/auth.svelte';
 
 	import * as Popover from '$lib/components/ui/popover/index.js';
-	import {
-		MessageType,
-		type Message,
-		type MessagePayload
-	} from '$lib/types/message';
+	import { MessageType, type Message, type MessagePayload } from '$lib/types/message';
 	import { Send } from '@lucide/svelte';
 	import { useRoom } from '../room/room-state.svelte';
 	import { Button } from '../ui/button';

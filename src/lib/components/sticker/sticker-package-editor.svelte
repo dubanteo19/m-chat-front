@@ -15,7 +15,7 @@
 	import { Globe, Lock, Trash2 } from '@lucide/svelte';
 	import FileUploader from '../common/file-uploader.svelte';
 	import { useUserStickersQuery } from '$lib/queries/use-user-sticker';
-	import { userEventService } from '$lib/services/user-event.svelte';
+	import { UserEvent, userEventService } from '$lib/services/user-event.svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	let {
@@ -38,16 +38,11 @@
 
 	let optimisticIdCounter = 0;
 	onMount(() => {
-		userEventService.connect({
-			onStickerStatusChanged: (event) => {
-				stickers = stickers.map((sticker) =>
-					sticker.id === event.stickerId ? { ...sticker, status: event.status } : sticker
-				);
-			}
+		return userEventService.subscribe(UserEvent.STICKER_STATUS_CHANGED, ({ stickerId, status }) => {
+			stickers = stickers.map((sticker) =>
+				sticker.id === stickerId ? { ...sticker, status } : sticker
+			);
 		});
-		return () => {
-			userEventService.disconnect();
-		};
 	});
 	async function handleFiles(files: FileList | null) {
 		if (!initialPackage) return;

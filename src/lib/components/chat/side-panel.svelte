@@ -14,6 +14,9 @@
 	import { Badge } from '../ui/badge';
 	import { toast } from 'svelte-sonner';
 	import { RoomType } from '$lib/types/room';
+	import { onMount, untrack } from 'svelte';
+	import { UserEvent, userEventService } from '$lib/services/user-event.svelte';
+	import { presenceService } from '$lib/api/presence-service';
 
 	let { sidebarOpen = $bindable(), roomId } = $props();
 	let isOpenRoomDialog = $state(false);
@@ -25,7 +28,36 @@
 		await authService.logout();
 		await goto(resolve('/login'));
 	}
+	let presenceInterval: ReturnType<typeof setInterval>;
 
+	async function updatePresence() {
+		const peerIds = rooms.filter((room) => room.type === RoomType.DM).map((room) => room.peerId);
+		if (peerIds.length === 0) return;
+		const presence = await presenceService.getPresence(peerIds);
+		rooms = rooms.map((room) => ({
+			...room,
+			online: presence[room.peerId] ?? false
+		}));
+	}
+
+	$effect(() => {
+		if (isLoading) return;
+		untrack(() => {
+			if (rooms.length === 0) return;
+			updatePresence();
+			presenceInterval = setInterval(updatePresence, 10_000);
+		});
+
+		return () => clearInterval(presenceInterval);
+	});
+
+	onMount(() => {
+		return userEventService.subscribe(UserEvent.ROOM_UNREAD_UPDATED, (payload) => {
+			rooms = rooms.map((room) =>
+				room.id === payload.roomId ? { ...room, unreadCount: room.unreadCount + 1 } : room
+			);
+		});
+	});
 	async function handleCreateRoom(data: CreateRoomRequest) {
 		await roomService.createRoom(data);
 	}
@@ -95,11 +127,18 @@
 							class="flex items-center px-3 py-2 rounded-md text-sm transition-colors hover:bg-slate-700/50 hover:text-slate-200"
 						>
 							{#if room.type == RoomType.DM}
-								<img
-									src={room.peerAvatarUrl}
-									alt={room.peerDisplayName}
-									class="size-6 rounded-full mr-2"
-								/>
+								<div class="relative">
+									<img
+										src={room.peerAvatarUrl}
+										alt={room.peerDisplayName}
+										class="size-6 rounded-full mr-2"
+									/>
+									{#if room.online}
+										<span
+											class="absolute size-2 bottom-0 right-1 bg-green-500 rounded ring-2 ring-white z-10"
+										></span>
+									{/if}
+								</div>
 							{/if}
 							{room.type === RoomType.DM ? room.peerDisplayName : `# ${room.name}`}
 						</div>

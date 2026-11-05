@@ -15,6 +15,8 @@ export interface RoomInfo {
 	unreadCount: number;
 	peerDisplayName?: string;
 	peerAvatarUrl?: string;
+	peerId: number;
+	online: boolean;
 }
 
 export type RoomRole = 'MASTER' | 'MEMBER';
