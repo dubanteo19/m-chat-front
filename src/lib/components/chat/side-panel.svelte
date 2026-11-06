@@ -17,6 +17,8 @@
 	import { onMount, untrack } from 'svelte';
 	import { UserEvent, userEventService } from '$lib/services/user-event.svelte';
 	import { presenceService } from '$lib/api/presence-service';
+	import { titleNotification } from '$lib/services/title-notification-service.svelte';
+	import { faviconNotification } from '$lib/services/favicon-notification.service';
 
 	let { sidebarOpen = $bindable(), roomId } = $props();
 	let isOpenRoomDialog = $state(false);
@@ -54,8 +56,11 @@
 	onMount(() => {
 		return userEventService.subscribe(UserEvent.ROOM_UNREAD_UPDATED, (payload) => {
 			rooms = rooms.map((room) =>
-				room.id === payload.roomId ? { ...room, unreadCount: room.unreadCount + 1 } : room
+				(room.id === payload.roomId && payload.roomId != roomId) ? { ...room, unreadCount: room.unreadCount + 1 } : room
+
 			);
+			faviconNotification.start();
+			titleNotification.notify();
 		});
 	});
 	async function handleCreateRoom(data: CreateRoomRequest) {
